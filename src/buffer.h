@@ -48,11 +48,7 @@
 #include <stdbool.h>
 
 // Block of buffer
-
-struct block {
-    uint32_t value;
-    struct block *pnext;
-};
+struct block;
 
 struct block *buffer_create(void);
 struct block *buffer_create_init(size_t initial_capacity);

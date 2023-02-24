@@ -50,6 +50,11 @@
 #include "macros.h"
 #include "utils/string.h"
 
+struct block {
+    uint32_t value;
+    struct block *pnext;
+};
+
 static struct block *
 buffer_get_block(struct block *const buf, size_t pos) {
     struct block *temp = buf;
