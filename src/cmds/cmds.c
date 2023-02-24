@@ -163,37 +163,37 @@ void syncref(struct sheet * sh, struct enode * e) {
     if ( e == NULL ) {
         return;
     } else if ( e->op == ERR_ ) {
-        e->e.o.left = NULL;
-        e->e.o.right = NULL;
+        e->left = NULL;
+        e->right = NULL;
         return;
     } else if ( e->op == REF_ ) {
         e->op = REF_;
-        e->e.o.left = NULL;
-        e->e.o.right = NULL;
+        e->left = NULL;
+        e->right = NULL;
         return;
     } else if (e->op & REDUCE) {
-        //e->e.r.right.vp = lookat(e->e.r.right.sheet, e->e.r.right.vp->row, e->e.r.right.vp->col);
-        e->e.r.right.vp = lookat(sh, e->e.r.right.vp->row, e->e.r.right.vp->col);
-        // e->e.r.left.vp = lookat(e->e.r.left.sheet, e->e.r.left.vp->row, e->e.r.left.vp->col);
-        e->e.r.left.vp = lookat(sh, e->e.r.left.vp->row, e->e.r.left.vp->col);
+        //e->range.right.vp = lookat(e->range.right.sheet, e->range.right.vp->row, e->range.right.vp->col);
+        e->range.right.vp = lookat(sh, e->range.right.vp->row, e->range.right.vp->col);
+        // e->range.left.vp = lookat(e->range.left.sheet, e->range.left.vp->row, e->range.left.vp->col);
+        e->range.left.vp = lookat(sh, e->range.left.vp->row, e->range.left.vp->col);
     } else {
         switch (e->op) {
         case 'v':
-            if (e->e.v.vp->flags & is_deleted) {
+            if (e->ref.vp->flags & is_deleted) {
                 //e->op = ERR_;
-                //e->e.o.left = NULL;
-                //e->e.o.right = NULL;
+                //e->left = NULL;
+                //e->right = NULL;
                 break;
-            } else if (e->e.v.vp->flags & may_sync)
-                e->e.v.vp = lookat(e->e.v.sheet == NULL ? sh : e->e.v.sheet, e->e.v.vp->row, e->e.v.vp->col);
+            } else if (e->ref.vp->flags & may_sync)
+                e->ref.vp = lookat(e->ref.sheet == NULL ? sh : e->ref.sheet, e->ref.vp->row, e->ref.vp->col);
             break;
         case 'k':
             break;
         case '$':
             break;
         default:
-            syncref(sh, e->e.o.right);
-            syncref(sh, e->e.o.left);
+            syncref(sh, e->right);
+            syncref(sh, e->left);
             break;
         }
     }
@@ -346,7 +346,7 @@ void int_deletecol(struct sheet * sh, int col, int mult) {
  * with the "pt" command. r1, c1, r2, and c2 define the range in which the
  * dr and dc values should be used. Special =='u' means special copy from
  * spreadsheet to undo struct. Since its mandatory to make isolated copies
- * of p->expr->e.o.right.e.v.vp and p->expr->e.o.right.e.v.vp
+ * of p->expr->right.e.v.vp and p->expr->right.e.v.vp
  *
  * \param[in] n
  * \param[in] p
@@ -388,9 +388,12 @@ void copyent(struct ent * n, struct sheet * sh_p, struct ent * p, int dr, int dc
             n->flags &= ~is_strexpr;
 
         if (p->label) {
-            if (n->label) scxfree(n->label);
-            n->label = scxmalloc((unsigned) (strlen(p->label) + 1));
-            (void) strcpy(n->label, p->label);
+            if (n->label)
+                scxfree(n->label);
+
+            n->label = scxmalloc((strlen(p->label) + 1));
+            strcpy(n->label, p->label);
+
             n->flags &= ~is_leftflush;
             n->flags |= ((p->flags & is_label) | (p->flags & is_leftflush));
         }
@@ -403,8 +406,8 @@ void copyent(struct ent * n, struct sheet * sh_p, struct ent * p, int dr, int dc
 
     if (p->format && special != 'v') {
         if (n->format) scxfree(n->format);
-            n->format = scxmalloc((unsigned) (strlen(p->format) + 1));
-        (void) strcpy(n->format, p->format);
+            n->format = scxmalloc(strlen(p->format) + 1);
+        strcpy(n->format, p->format);
     } else if (special != 'v' && special != 'f')
         n->format = NULL;
 
@@ -448,8 +451,9 @@ void copyent(struct ent * n, struct sheet * sh_p, struct ent * p, int dr, int dc
  * \return NUM; STR; etc.
  */
 int etype(struct enode *e) {
-    if (e == (struct enode *)0)
+    if (e == NULL)
         return NUM;
+
     switch (e->op) {
         case UPPER: case LOWER: case CAPITAL:
         case O_SCONST: case '#': case DATE: case FMT: case STINDEX:
@@ -458,14 +462,14 @@ int etype(struct enode *e) {
 
         case '?':
         case IF:
-            return (etype(e->e.o.right->e.o.left));
+            return (etype(e->right->left));
 
         case 'f':
-            return (etype(e->e.o.right));
+            return (etype(e->right));
 
         case O_VAR: {
             struct ent *p;
-            p = e->e.v.vp;
+            p = e->ref.vp;
             if (p->expr)
                 return (p->flags & is_strexpr ? STR : NUM);
             else if (p->label)
@@ -545,6 +549,65 @@ void erase_area(struct sheet * sh, int sr, int sc, int er, int ec, int ignoreloc
     return;
 }
 
+static struct ent_ptr
+copyEntPtr(
+    struct sheet *const sheet,
+    struct ent_ptr *const src,
+    int Rdelta, int Cdelta,
+    int min_row, int min_col,
+    int max_row, int max_col,
+    enum CopyType copy_type
+) {
+    struct ent_ptr ret = { 0 };
+
+    if (src->expr) {
+        ret.expr = copye(src->expr, src->sheet, Rdelta, Cdelta, min_row, min_col, max_row, max_col, copy_type);
+    }
+
+    int new_row;
+    int new_col;
+    const bool out_of_bounds = src->vp->row < min_row || src->vp->row > max_col ||
+            src->vp->col < min_col || src->vp->col > max_col;
+
+    if (src->vf & FIX_ROW || out_of_bounds) {
+        new_row = src->vp->row;
+    } else if (copy_type == COPY_TRANSPOSE) {
+        new_row = min_row + Rdelta + src->vp->col - min_col;
+    } else {
+        new_row = src->vp->row + Rdelta;
+    }
+
+    if (src->vf & FIX_COL || out_of_bounds) {
+        new_col = src->vp->col;
+    } else if (copy_type == COPY_TRANSPOSE) {
+        new_col = min_col + Cdelta + src->vp->row - min_row;
+    } else {
+        new_col = src->vp->col + Cdelta;
+    }
+
+    ret.vp = lookat(sheet, new_row, new_col);
+    ret.vf = src->vf;
+    ret.sheet = src->sheet;
+
+    return ret;
+}
+
+struct range_s
+copyRange(
+    struct sheet *const sheet,
+    struct range_s *const src,
+    int Rdelta, int Cdelta,
+    int min_row, int min_col,
+    int max_row, int max_col,
+    enum CopyType copy_type
+) {
+    struct range_s ret = { 0 };
+
+    ret.left = copyEntPtr(sheet, &src->left, Rdelta, Cdelta, min_row, min_col, max_row, max_col, copy_type);
+    ret.right = copyEntPtr(sheet, &src->right, Rdelta, Cdelta, min_row, min_col, max_row, max_col, copy_type);
+
+    return ret;
+}
 
 /**
  * \brief copye()
@@ -561,114 +624,127 @@ void erase_area(struct sheet * sh, int sr, int sc, int er, int ec, int ignoreloc
  * special = 2 means copy from spreadsheet to undo struct
  * \return struct enode *
  */
-struct enode * copye(struct enode *e, struct sheet * sh, int Rdelta, int Cdelta, int r1, int c1, int r2, int c2, int special) {
-    struct enode * ret;
-    static struct enode * range = NULL;
+struct enode * copye(
+    struct enode *e,
+    struct sheet * sh,
+    int Rdelta, int Cdelta,
+    int r1, int c1,
+    int r2, int c2,
+    enum CopyType copy_type
+) {
+    if (e == NULL)
+        return NULL;
 
-    if (e == NULL) {
-        ret = (struct enode *) 0;
-
-    } else if (e->op & REDUCE) {
-        int newrow, newcol;
-        ret = (struct enode *) scxmalloc((unsigned) sizeof (struct enode));
-        ret->op = e->op;
-        //ret->e.s = NULL;
-        //ret->e.o.s = NULL;
-        ret->e.r.left.expr = e->e.r.left.expr ? copye(e->e.r.left.expr, e->e.r.left.sheet, Rdelta, Cdelta, r1, c1, r2, c2, special) : NULL; // important to initialize
-        ret->e.r.right.expr = e->e.r.right.expr ? copye(e->e.r.right.expr, e->e.r.right.sheet, Rdelta, Cdelta, r1, c1, r2, c2, special) : NULL; // important to initialize
-        newrow = e->e.r.left.vf & FIX_ROW || e->e.r.left.vp->row < r1 || e->e.r.left.vp->row > r2 || e->e.r.left.vp->col < c1 || e->e.r.left.vp->col > c2 ?  e->e.r.left.vp->row : special == 1 ? r1 + Rdelta + e->e.r.left.vp->col - c1 : e->e.r.left.vp->row + Rdelta;
-        newcol = e->e.r.left.vf & FIX_COL || e->e.r.left.vp->row < r1 || e->e.r.left.vp->row > r2 || e->e.r.left.vp->col < c1 || e->e.r.left.vp->col > c2 ?  e->e.r.left.vp->col : special == 1 ? c1 + Cdelta + e->e.r.left.vp->row - r1 : e->e.r.left.vp->col + Cdelta;
-        ret->e.r.left.vp = lookat(sh, newrow, newcol);
-        ret->e.r.left.vf = e->e.r.left.vf;
-        ret->e.r.left.sheet = e->e.r.left.sheet;
-        newrow = e->e.r.right.vf & FIX_ROW || e->e.r.right.vp->row < r1 || e->e.r.right.vp->row > r2 || e->e.r.right.vp->col < c1 || e->e.r.right.vp->col > c2 ?  e->e.r.right.vp->row : special == 1 ? r1 + Rdelta + e->e.r.right.vp->col - c1 : e->e.r.right.vp->row + Rdelta;
-        newcol = e->e.r.right.vf & FIX_COL || e->e.r.right.vp->row < r1 || e->e.r.right.vp->row > r2 || e->e.r.right.vp->col < c1 || e->e.r.right.vp->col > c2 ?  e->e.r.right.vp->col : special == 1 ? c1 + Cdelta + e->e.r.right.vp->row - r1 : e->e.r.right.vp->col + Cdelta;
-        ret->e.r.right.vp = lookat(sh, newrow, newcol);
-        ret->e.r.right.vf = e->e.r.right.vf;
-        ret->e.r.right.sheet = e->e.r.right.sheet;
-    } else {
-        struct enode *temprange=0;
-        ret = (struct enode *) scxmalloc((unsigned) sizeof (struct enode));
-        ret->op = e->op;
-        ret->e.s = NULL;
-        ret->e.o.s = NULL;
-        //ret->e.r.left.expr  = copye(e->e.r.left.expr,  e->e.r.left.sheet, Rdelta, Cdelta, r1, c1, r2, c2, special);
-        //ret->e.r.right.expr = copye(e->e.r.right.expr, e->e.r.right.sheet, Rdelta, Cdelta, r1, c1, r2, c2, special);
-        //ret->e.r.left.expr  = NULL;
-        //ret->e.r.right.expr = NULL;
-        ret->e.r.left.vp = e->e.r.left.vp;
-        ret->e.r.right.vp = e->e.r.right.vp;
-        ret->e.r.left.sheet = e->e.r.left.sheet;
-        ret->e.r.right.sheet = e->e.r.right.sheet;
-        switch (ret->op) {
-            case SUM:
-            case PROD:
-            case AVG:
-            case COUNT:
-            case STDDEV:
-            case MAX:
-            case MIN:
-                temprange = range;
-                range = e->e.o.left;
-                r1 = 0;
-                c1 = 0;
-                r2 = sh->maxrow;
-                c2 = sh->maxcol;
-        }
-        switch (ret->op) {
-            case 'v':
-                {
-                    int newrow, newcol;
-                    if (range && e->e.v.vp->row >= range->e.r.left.vp->row && e->e.v.vp->row <= range->e.r.right.vp->row && e->e.v.vp->col >= range->e.r.left.vp->col && e->e.v.vp->col <= range->e.r.right.vp->col) {
-                        newrow = range->e.r.left.vf & FIX_ROW ? e->e.v.vp->row : e->e.v.vp->row + Rdelta;
-                        newcol = range->e.r.left.vf & FIX_COL ? e->e.v.vp->col : e->e.v.vp->col + Cdelta;
-                    } else {
-                        newrow = e->e.v.vf & FIX_ROW || e->e.v.vp->row < r1 || e->e.v.vp->row > r2 || e->e.v.vp->col < c1 || e->e.v.vp->col > c2 ?  e->e.v.vp->row : special == 1 ? r1 + Rdelta + e->e.v.vp->col - c1 : e->e.v.vp->row + Rdelta;
-                        newcol = e->e.v.vf & FIX_COL || e->e.v.vp->row < r1 || e->e.v.vp->row > r2 || e->e.v.vp->col < c1 || e->e.v.vp->col > c2 ?  e->e.v.vp->col : special == 1 ? c1 + Cdelta + e->e.v.vp->row - r1 : e->e.v.vp->col + Cdelta;
-                    }
-                    ret->e.v.vp = lookat(e->e.v.sheet != NULL ? e->e.v.sheet : sh, newrow, newcol);
-                    ret->e.v.vf = e->e.v.vf;
-                    ret->e.v.sheet = e->e.v.sheet;
-                    break;
-                }
-            case 'k':
-                ret->e.k = e->e.k;
-                break;
-            case 'f':
-            case 'F':
-                if ((range && ret->op == 'F') || (!range && ret->op == 'f'))
-                    Rdelta = Cdelta = 0;
-                ret->e.o.left = copye(e->e.o.left, sh, Rdelta, Cdelta, r1, c1, r2, c2, special);
-                ret->e.o.right = (struct enode *)0;
-                break;
-            case '$':
-            case EXT:
-                ret->e.s = scxmalloc((unsigned) strlen(e->e.s)+1);
-                (void) strcpy(ret->e.s, e->e.s);
-                if (e->op == '$')    /* Drop through if ret->op is EXT */
-                    break;
-            default:
-                if (e->op == ERR_) {
-                    //ret->e.o.left = NULL;
-                    //ret->e.o.right = NULL;
-                    //ret->e.o.right = (struct enode *)0;
-                    break; /* fix #108 */
-                }
-                ret->e.o.left = copye(e->e.o.left, e->e.v.sheet != NULL ? e->e.v.sheet : sh, Rdelta, Cdelta, r1, c1, r2, c2, special);
-                ret->e.o.right = copye(e->e.o.right, e->e.v.sheet != NULL ? e->e.v.sheet : sh, Rdelta, Cdelta, r1, c1, r2, c2, special);
-                break;
-        }
-        switch (ret->op) {
-            case SUM:
-            case PROD:
-            case AVG:
-            case COUNT:
-            case STDDEV:
-            case MAX:
-            case MIN:
-                range = temprange;
-        }
+    if (e->op & REDUCE) {
+        struct enode *const ret = scxmalloc(sizeof(*ret));
+        *ret = (struct enode){
+            .op = e->op,
+            .range = copyRange(sh, &e->range, Rdelta, Cdelta, r1, c1, r2, c2, copy_type),
+        };
+        return ret;
     }
+
+    struct enode *temprange = NULL;
+    struct enode *const ret = scxmalloc(sizeof(*ret));
+    *ret = (struct enode){
+        .op = e->op,
+    };
+
+    //ret->range.left.expr  = copye(e->range.left.expr,  e->range.left.sheet, Rdelta, Cdelta, r1, c1, r2, c2, copy_type);
+    //ret->range.right.expr = copye(e->range.right.expr, e->range.right.sheet, Rdelta, Cdelta, r1, c1, r2, c2, copy_type);
+    //ret->range.left.expr  = NULL;
+    //ret->range.right.expr = NULL;
+
+    ret->range.left.vp = e->range.left.vp;
+    ret->range.right.vp = e->range.right.vp;
+    ret->range.left.sheet = e->range.left.sheet;
+    ret->range.right.sheet = e->range.right.sheet;
+
+    static struct enode *range = NULL;
+
+    switch (ret->op) {
+        case SUM:
+        case PROD:
+        case AVG:
+        case COUNT:
+        case STDDEV:
+        case MAX:
+        case MIN:
+            temprange = range;
+            range = e->left;
+            r1 = 0;
+            c1 = 0;
+            r2 = sh->maxrow;
+            c2 = sh->maxcol;
+            break;
+        default:
+            break;
+    }
+
+    switch (ret->op) {
+        // Reference to another cell - terminal expression
+        case O_VAR: {
+            int newrow, newcol;
+            if (range &&
+                    e->ref.vp->row >= range->range.left.vp->row &&
+                    e->ref.vp->row <= range->range.right.vp->row &&
+                    e->ref.vp->col >= range->range.left.vp->col &&
+                    e->ref.vp->col <= range->range.right.vp->col)
+            {
+                newrow = range->range.left.vf & FIX_ROW ? e->ref.vp->row : e->ref.vp->row + Rdelta;
+                newcol = range->range.left.vf & FIX_COL ? e->ref.vp->col : e->ref.vp->col + Cdelta;
+            } else {
+                newrow = e->ref.vf & FIX_ROW || e->ref.vp->row < r1 || e->ref.vp->row > r2 || e->ref.vp->col < c1 || e->ref.vp->col > c2 ?  e->ref.vp->row : copy_type == 1 ? r1 + Rdelta + e->ref.vp->col - c1 : e->ref.vp->row + Rdelta;
+                newcol = e->ref.vf & FIX_COL || e->ref.vp->row < r1 || e->ref.vp->row > r2 || e->ref.vp->col < c1 || e->ref.vp->col > c2 ?  e->ref.vp->col : copy_type == 1 ? c1 + Cdelta + e->ref.vp->row - r1 : e->ref.vp->col + Cdelta;
+            }
+            ret->ref = (struct ent_ptr){
+                .vp = lookat(e->ref.sheet != NULL ? e->ref.sheet : sh, newrow, newcol),
+                .vf = e->ref.vf,
+                .sheet = e->ref.sheet,
+            };
+            break;
+        }
+        case O_CONST:
+            ret->number = e->number;
+            break;
+        case 'f':
+        case 'F':
+            if ((range && ret->op == 'F') || (!range && ret->op == 'f'))
+                Rdelta = Cdelta = 0;
+            ret->left = copye(e->left, sh, Rdelta, Cdelta, r1, c1, r2, c2, copy_type);
+            ret->right = (struct enode *)0;
+            break;
+        case O_SCONST:
+        case EXT:
+            ret->str = scxmalloc(strlen(e->str) + 1);
+            strcpy(ret->str, e->str);
+            if (e->op == O_SCONST)    /* Drop through if ret->op is EXT */
+                break;
+        default:
+            if (e->op == ERR_) {
+                //ret->left = NULL;
+                //ret->right = NULL;
+                //ret->right = (struct enode *)0;
+                break; /* fix #108 */
+            }
+
+            struct sheet *const temp_sheet = e->ref.sheet != NULL ? e->ref.sheet : sh;
+            ret->left = copye(e->left, temp_sheet, Rdelta, Cdelta, r1, c1, r2, c2, copy_type);
+            ret->right = copye(e->right, temp_sheet, Rdelta, Cdelta, r1, c1, r2, c2, copy_type);
+
+            break;
+    }
+    switch (ret->op) {
+        case SUM:
+        case PROD:
+        case AVG:
+        case COUNT:
+        case STDDEV:
+        case MAX:
+        case MIN:
+            range = temprange;
+    }
+
     return ret;
 }
 
@@ -680,14 +756,21 @@ struct enode * copye(struct enode *e, struct sheet * sh, int Rdelta, int Cdelta,
  * \param[in] size
  * \return none
  */
-void dorowformat(struct sheet * sh, int r, unsigned char size) {
+void
+dorowformat(struct sheet *const sh, int r, unsigned char size) {
     struct roman * roman = session->cur_doc;
-    if (size < 1 || size > UCHAR_MAX || (! get_conf_int("nocurses") && size > SC_DISPLAY_ROWS)) { sc_error("Invalid row format"); return; }
+    if (size < 1 || size > UCHAR_MAX || (! get_conf_int("nocurses") && size > SC_DISPLAY_ROWS)) {
+        sc_error("Invalid row format");
+        return;
+    }
 
-    if (r >= sh->maxrows && !growtbl(sh, GROWROW, 0, r)) r = sh->maxrows-1 ;
+    if (r >= sh->maxrows && !growtbl(sh, GROWROW, 0, r))
+        r = sh->maxrows-1 ;
+
     checkbounds(sh, &r, &(sh->curcol));
     sh->row_format[r] = size;
-    if (! roman->loading) roman->modflg++;
+    if (!roman->loading)
+        roman->modflg++;
     return;
 }
 
@@ -703,8 +786,9 @@ void dorowformat(struct sheet * sh, int r, unsigned char size) {
  * \param[in] r
  * \return none
  */
-void doformat(struct sheet * sh, int c1, int c2, int w, int p, int r) {
-    struct roman * roman = session->cur_doc;
+void
+doformat(struct sheet *sh, int c1, int c2, int w, int p, int r) {
+    struct roman *roman = session->cur_doc;
     int i;
     int crows = 0;
     int ccols = c2;
@@ -806,9 +890,10 @@ void formatcol(struct sheet * sh, int c) {
  * \param[in] after
  * \returnsnone
  */
-void insert_row(struct sheet * sh, int after) {
+void
+insert_row(struct sheet *sh, int after) {
     int r, c;
-    struct ent ** tmprow, ** pp, ** qq;
+    struct ent **tmprow, **pp, **qq;
     struct ent * p;
     int lim = sh->maxrow - sh->currow + 1;
 
@@ -1292,28 +1377,28 @@ void send_to_interp(wchar_t * oper) {
  * \param[in] col
  * \return none
  */
-struct ent * lookat(struct sheet * sh, int row, int col) {
+struct ent *lookat(struct sheet *sh, int row, int col) {
     struct ent **pp;
 
     checkbounds(sh, &row, &col);
     pp = ATBL(sh, sh->tbl, row, col);
-    if ( *pp == NULL) {
-         *pp = (struct ent *) malloc( (unsigned) sizeof(struct ent) );
-        (*pp)->label = (char *) 0;
-        (*pp)->flags = may_sync;
-        (*pp)->expr = (struct enode *) 0;
-        (*pp)->trigger = (struct trigger *) 0;
-        (*pp)->v = (double) 0.0;
-        (*pp)->format = (char *) 0;
-        (*pp)->cellerror = CELLOK;
-        (*pp)->next = NULL;
-        (*pp)->ucolor = NULL;
-        (*pp)->pad = 0;
+    if (*pp == NULL) {
+         *pp = malloc(sizeof(struct ent));
+
+         **pp = (struct ent){
+            .flags = may_sync,
+            .cellerror = CELLOK,
+         };
     }
     (*pp)->row = row;
     (*pp)->col = col;
-    if (row > sh->maxrow) sh->maxrow = row;
-    if (col > sh->maxcol) sh->maxcol = col;
+
+    if (row > sh->maxrow)
+        sh->maxrow = row;
+
+    if (col > sh->maxcol)
+        sh->maxcol = col;
+
     return (*pp);
 }
 
@@ -2818,103 +2903,88 @@ void pad_and_align (char * str_value, char * numeric_value, int col_width, int a
  *
  * \return result
  */
-int is_single_command (struct block * buf, long timeout) {
-    if (buf->value == L'\0') return NO_CMD;
-    int result = NO_CMD;
-    int bs = get_bufsize(buf);
+int is_single_command (struct block *buf, long timeout) {
+    static const uint8_t table[OKEY_END+1] = {
+        [':'] = MOVEMENT_CMD, ['\\'] = MOVEMENT_CMD,
+        ['<'] = MOVEMENT_CMD, ['>']  = MOVEMENT_CMD,
+        ['='] = MOVEMENT_CMD, ['e']  = MOVEMENT_CMD,
+        ['E'] = MOVEMENT_CMD, ['v']  = MOVEMENT_CMD,
 
-    if (curmode == COMMAND_MODE && bs == 1 && ( buf->value != ctl('r') ||
-        buf->value == ctl('v')) ) {
-        result = MOVEMENT_CMD;
-
-    } else if ( curmode == COMMAND_MODE && bs == 2 && buf->value == ctl('r') &&
-        (buf->pnext->value - (L'a' - 1) < 1 || buf->pnext->value > 26)) {
-        result = MOVEMENT_CMD;
-
-    } else if (curmode == INSERT_MODE && bs == 1 && ( buf->value != ctl('r') ||
-        buf->value == ctl('v')) ) {
-        result = MOVEMENT_CMD;
-
-    } else if (curmode == INSERT_MODE && bs == 2 && buf->value == ctl('r') &&
-        (buf->pnext->value - (L'a' - 1) < 1 || buf->pnext->value > 26)) {
-        result = MOVEMENT_CMD;
-
-    } else if (curmode == EDIT_MODE && bs == 1) {
-        result = MOVEMENT_CMD;
-
-    } else if (curmode == NORMAL_MODE && bs == 1) {
-        // commands for changing mode
-        if (buf->value == L':')             result = MOVEMENT_CMD;
-        else if (buf->value == L'\\')       result = MOVEMENT_CMD;
-        else if (buf->value == L'<')        result = MOVEMENT_CMD;
-        else if (buf->value == L'>')        result = MOVEMENT_CMD;
-        else if (buf->value == L'=')        result = MOVEMENT_CMD;
-        else if (buf->value == L'e')        result = MOVEMENT_CMD;
-        else if (buf->value == L'E')        result = MOVEMENT_CMD;
-        else if (buf->value == L'v')        result = MOVEMENT_CMD;
-
-        else if (buf->value == L'Q')        result = MOVEMENT_CMD;  /* FOR TEST PURPOSES */
-        else if (buf->value == L'A')        result = MOVEMENT_CMD;  /* FOR TEST PURPOSES */
-        else if (buf->value == L'W')        result = MOVEMENT_CMD;  /* FOR TEST PURPOSES */
+        ['Q'] = MOVEMENT_CMD, // FOR TEST PURPOSES 
+        ['A'] = MOVEMENT_CMD, // FOR TEST PURPOSES 
+        ['W'] = MOVEMENT_CMD, // FOR TEST PURPOSES 
 
         // movement commands
-        else if (buf->value == L'j')        result = MOVEMENT_CMD;
-        else if (buf->value == L'k')        result = MOVEMENT_CMD;
-        else if (buf->value == L'h')        result = MOVEMENT_CMD;
-        else if (buf->value == L'l')        result = MOVEMENT_CMD;
-        else if (buf->value == L'0')        result = MOVEMENT_CMD;
-        else if (buf->value == L'$')        result = MOVEMENT_CMD;
-        else if (buf->value == OKEY_HOME)   result = MOVEMENT_CMD;
-        else if (buf->value == OKEY_END)    result = MOVEMENT_CMD;
-        else if (buf->value == L'#')        result = MOVEMENT_CMD;
-        else if (buf->value == L'^')        result = MOVEMENT_CMD;
-        else if (buf->value == OKEY_LEFT)   result = MOVEMENT_CMD;
-        else if (buf->value == OKEY_RIGHT)  result = MOVEMENT_CMD;
-        else if (buf->value == OKEY_DOWN)   result = MOVEMENT_CMD;
-        else if (buf->value == OKEY_UP)     result = MOVEMENT_CMD;
-        else if (buf->value == OKEY_PGUP)   result = MOVEMENT_CMD;
-        else if (buf->value == OKEY_PGDOWN) result = MOVEMENT_CMD;
-        else if (buf->value == ctl('f'))    result = MOVEMENT_CMD;
-        else if (buf->value == ctl('j'))    result = EDITION_CMD;
-        else if (buf->value == ctl('d'))    result = EDITION_CMD;
-        else if (buf->value == ctl('b'))    result = MOVEMENT_CMD;
-        else if (buf->value == ctl('a'))    result = MOVEMENT_CMD;
-        else if (buf->value == L'G')        result = MOVEMENT_CMD;
-        else if (buf->value == L'H')        result = MOVEMENT_CMD;
-        else if (buf->value == L'M')        result = MOVEMENT_CMD;
-        else if (buf->value == L'L')        result = MOVEMENT_CMD;
-        else if (buf->value == ctl('y'))    result = MOVEMENT_CMD;
-        else if (buf->value == ctl('e'))    result = MOVEMENT_CMD;
-        else if (buf->value == ctl('l'))    result = MOVEMENT_CMD;
-        else if (buf->value == L'w')        result = MOVEMENT_CMD;
-        else if (buf->value == L'b')        result = MOVEMENT_CMD;
-        else if (buf->value == L'/')        result = MOVEMENT_CMD; // search
-        else if (buf->value == L'?')        result = MOVEMENT_CMD; // search backwards
-        else if (buf->value == L'n')        result = MOVEMENT_CMD; // repeat last goto cmd
-        else if (buf->value == L'N')        result = MOVEMENT_CMD; // repeat last goto cmd - backwards
+        ['j'] = MOVEMENT_CMD, ['k'] = MOVEMENT_CMD,
+        ['h'] = MOVEMENT_CMD, ['l'] = MOVEMENT_CMD,
+        ['0'] = MOVEMENT_CMD, ['$'] = MOVEMENT_CMD,
+        ['#'] = MOVEMENT_CMD, ['^'] = MOVEMENT_CMD,
+        ['G'] = MOVEMENT_CMD, ['H'] = MOVEMENT_CMD,
+        ['M'] = MOVEMENT_CMD, ['L'] = MOVEMENT_CMD,
+        ['w'] = MOVEMENT_CMD, ['b'] = MOVEMENT_CMD,
+        ['/'] = MOVEMENT_CMD, ['?'] = MOVEMENT_CMD,
+        ['n'] = MOVEMENT_CMD, ['N'] = MOVEMENT_CMD,
 
-        // edition commands
-        else if (buf->value == L'x')        result = EDITION_CMD;  // cuts a cell
-        else if (buf->value == L'u')        result = MOVEMENT_CMD; // undo
-        else if (buf->value == ctl('r'))    result = MOVEMENT_CMD; // redo
-        else if (buf->value == L'@')        result = EDITION_CMD;  // EvalAll
-        else if (buf->value == L'{')        result = EDITION_CMD;
-        else if (buf->value == L'}')        result = EDITION_CMD;
-        else if (buf->value == L'|')        result = EDITION_CMD;
-        else if (buf->value == L'p')        result = EDITION_CMD;  // paste yanked cells below or left
-        else if (buf->value == L't')        result = EDITION_CMD;  // paste yanked cells above or right
-        else if (buf->value == L'-')        result = EDITION_CMD;
-        else if (buf->value == L'+')        result = EDITION_CMD;
+        [ctl('y')] = MOVEMENT_CMD, [ctl('e')] = MOVEMENT_CMD,
+        [ctl('l')] = MOVEMENT_CMD, [ctl('f')] = MOVEMENT_CMD,
+        [ctl('j')] = EDITION_CMD,  [ctl('d')] = EDITION_CMD,
+        [ctl('b')] = MOVEMENT_CMD, [ctl('a')] = MOVEMENT_CMD,
+        [ctl('r')] = MOVEMENT_CMD, // redo
 
-        else if (isdigit(buf->value) && get_conf_int("numeric") )
-                                            result = MOVEMENT_CMD; // repeat last command
+        [OKEY_HOME] = MOVEMENT_CMD, [OKEY_END]    = MOVEMENT_CMD,
+        [OKEY_LEFT] = MOVEMENT_CMD, [OKEY_RIGHT]  = MOVEMENT_CMD,
+        [OKEY_DOWN] = MOVEMENT_CMD, [OKEY_UP]     = MOVEMENT_CMD,
+        [OKEY_PGUP] = MOVEMENT_CMD, [OKEY_PGDOWN] = MOVEMENT_CMD,
 
-        else if (buf->value == L'.')        result = MOVEMENT_CMD; // repeat last command
-        else if (buf->value == L'y' && is_range_selected() != -1)
-                                            result = EDITION_CMD;  // yank range
+         // edition commands
+        ['x']      = EDITION_CMD, ['u']      = MOVEMENT_CMD,
+        ['@']      = EDITION_CMD, ['{']      = EDITION_CMD,
+        ['}']      = EDITION_CMD, ['|']      = EDITION_CMD,
+        ['p']      = EDITION_CMD, ['t']      = EDITION_CMD, 
+        ['-']      = EDITION_CMD, ['+']      = EDITION_CMD,
+        ['.']      = MOVEMENT_CMD,
+    };
 
-    } else if (curmode == NORMAL_MODE) {
+    if (buf->value == '\0')
+        return NO_CMD;
 
+    int result = NO_CMD;
+    const int bs = get_bufsize(buf);
+
+    switch (curmode) {
+    case COMMAND_MODE:
+        if (bs == 1 && ( buf->value != ctl('r') ||
+                buf->value == ctl('v')) )
+            return MOVEMENT_CMD;
+
+        if (bs == 2 && buf->value == ctl('r') &&
+            (buf->pnext->value - (L'a' - 1) < 1 || buf->pnext->value > 26))
+            return MOVEMENT_CMD;
+        break;
+    case INSERT_MODE:
+        if (curmode == INSERT_MODE && bs == 1 && ( buf->value != ctl('r') ||
+            buf->value == ctl('v')) ) {
+            return MOVEMENT_CMD;
+        }
+        if (curmode == INSERT_MODE && bs == 2 && buf->value == ctl('r') &&
+            (buf->pnext->value - (L'a' - 1) < 1 || buf->pnext->value > 26)) {
+            return MOVEMENT_CMD;
+        }
+        break;
+    case EDIT_MODE:
+        if (bs == 1) {
+            return MOVEMENT_CMD;
+        }
+        break;
+    case NORMAL_MODE:
+        if (bs == 1) {
+            if (table[buf->value] != NO_CMD)
+                return table[buf->value];
+            if (isdigit(buf->value) && get_conf_int("numeric"))
+                return MOVEMENT_CMD; // repeat last command
+            if (buf->value == 'y' && is_range_selected() != -1)
+                return EDITION_CMD; // yank range
+        }
         if (buf->value == L'g' && bs == 2 && (
                  buf->pnext->value == L'f' ||
                  buf->pnext->value == L'M' ||
@@ -3037,7 +3107,10 @@ int is_single_command (struct block * buf, long timeout) {
                  )
                ) result = EDITION_CMD;
 
-    } else if (curmode == VISUAL_MODE && bs == 1) {
+        break;
+    }
+
+    if (curmode == VISUAL_MODE && bs == 1) {
              if (buf->value == L'j' ||
                  buf->value == OKEY_DOWN ||
                  buf->value == L'k' ||

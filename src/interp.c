@@ -91,18 +91,18 @@ extern graphADT graph;
 extern WINDOW * input_win;
 
 void exit_app();
-double fn1_eval      (double (* fn)(), double arg);
-double fn2_eval      (double (* fn)(), double arg1, double arg2);
-int    constant      (struct enode * e);
-void   copydbuf      (int deltar, int deltac);
-void   decompile     (struct enode * e, int priority);
-void   index_arg     (char * s, struct enode * e);
-void   list_arg      (char * s, struct enode * e);
-void   one_arg       (char * s, struct enode * e);
-void   range_arg     (char * s, struct enode * e);
-void   three_arg     (char * s, struct enode * e);
-void   two_arg       (char * s, struct enode * e);
-void   two_arg_index (char * s, struct enode * e);
+//double fn1_eval      (double (* fn)(double, double), double arg);
+//double fn2_eval      (double (* fn)(double, double), double arg1, double arg2);
+//bool   constant      (const struct enode *const e);
+//void   copydbuf      (int deltar, int deltac);
+//void   decompile     (struct enode * e, int priority);
+//void   index_arg     (char * s, struct enode * e);
+//void   list_arg      (char * s, struct enode * e);
+//void   one_arg       (char * s, struct enode * e);
+//void   range_arg     (char * s, struct enode * e);
+//void   three_arg     (char * s, struct enode * e);
+//void   two_arg       (char * s, struct enode * e);
+//void   two_arg_index (char * s, struct enode * e);
 
 int exprerr;              /* Set by eval() and seval() if expression errors */
 double prescale = 1.0;    /* Prescale for constants in let() */
@@ -121,7 +121,8 @@ struct go_save gs = { .g_type = G_NONE }; /* Use this structure to save the last
  * \param[in] e
  * \return double
  */
-double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
+double
+eval(struct sheet * sh, struct ent * ent, struct enode * e) {
 
 //  if (cellerror == CELLERROR || (ent && ent->cellerror == CELLERROR)) {
 //  if (cellerror == CELLERROR) {
@@ -133,18 +134,17 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
     }
 
     switch (e->op) {
-    case '+':    return (eval(sh, ent, e->e.o.left) + eval(sh, ent, e->e.o.right));
+    case '+':    return (eval(sh, ent, e->left) + eval(sh, ent, e->right));
     case '-':    {
-            double l, r;
-            l = eval(sh, ent, e->e.o.left);
-            r = eval(sh, ent, e->e.o.right);
-            return l - r;
+            const double lhs = eval(sh, ent, e->left);
+            const double rhs = eval(sh, ent, e->right);
+            return lhs - rhs;
             }
-    case '*':    return (eval(sh, ent, e->e.o.left) * eval(sh, ent, e->e.o.right));
+    case '*':    return (eval(sh, ent, e->left) * eval(sh, ent, e->right));
     case '/':    {
             double num, denom;
-            num = eval(sh, ent, e->e.o.left);
-            denom = eval(sh, ent, e->e.o.right);
+            num = eval(sh, ent, e->left);
+            denom = eval(sh, ent, e->right);
             if (cellerror) {
                 cellerror = CELLINVALID;
                 return ((double) 0);
@@ -158,8 +158,8 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
     }
     case '%':    {
             double num, denom;
-            num = floor(eval(sh, ent, e->e.o.left));
-            denom = floor(eval(sh, ent, e->e.o.right));
+            num = floor(eval(sh, ent, e->left));
+            denom = floor(eval(sh, ent, e->right));
             if (denom)
                 return (num - floor(num/denom)*denom);
             else {
@@ -167,50 +167,50 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
                 return ((double) 0);
             }
     }
-    case '^':    return (fn2_eval(pow,eval(sh, ent, e->e.o.left),eval(sh, ent, e->e.o.right)));
-    case '<':    return (eval(sh, ent, e->e.o.left) < eval(sh, ent, e->e.o.right));
+    case '^':    return (fn2_eval(pow,eval(sh, ent, e->left),eval(sh, ent, e->right)));
+    case '<':    return (eval(sh, ent, e->left) < eval(sh, ent, e->right));
     case '=':    {
             double l, r;
-            l = eval(sh, ent, e->e.o.left);
-            r = eval(sh, ent, e->e.o.right);
+            l = eval(sh, ent, e->left);
+            r = eval(sh, ent, e->right);
             return (l == r);
             }
-    case '>':    return (eval(sh, ent, e->e.o.left) > eval(sh, ent, e->e.o.right));
-    case '&':    return (eval(sh, ent, e->e.o.left) && eval(sh, ent, e->e.o.right));
-    case '|':    return (eval(sh, ent, e->e.o.left) || eval(sh, ent, e->e.o.right));
+    case '>':    return (eval(sh, ent, e->left) > eval(sh, ent, e->right));
+    case '&':    return (eval(sh, ent, e->left) && eval(sh, ent, e->right));
+    case '|':    return (eval(sh, ent, e->left) || eval(sh, ent, e->right));
     case IF:
-    case '?':    return eval(sh, ent, e->e.o.left) ? eval(sh, ent, e->e.o.right->e.o.left)
-                        : eval(sh, ent, e->e.o.right->e.o.right);
-    case 'm':    return (-eval(sh, ent, e->e.o.left));
+    case '?':    return eval(sh, ent, e->left) ? eval(sh, ent, e->right->left)
+                        : eval(sh, ent, e->right->right);
+    case 'm':    return (-eval(sh, ent, e->left));
     case 'f':    {
             int rtmp = rowoffset;
             int ctmp = coloffset;
             double ret;
             rowoffset = coloffset = 0;
-            ret = eval(sh, ent, e->e.o.left);
+            ret = eval(sh, ent, e->left);
             rowoffset = rtmp;
             coloffset = ctmp;
             return (ret);
             }
-    case 'F':    return (eval(sh, ent, e->e.o.left));
-    case '!':    return (eval(sh, ent, e->e.o.left) == 0.0);
-    case ';':    return (((int) eval(sh, ent, e->e.o.left) & 7) +
-                (((int) eval(sh, ent, e->e.o.right) & 7) << 3));
+    case 'F':    return (eval(sh, ent, e->left));
+    case '!':    return (eval(sh, ent, e->left) == 0.0);
+    case ';':    return (((int) eval(sh, ent, e->left) & 7) +
+                (((int) eval(sh, ent, e->right) & 7) << 3));
 
     case O_CONST:
-            if (! isfinite(e->e.k)) {
+            if (! isfinite(e->number)) {
                 e->op = ERR_;
-                e->e.k = (double) 0;
+                e->number = (double) 0;
                 cellerror = CELLERROR;
             }
             // Changed 06/03/2021 for #issue 499
             if (ent && ent->expr != NULL && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
-            return (e->e.k);
+            return (e->number);
 
     case GETENT:
             ;
-            int r = eval(sh, ent, e->e.o.left);
-            int c = eval(sh, ent, e->e.o.right);
+            int r = eval(sh, ent, e->left);
+            int c = eval(sh, ent, e->right);
             if (r < 0 || c < 0) {
                 sc_debug("@getent shouldnt be called with negative parameters %d %d", r, c);
                 return (double) 0;
@@ -219,8 +219,8 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
             if (ent && vp && ent->row == vp->row && ent->col == vp->col) {
                     sc_error("Circular reference in eval (cell %s%d)", coltoa(vp->col), vp->row);
                     e->op = ERR_;
-                    e->e.o.left = NULL;
-                    e->e.o.right = NULL;
+                    e->left = NULL;
+                    e->right = NULL;
                     cellerror = CELLERROR;
                     return (double) 0;
             }
@@ -230,8 +230,8 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
             return (double) 0;
 
     case O_VAR:    {
-            struct ent * vp = e->e.v.vp;
-            struct sheet * sh_vp = e->e.v.sheet;
+            struct ent * vp = e->ref.vp;
+            struct sheet * sh_vp = e->ref.sheet;
             if (sh_vp == NULL) sh_vp = sh;
             //sc_debug("var %d %d", vp->row, vp->col);
             //if (vp && ent && vp->row == ent->row && vp->col == ent->col && !(vp->flags & is_deleted) ) {
@@ -260,8 +260,8 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
 
             int row, col;
             if (vp && (rowoffset || coloffset)) {
-                row = e->e.v.vf & FIX_ROW ? vp->row : vp->row + rowoffset;
-                col = e->e.v.vf & FIX_COL ? vp->col : vp->col + coloffset;
+                row = e->ref.vf & FIX_ROW ? vp->row : vp->row + rowoffset;
+                col = e->ref.vf & FIX_COL ? vp->col : vp->col + coloffset;
                 checkbounds(sh, &row, &col);
                 vp = *ATBL(sh_vp, sh_vp->tbl, row, col);
             }
@@ -272,8 +272,8 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
 
                 // commented for #538 21/04/21
                 //e->op = REF_;
-                //e->e.o.left = NULL;
-                //e->e.o.right = NULL;
+                //e->left = NULL;
+                //e->right = NULL;
 
                 //CELLREF propagates
                 //cellerror = CELLREF;
@@ -288,8 +288,8 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
                 if (v_ent != NULL && v_vp != NULL && GraphIsReachable(v_ent, v_vp, 1)) {
                     sc_error("Circular reference in eval (cell %s%d)", coltoa(vp->col), vp->row);
                     e->op = ERR_;
-                    e->e.o.left = NULL;
-                    e->e.o.right = NULL;
+                    e->left = NULL;
+                    e->right = NULL;
                     cellerror = CELLERROR;
                     return (double) 0;
                 }
@@ -320,10 +320,10 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
         int r, c, row, col;
         int maxr, maxc;
         int minr, minc;
-        maxr = e->e.o.left->e.r.right.vp->row;
-        maxc = e->e.o.left->e.r.right.vp->col;
-        minr = e->e.o.left->e.r.left.vp->row;
-        minc = e->e.o.left->e.r.left.vp->col;
+        maxr = e->left->range.right.vp->row;
+        maxc = e->left->range.right.vp->col;
+        minr = e->left->range.left.vp->row;
+        minc = e->left->range.left.vp->col;
         if (minr>maxr) r = maxr, maxr = minr, minr = r;
         if (minc>maxc) c = maxc, maxc = minc, minc = c;
 
@@ -341,29 +341,29 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
 
         switch (e->op) {
             case LOOKUP:
-                return dolookup(sh, e->e.o.right, minr, minc, maxr, maxc, 1, minc==maxc);
+                return dolookup(sh, e->right, minr, minc, maxr, maxc, 1, minc==maxc);
             case HLOOKUP:
-                return dolookup(sh, e->e.o.right->e.o.left, minr,minc,maxr,maxc,
-                        (int) eval(sh, ent, e->e.o.right->e.o.right), 0);
+                return dolookup(sh, e->right->left, minr,minc,maxr,maxc,
+                        (int) eval(sh, ent, e->right->right), 0);
             case VLOOKUP:
-                return dolookup(sh, e->e.o.right->e.o.left, minr,minc,maxr,maxc,
-                        (int) eval(sh, ent, e->e.o.right->e.o.right), 1);
+                return dolookup(sh, e->right->left, minr,minc,maxr,maxc,
+                        (int) eval(sh, ent, e->right->right), 1);
             case INDEX:
-                return doindex(sh, minr, minc, maxr, maxc, e->e.o.right);
+                return doindex(sh, minr, minc, maxr, maxc, e->right);
             case SUM:
-                return dosum(sh, minr, minc, maxr, maxc, e->e.o.right);
+                return dosum(sh, minr, minc, maxr, maxc, e->right);
             case PROD:
-                return doprod(sh, minr, minc, maxr, maxc, e->e.o.right);
+                return doprod(sh, minr, minc, maxr, maxc, e->right);
             case AVG:
-                return doavg(sh, minr, minc, maxr, maxc, e->e.o.right);
+                return doavg(sh, minr, minc, maxr, maxc, e->right);
             case COUNT:
-                return docount(sh, minr, minc, maxr, maxc, e->e.o.right);
+                return docount(sh, minr, minc, maxr, maxc, e->right);
             case STDDEV:
-                return dostddev(sh, minr, minc, maxr, maxc, e->e.o.right);
+                return dostddev(sh, minr, minc, maxr, maxc, e->right);
             case MAX:
-                return domax(sh, minr, minc, maxr, maxc, e->e.o.right);
+                return domax(sh, minr, minc, maxr, maxc, e->right);
             case MIN:
-                return domin(sh, minr, minc, maxr, maxc, e->e.o.right);
+                return domin(sh, minr, minc, maxr, maxc, e->right);
         }
     }
     case REDUCE | 'R':
@@ -371,10 +371,10 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
         {    int r, c;
         int maxr, maxc;
         int minr, minc;
-        maxr = e->e.r.right.vp->row;
-        maxc = e->e.r.right.vp->col;
-        minr = e->e.r.left.vp->row;
-        minc = e->e.r.left.vp->col;
+        maxr = e->range.right.vp->row;
+        maxc = e->range.right.vp->col;
+        minr = e->range.left.vp->row;
+        minc = e->range.left.vp->col;
         if (minr>maxr) r = maxr, maxr = minr, minr = r;
         if (minc>maxc) c = maxc, maxc = minc, minc = c;
             switch (e->op) {
@@ -382,42 +382,42 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
                  case REDUCE | 'C': return (maxc - minc + 1);
         }
         }
-    case ABS:    return (fn1_eval( fabs, eval(sh, ent, e->e.o.left)));
+    case ABS:    return (fn1_eval( fabs, eval(sh, ent, e->left)));
 
     case FROW:
-                 eval(sh, ent, e->e.o.left);
-                 return (dorow(e->e.o.left));
+                 eval(sh, ent, e->left);
+                 return (dorow(e->left));
     case FCOL:
-                 eval(sh, ent, e->e.o.left);
-                 return (docol(e->e.o.left));
-    case ACOS:   return (fn1_eval( acos, eval(sh, ent, e->e.o.left)));
-    case ASIN:   return (fn1_eval( asin, eval(sh, ent, e->e.o.left)));
-    case ATAN:   return (fn1_eval( atan, eval(sh, ent, e->e.o.left)));
-    case ATAN2:  return (fn2_eval( atan2, eval(sh, ent, e->e.o.left), eval(sh, ent, e->e.o.right)));
-    case CEIL:   return (fn1_eval( ceil, eval(sh, ent, e->e.o.left)));
-    case COS:    return (fn1_eval( cos, eval(sh, ent, e->e.o.left)));
-    case EXP:    return (fn1_eval( exp, eval(sh, ent, e->e.o.left)));
-    case FABS:   return (fn1_eval( fabs, eval(sh, ent, e->e.o.left)));
-    case FLOOR:  return (fn1_eval( floor, eval(sh, ent, e->e.o.left)));
-    case HYPOT:  return (fn2_eval( hypot, eval(sh, ent, e->e.o.left), eval(sh, ent, e->e.o.right)));
-    case LOG:    return (fn1_eval( log, eval(sh, ent, e->e.o.left)));
-    case LOG10:  return (fn1_eval( log10, eval(sh, ent, e->e.o.left)));
-    case POW:    return (fn2_eval( pow, eval(sh, ent, e->e.o.left), eval(sh, ent, e->e.o.right)));
-    case SIN:    return (fn1_eval( sin, eval(sh, ent, e->e.o.left)));
-    case SQRT:   return (fn1_eval( sqrt, eval(sh, ent, e->e.o.left)));
-    case TAN:    return (fn1_eval( tan, eval(sh, ent, e->e.o.left)));
-    case DTR:    return (dtr(eval(sh, ent, e->e.o.left)));
-    case RTD:    return (rtd(eval(sh, ent, e->e.o.left)));
+                 eval(sh, ent, e->left);
+                 return (docol(e->left));
+    case ACOS:   return (fn1_eval( acos, eval(sh, ent, e->left)));
+    case ASIN:   return (fn1_eval( asin, eval(sh, ent, e->left)));
+    case ATAN:   return (fn1_eval( atan, eval(sh, ent, e->left)));
+    case ATAN2:  return (fn2_eval( atan2, eval(sh, ent, e->left), eval(sh, ent, e->right)));
+    case CEIL:   return (fn1_eval( ceil, eval(sh, ent, e->left)));
+    case COS:    return (fn1_eval( cos, eval(sh, ent, e->left)));
+    case EXP:    return (fn1_eval( exp, eval(sh, ent, e->left)));
+    case FABS:   return (fn1_eval( fabs, eval(sh, ent, e->left)));
+    case FLOOR:  return (fn1_eval( floor, eval(sh, ent, e->left)));
+    case HYPOT:  return (fn2_eval( hypot, eval(sh, ent, e->left), eval(sh, ent, e->right)));
+    case LOG:    return (fn1_eval( log, eval(sh, ent, e->left)));
+    case LOG10:  return (fn1_eval( log10, eval(sh, ent, e->left)));
+    case POW:    return (fn2_eval( pow, eval(sh, ent, e->left), eval(sh, ent, e->right)));
+    case SIN:    return (fn1_eval( sin, eval(sh, ent, e->left)));
+    case SQRT:   return (fn1_eval( sqrt, eval(sh, ent, e->left)));
+    case TAN:    return (fn1_eval( tan, eval(sh, ent, e->left)));
+    case DTR:    return (dtr(eval(sh, ent, e->left)));
+    case RTD:    return (rtd(eval(sh, ent, e->left)));
     case RND:
         if (rndtoeven)
-            return rint(eval(sh, ent, e->e.o.left));
+            return rint(eval(sh, ent, e->left));
         else {
-            double temp = eval(sh, ent, e->e.o.left);
+            double temp = eval(sh, ent, e->left);
             return (temp - floor(temp) < 0.5 ? floor(temp) : ceil(temp));
         }
     case ROUND:
         {
-        int precision = (int) eval(sh, ent, e->e.o.right);
+        int precision = (int) eval(sh, ent, e->right);
         double scale = 1;
         if (0 < precision)
             do scale *= 10; while (0 < --precision);
@@ -425,9 +425,9 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
             do scale /= 10; while (++precision < 0);
 
         if (rndtoeven)
-            return (rint(eval(sh, ent, e->e.o.left) * scale) / scale);
+            return (rint(eval(sh, ent, e->left) * scale) / scale);
         else {
-            double temp = eval(sh, ent, e->e.o.left);
+            double temp = eval(sh, ent, e->left);
             temp *= scale;
             /* xxx */
             /*
@@ -440,38 +440,38 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
         }
     case FV:
     case PV:
-    case PMT:    return (finfunc(e->op, eval(sh, ent, e->e.o.left), eval(sh, ent, e->e.o.right->e.o.left), eval(sh, ent, e->e.o.right->e.o.right)));
-    case HOUR:   return (dotime(HOUR, eval(sh, ent, e->e.o.left)));
-    case MINUTE: return (dotime(MINUTE, eval(sh, ent, e->e.o.left)));
-    case SECOND: return (dotime(SECOND, eval(sh, ent, e->e.o.left)));
-    case MONTH:  return (dotime(MONTH, eval(sh, ent, e->e.o.left)));
-    case DAY:    return (dotime(DAY, eval(sh, ent, e->e.o.left)));
-    case YEAR:   return (dotime(YEAR, eval(sh, ent, e->e.o.left)));
+    case PMT:    return (finfunc(e->op, eval(sh, ent, e->left), eval(sh, ent, e->right->left), eval(sh, ent, e->right->right)));
+    case HOUR:   return (dotime(HOUR, eval(sh, ent, e->left)));
+    case MINUTE: return (dotime(MINUTE, eval(sh, ent, e->left)));
+    case SECOND: return (dotime(SECOND, eval(sh, ent, e->left)));
+    case MONTH:  return (dotime(MONTH, eval(sh, ent, e->left)));
+    case DAY:    return (dotime(DAY, eval(sh, ent, e->left)));
+    case YEAR:   return (dotime(YEAR, eval(sh, ent, e->left)));
 
     case NOW:
                  if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
                  return (dotime(NOW, (double) 0.0));
 
-    case DTS:    return (dodts((int) eval(sh, ent, e->e.o.left),
-                    (int)eval(sh, ent, e->e.o.right->e.o.left),
-                    (int)eval(sh, ent, e->e.o.right->e.o.right)));
-    case TTS:    return (dotts((int) eval(sh, ent, e->e.o.left),
-                    (int)eval(sh, ent, e->e.o.right->e.o.left),
-                    (int)eval(sh, ent, e->e.o.right->e.o.right)));
+    case DTS:    return (dodts((int) eval(sh, ent, e->left),
+                    (int)eval(sh, ent, e->right->left),
+                    (int)eval(sh, ent, e->right->right)));
+    case TTS:    return (dotts((int) eval(sh, ent, e->left),
+                    (int)eval(sh, ent, e->right->left),
+                    (int)eval(sh, ent, e->right->right)));
 
     case EVALUATE:
                  if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
-                 return doevaluate(seval(sh, ent, e->e.o.left));
+                 return doevaluate(seval(sh, ent, e->left));
 
     case STON:
                  if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
-                 return (doston(seval(sh, ent, e->e.o.left)));
+                 return (doston(seval(sh, ent, e->left)));
 
-    case ASCII:  return (doascii(seval(sh, ent, e->e.o.left)));
+    case ASCII:  return (doascii(seval(sh, ent, e->left)));
 
-    case SLEN:   return (doslen(seval(sh, ent, e->e.o.left)));
+    case SLEN:   return (doslen(seval(sh, ent, e->left)));
 
-    case EQS:    return (doeqs(seval(sh, ent, e->e.o.right), seval(sh, ent, e->e.o.left)));
+    case EQS:    return (doeqs(seval(sh, ent, e->right), seval(sh, ent, e->left)));
 
     case LMAX:   return dolmax(sh, ent, e);
 
@@ -479,11 +479,11 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
 
     case NVAL:
                  if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
-                 char * s = seval(sh, ent, e->e.o.left);
+                 char * s = seval(sh, ent, e->left);
                  if (! s) { return (double) (0); }
                  char * sf = calloc(strlen(s)+1, sizeof(char));
                  strcpy(sf, s);
-                 double n = eval(sh, ent, e->e.o.right);
+                 double n = eval(sh, ent, e->right);
                  struct ent * ep = getent(sh, sf, n, 1);
                  if (! ep) { free(s); return (double) (0); }
                  if (ent && ep) GraphAddEdge(getVertex(graph, sh, lookat(sh, ent->row, ent->col), 1), getVertex(graph, sh, ep, 1));
@@ -536,9 +536,9 @@ double eval(struct sheet * sh, struct ent * ent, struct enode * e) {
     case DEFAULT_COLOR: return ((double) DEFAULT_COLOR);
     case FACT:
         {
-            double total = eval(sh, ent, e->e.o.left);
+            double total = eval(sh, ent, e->left);
             int i;
-            for (i = eval(sh, ent, e->e.o.left) - 1; i > 0; i--) {
+            for (i = eval(sh, ent, e->left) - 1; i > 0; i--) {
                 total *= i;
             }
             return total > 0 ? total : 1;
@@ -565,16 +565,16 @@ char * seval(struct sheet * sh, struct ent * ent, struct enode * se) {
 
     switch (se->op) {
     case O_SCONST:
-            p = scxmalloc( (size_t) (strlen(se->e.s) + 1));
-            (void) strcpy(p, se->e.s);
+            p = scxmalloc( (size_t) (strlen(se->str) + 1));
+            (void) strcpy(p, se->str);
 
             if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
             return (p);
 
     case O_VAR:
             {
-            struct ent * vp = se->e.v.vp;
-            sh_vp = se->e.v.sheet;
+            struct ent * vp = se->ref.vp;
+            sh_vp = se->ref.sheet;
             if (sh_vp == NULL) sh_vp = sh;
 
             if (vp && ent && vp->row == ent->row && vp->col == ent->col && sh_vp == sh) {
@@ -586,8 +586,8 @@ char * seval(struct sheet * sh, struct ent * ent, struct enode * se) {
 
             int row, col;
             if (vp && (rowoffset || coloffset)) {
-                row = se->e.v.vf & FIX_ROW ? vp->row : vp->row + rowoffset;
-                col = se->e.v.vf & FIX_COL ? vp->col : vp->col + coloffset;
+                row = se->ref.vf & FIX_ROW ? vp->row : vp->row + rowoffset;
+                col = se->ref.vf & FIX_COL ? vp->col : vp->col + coloffset;
                 checkbounds(sh, &row, &col);
                 vp = *ATBL(sh, sh->tbl, row, col);
             }
@@ -604,7 +604,7 @@ char * seval(struct sheet * sh, struct ent * ent, struct enode * se) {
     }
 
     case '#':
-            return (docat(seval(sh, ent, se->e.o.left), seval(sh, ent, se->e.o.right)));
+            return (docat(seval(sh, ent, se->left), seval(sh, ent, se->right)));
 
     case 'f':
              {
@@ -612,43 +612,43 @@ char * seval(struct sheet * sh, struct ent * ent, struct enode * se) {
              int ctmp = coloffset;
              char *ret;
              rowoffset = coloffset = 0;
-             ret = seval(sh, ent, se->e.o.left);
+             ret = seval(sh, ent, se->left);
              rowoffset = rtmp;
              coloffset = ctmp;
              return (ret);
              }
 
-    case 'F':    return (seval(sh, ent, se->e.o.left));
+    case 'F':    return (seval(sh, ent, se->left));
 
     case IF:
 
-    case '?':    return (eval(sh, NULL, se->e.o.left) ? seval(sh, ent, se->e.o.right->e.o.left) : seval(sh, ent, se->e.o.right->e.o.right));
+    case '?':    return (eval(sh, NULL, se->left) ? seval(sh, ent, se->right->left) : seval(sh, ent, se->right->right));
 
-    case DATE:   return (dodate( (time_t) (eval(sh, NULL, se->e.o.left)), seval(sh, ent, se->e.o.right)));
+    case DATE:   return (dodate( (time_t) (eval(sh, NULL, se->left)), seval(sh, ent, se->right)));
 
-    case FMT:    return (dofmt(seval(sh, ent, se->e.o.left), eval(sh, NULL, se->e.o.right)));
+    case FMT:    return (dofmt(seval(sh, ent, se->left), eval(sh, NULL, se->right)));
 
-    case UPPER:  return (docase(UPPER, seval(sh, ent, se->e.o.left)));
+    case UPPER:  return (docase(UPPER, seval(sh, ent, se->left)));
 
-    case LOWER:  return (docase(LOWER, seval(sh, ent, se->e.o.left)));
+    case LOWER:  return (docase(LOWER, seval(sh, ent, se->left)));
 
-    case SET8BIT:  return (docase(SET8BIT, seval(sh, ent, se->e.o.left)));
+    case SET8BIT:  return (docase(SET8BIT, seval(sh, ent, se->left)));
 
     case CAPITAL:
                  if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
-                 return (docapital(seval(sh, ent, se->e.o.left)));
+                 return (docapital(seval(sh, ent, se->left)));
 
     case STINDEX: {
         int r, c;
         int maxr, maxc;
         int minr, minc;
-        maxr = se->e.o.left->e.r.right.vp->row;
-        maxc = se->e.o.left->e.r.right.vp->col;
-        minr = se->e.o.left->e.r.left.vp->row;
-        minc = se->e.o.left->e.r.left.vp->col;
+        maxr = se->left->range.right.vp->row;
+        maxc = se->left->range.right.vp->col;
+        minr = se->left->range.left.vp->row;
+        minc = se->left->range.left.vp->col;
         if (minr>maxr) r = maxr, maxr = minr, minr = r;
         if (minc>maxc) c = maxc, maxc = minc, minc = c;
-        return dostindex(sh, minr, minc, maxr, maxc, se->e.o.right);
+        return dostindex(sh, minr, minc, maxr, maxc, se->right);
     }
     case EXT:
              if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
@@ -657,7 +657,7 @@ char * seval(struct sheet * sh, struct ent * ent, struct enode * se) {
 #ifdef XLUA
     case LUA:
          ;
-         int dg_store = eval(sh, NULL, se->e.o.right);
+         int dg_store = eval(sh, NULL, se->right);
          // add to depgraph ONLY if second parameter to @lua is 1
          if (dg_store == 1 && ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
 
@@ -672,34 +672,34 @@ char * seval(struct sheet * sh, struct ent * ent, struct enode * se) {
          return (doLUA(sh, se, dg_store));
 #endif
 
-    case SVAL:   return (dosval(sh, seval(sh, ent, se->e.o.left), eval(sh, NULL, se->e.o.right)));
+    case SVAL:   return (dosval(sh, seval(sh, ent, se->left), eval(sh, NULL, se->right)));
 
     case REPLACE:
                  if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
-                 return (doreplace(seval(sh, ent, se->e.o.left),
-                          seval(sh, NULL, se->e.o.right->e.o.left),
-                          seval(sh, NULL, se->e.o.right->e.o.right)));
+                 return (doreplace(seval(sh, ent, se->left),
+                          seval(sh, NULL, se->right->left),
+                          seval(sh, NULL, se->right->right)));
 
-    case SUBSTR: return (dosubstr(seval(sh, ent, se->e.o.left),
-                (int) eval(sh, NULL, se->e.o.right->e.o.left) - 1,
-                (int) eval(sh, NULL, se->e.o.right->e.o.right) - 1));
+    case SUBSTR: return (dosubstr(seval(sh, ent, se->left),
+                (int) eval(sh, NULL, se->right->left) - 1,
+                (int) eval(sh, NULL, se->right->right) - 1));
 
     case COLTOA:
                  if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
-                 return (strcpy(scxmalloc( (size_t) 10), coltoa((int) eval(sh, ent, se->e.o.left))));
+                 return (strcpy(scxmalloc( (size_t) 10), coltoa((int) eval(sh, ent, se->left))));
 
     case CHR:
              if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
-             return (strcpy(scxmalloc( (size_t) 10), dochr(eval(sh, NULL, se->e.o.left))));
+             return (strcpy(scxmalloc( (size_t) 10), dochr(eval(sh, NULL, se->left))));
 
     case SEVALUATE:
              if (ent && getVertex(graph, sh, ent, 0) == NULL) GraphAddVertex(graph, sh, ent);
-             return dosevaluate(seval(sh, ent, se->e.o.left));
+             return dosevaluate(seval(sh, ent, se->left));
 
     case FILENAME: {
              char * curfile = session->cur_doc->name;
              if (curfile == NULL) return curfile;
-             int n = eval(sh, NULL, se->e.o.left);
+             int n = eval(sh, NULL, se->left);
              char *s = strrchr(curfile, '/');
              if (n || s++ == NULL) s = curfile;
              p = scxmalloc( (size_t) (strlen(s) + 1));
@@ -781,7 +781,8 @@ void eval_fpe() { /* Trap for FPE errors in eval */
  * \param[in] arg
  * \return double
  */
-double fn1_eval(double (*fn)(), double arg) {
+double
+fn1_eval(double (*fn)(double), double arg) {
     double res;
     errno = 0;
     res = (*fn) (arg);
@@ -798,7 +799,7 @@ double fn1_eval(double (*fn)(), double arg) {
  * \param[in] arg2
  * \return double
  */
-double fn2_eval(double (*fn)(), double arg1, double arg2) {
+double fn2_eval(double (*fn)(double, double), double arg1, double arg2) {
     double res;
     errno = 0;
     res = (*fn) (arg1, arg2);
@@ -815,22 +816,16 @@ double fn2_eval(double (*fn)(), double arg1, double arg2) {
  * \return struct enode *
  */
 struct enode * new(int op, struct enode * a1, struct enode * a2) {
-    struct enode * p;
     //if (freeenodes) {
     //     p = freeenodes;
-    //    freeenodes = p->e.o.left;
+    //    freeenodes = p->left;
     //} else
-    p = (struct enode *) scxmalloc( (size_t) sizeof(struct enode));
-    p->e.r.left.vp = NULL;    // important to initialize
-    p->e.r.left.expr = NULL;  // important to initialize
-    p->e.r.right.vp = NULL;   // important to initialize
-    p->e.r.right.expr = NULL; // important to initialize
-    p->e.r.left.sheet = NULL; // important to initialize
-    p->e.r.right.sheet = NULL;// important to initialize
-    p->op = op;
-    p->e.o.left = a1;
-    p->e.o.right = a2;
-    p->e.o.s = NULL;
+    struct enode *const p = scxmalloc(sizeof(*p));
+    *p = (struct enode){
+    	.op = op,
+    	.left = a1,
+    	.right = a2,
+    };
     return p;
 }
 
@@ -842,20 +837,15 @@ struct enode * new(int op, struct enode * a1, struct enode * a2) {
  * \return struct enotde *
  */
 struct enode * new_var(int op, struct ent_ptr a1) {
-    struct enode * p;
     //if (freeenodes) {
     //    p = freeenodes;
-    //    freeenodes = p->e.o.left;
+    //    freeenodes = p->left;
     //} else
-    p = (struct enode *) scxmalloc( (size_t) sizeof(struct enode));
-    p->e.r.left.vp = NULL;    // important to initialize
-    p->e.r.left.expr = NULL;  // important to initialize
-    p->e.r.right.vp = NULL;   // important to initialize
-    p->e.r.right.expr = NULL; // important to initialize
-    p->e.r.left.sheet = NULL; // important to initialize
-    p->e.r.right.sheet = NULL;// important to initialize
-    p->op = op;
-    p->e.v = a1; // ref to cell needed for this expr
+    struct enode *const p = scxmalloc(sizeof(*p));
+    *p = (struct enode){
+    	.op = op,
+    	.ref = a1,
+    };
     return p;
 }
 
@@ -868,21 +858,16 @@ struct enode * new_var(int op, struct ent_ptr a1) {
  * \return none
  */
 struct enode * new_range(int op, struct range_s a1) {
-    struct enode * p;
     //if (freeenodes)
     //{   p = freeenodes;
-    //    freeenodes = p->e.o.left;
+    //    freeenodes = p->left;
     //}
     //else
-    p = (struct enode *) scxmalloc( (size_t) sizeof(struct enode));
-    p->e.r.left.vp = NULL;    // important to initialize
-    p->e.r.left.expr = NULL;  // important to initialize
-    p->e.r.right.vp = NULL;   // important to initialize
-    p->e.r.right.expr = NULL; // important to initialize
-    p->e.r.left.sheet = NULL; // important to initialize
-    p->e.r.right.sheet = NULL;// important to initialize
-    p->op = op;
-    p->e.r = a1;
+    struct enode *const p = scxmalloc(sizeof(*p));
+    *p = (struct enode){
+    	.op = op,
+    	.range = a1,
+    };
     return p;
 }
 
@@ -894,20 +879,16 @@ struct enode * new_range(int op, struct range_s a1) {
  * \return struct enotde *
  */
 struct enode * new_const(int op, double a1) {
-    struct enode * p;
     //if (freeenodes) {    /* reuse an already free'd enode */
     //    p = freeenodes;
-    //    freeenodes = p->e.o.left;
+    //    freeenodes = p->left;
     //} else
-    p = (struct enode *) scxmalloc( (size_t) sizeof(struct enode));
-    p->e.r.left.vp = NULL;    // important to initialize
-    p->e.r.left.expr = NULL;  // important to initialize
-    p->e.r.right.vp = NULL;   // important to initialize
-    p->e.r.right.expr = NULL; // important to initialize
-    p->e.r.left.sheet = NULL; // important to initialize
-    p->e.r.right.sheet = NULL;// important to initialize
-    p->op = op;
-    p->e.k = a1;
+    struct enode *const p = scxmalloc(sizeof(*p));
+
+	*p = (struct enode){
+		.op = op,
+		.number = a1,
+	};
     return p;
 }
 
@@ -918,20 +899,15 @@ struct enode * new_const(int op, double a1) {
  * \return struct enode *
  */
 struct enode * new_str(char * s) {
-    struct enode * p;
     //if (freeenodes) {    /* reuse an already free'd enode */
     //    p = freeenodes;
-    //    freeenodes = p->e.o.left;
+    //    freeenodes = p->left;
     //} else
-    p = (struct enode *) scxmalloc( (size_t) sizeof(struct enode));
-    p->e.r.left.vp = NULL;    // important to initialize
-    p->e.r.left.expr = NULL;  // important to initialize
-    p->e.r.right.vp = NULL;   // important to initialize
-    p->e.r.right.expr = NULL; // important to initialize
-    p->e.r.left.sheet = NULL; // important to initialize
-    p->e.r.right.sheet = NULL;// important to initialize
-    p->op = O_SCONST;
-    p->e.s = s;
+    struct enode *const p = scxmalloc(sizeof(*p));
+    *p = (struct enode){
+    	.op = O_SCONST,
+    	.str = s,
+    };
     return (p);
 }
 
@@ -1687,15 +1663,16 @@ void format_cell(struct sheet * sh, struct ent * v1, struct ent * v2, char *s) {
  * \return 1 function is an expression
  * \return 0 function is not an expression
  */
-int constant(struct enode *e) {
+bool
+constant(const struct enode *const e) {
     return e == NULL
      || e->op == O_CONST
      || e->op == O_SCONST
-     || (e->op == 'm' && constant(e->e.o.left))
+     || (e->op == 'm' && constant(e->left))
      || (e->op != O_VAR
          && !(e->op & REDUCE)
-         && constant(e->e.o.left)
-         && constant(e->e.o.right)
+         && constant(e->left)
+         && constant(e->right)
          && e->op != EXT     /* functions look like constants but aren't */
 #ifdef XLUA
          && e->op != LUA
@@ -1721,31 +1698,31 @@ int constant(struct enode *e) {
 void efree(struct enode * e) {
     if (e) {
         /* for get ent ---> */
-        if (e->e.r.left.vp && e->e.r.left.vf & GET_ENT) {
-            efree(e->e.r.left.expr);
-            e->e.r.left.expr = NULL;
+        if (e->range.left.vp && e->range.left.vf & GET_ENT) {
+            efree(e->range.left.expr);
+            e->range.left.expr = NULL;
         }
-        if (e->e.r.right.vp && e->e.r.right.vf & GET_ENT) {
-            efree(e->e.r.right.expr);
-            e->e.r.right.expr = NULL;
+        if (e->range.right.vp && e->range.right.vf & GET_ENT) {
+            efree(e->range.right.expr);
+            e->range.right.expr = NULL;
         } /* <-- for get ent */
 
         if (e->op != O_VAR && e->op != O_CONST && e->op != O_SCONST && !(e->op & REDUCE) && e->op != ERR_) {
-            if (e->e.o.left) efree(e->e.o.left);
-            e->e.o.left = NULL;
-            if (e->e.o.right) efree(e->e.o.right);
-            e->e.o.right = NULL;
+            if (e->left) efree(e->left);
+            e->left = NULL;
+            if (e->right) efree(e->right);
+            e->right = NULL;
         }
-        if (e->op == O_SCONST && e->e.s) {
-            scxfree(e->e.s);
-            e->e.s = NULL;
-        } else if (e->op == EXT && e->e.o.s) {
-            scxfree(e->e.o.s);
-            e->e.o.s = NULL;
-            if (e->e.o.left) efree(e->e.o.left);
-            e->e.o.left = NULL;
-            if (e->e.o.right) efree(e->e.o.right);
-            e->e.o.right = NULL;
+        if (e->op == O_SCONST && e->str) {
+            scxfree(e->str);
+            e->str = NULL;
+        } else if (e->op == EXT && e->last_func_str) {
+            scxfree(e->last_func_str);
+            e->last_func_str = NULL;
+            if (e->left) efree(e->left);
+            e->left = NULL;
+            if (e->right) efree(e->right);
+            e->right = NULL;
         }
         scxfree((char *) e);
         e = (struct enode *) 0;
@@ -1808,9 +1785,9 @@ void decodev(struct ent_ptr v) {
     } else if (v.vf == GET_ENT) {
         sprintf(line + linelim, "@getent(");
         linelim += strlen(line + linelim);
-        if (v.expr && v.expr->e.o.left) decompile(v.expr->e.o.left, 0);
+        if (v.expr && v.expr->left) decompile(v.expr->left, 0);
         line[linelim++] = ',';
-        if (v.expr && v.expr->e.o.right) decompile(v.expr->e.o.right, 0);
+        if (v.expr && v.expr->right) decompile(v.expr->right, 0);
         line[linelim++] = ')';
     } else {
         (void) sprintf( line + linelim, "%s%s%s%d", v.vf & FIX_COL ? "$" : "", coltoa(v.vp->col), v.vf & FIX_ROW ? "$" : "", v.vp->row);
@@ -1851,8 +1828,8 @@ char * coltoa(int col) {
  */
 void decompile_list(struct enode *p) {
     if (!p) return;
-    decompile_list(p->e.o.left);    /* depth first */
-    decompile(p->e.o.right, 0);
+    decompile_list(p->left);    /* depth first */
+    decompile(p->right, 0);
     line[linelim++] = ',';
 }
 
@@ -1884,34 +1861,34 @@ void decompile(struct enode *e, int priority) {
     case 'f':
             for (s="@fixed "; (line[linelim++] = *s++); );
             linelim--;
-            decompile(e->e.o.left, 30);
+            decompile(e->left, 30);
             break;
     case 'F':
             for (s="(@fixed)"; (line[linelim++] = *s++); );
             linelim--;
-            decompile(e->e.o.left, 30);
+            decompile(e->left, 30);
             break;
     case 'm':
             if (priority != 0) line[linelim++] = '(';
             line[linelim++] = '-';
-            decompile(e->e.o.left, 30);
+            decompile(e->left, 30);
             if (priority != 0) line[linelim++] = ')';
             break;
     case '!':
             line[linelim++] = '!';
-            decompile(e->e.o.left, 30);
+            decompile(e->left, 30);
             break;
     case O_VAR:
-            decodev(e->e.v);
+            decodev(e->ref);
             break;
 
     case O_CONST:
-            (void) sprintf(line+linelim, "%.15g", e->e.k);
+            (void) sprintf(line+linelim, "%.15g", e->number);
             linelim += strlen(line+linelim);
             break;
 
     case O_SCONST:
-            (void) sprintf(line+linelim, "\"%s\"", e->e.s);
+            (void) sprintf(line+linelim, "\"%s\"", e->str);
             linelim += strlen(line+linelim);
             break;
 
@@ -1959,7 +1936,7 @@ void decompile(struct enode *e, int priority) {
             linelim--;
             break;
     case DATE:
-            if (e->e.o.right)
+            if (e->right)
                 two_arg("@date(", e);
             else
                 one_arg("@date(", e);
@@ -2068,9 +2045,9 @@ void decompile(struct enode *e, int priority) {
             break;
     case FACT:    one_arg("@fact(", e); break;
     default:
-            decompile(e->e.o.left, mypriority);
+            decompile(e->left, mypriority);
             line[linelim++] = e->op;
-            decompile(e->e.o.right, mypriority+1);
+            decompile(e->right, mypriority+1);
             break;
     }
     if (mypriority<priority) line[linelim++] = ')';
@@ -2085,17 +2062,17 @@ void decompile(struct enode *e, int priority) {
  * \return none
  */
 void index_arg(char *s, struct enode *e) {
-    if (e->e.o.right && e->e.o.right->op == ',') {
+    if (e->right && e->right->op == ',') {
         two_arg_index(s, e);
         return;
     }
     for (; (line[linelim++] = *s++); );
     linelim--;
-    range_arg("(", e->e.o.left);
+    range_arg("(", e->left);
     linelim--;
-    if (e->e.o.right) {
+    if (e->right) {
         line[linelim++] = ',';
-        decompile(e->e.o.right, 0);
+        decompile(e->right, 0);
     }
     line[linelim++] = ')';
 }
@@ -2110,12 +2087,12 @@ void index_arg(char *s, struct enode *e) {
 void two_arg_index(char *s, struct enode *e) {
     for (; (line[linelim++] = *s++); );
     linelim--;
-    range_arg("(", e->e.o.left);
+    range_arg("(", e->left);
     linelim--;
     line[linelim++] = ',';
-    decompile(e->e.o.right->e.o.left, 0);
+    decompile(e->right->left, 0);
     line[linelim++] = ',';
-    decompile(e->e.o.right->e.o.right, 0);
+    decompile(e->right->right, 0);
     line[linelim++] = ')';
 }
 
@@ -2130,9 +2107,9 @@ void list_arg(char *s, struct enode *e) {
     for (; (line[linelim++] = *s++); );
     linelim--;
 
-    decompile(e->e.o.right, 0);
+    decompile(e->right, 0);
     line[linelim++] = ',';
-    decompile_list(e->e.o.left);
+    decompile_list(e->left);
     line[linelim - 1] = ')';
 }
 
@@ -2146,7 +2123,7 @@ void list_arg(char *s, struct enode *e) {
 void one_arg(char *s, struct enode *e) {
     for (; (line[linelim++] = *s++); );
     linelim--;
-    decompile(e->e.o.left, 0);
+    decompile(e->left, 0);
     line[linelim++] = ')';
 }
 
@@ -2160,9 +2137,9 @@ void one_arg(char *s, struct enode *e) {
 void two_arg(char *s, struct enode *e) {
     for (; (line[linelim++] = *s++); );
     linelim--;
-    decompile(e->e.o.left, 0);
+    decompile(e->left, 0);
     line[linelim++] = ',';
-    decompile (e->e.o.right, 0);
+    decompile (e->right, 0);
     line[linelim++] = ')';
 }
 
@@ -2176,11 +2153,11 @@ void two_arg(char *s, struct enode *e) {
 void three_arg(char *s, struct enode *e) {
     for (; (line[linelim++] = *s++); );
     linelim--;
-    decompile(e->e.o.left, 0);
+    decompile(e->left, 0);
     line[linelim++] = ',';
-    decompile(e->e.o.right->e.o.left, 0);
+    decompile(e->right->left, 0);
     line[linelim++] = ',';
-    decompile (e->e.o.right->e.o.right, 0);
+    decompile (e->right->right, 0);
     line[linelim++] = ')';
 }
 
@@ -2196,13 +2173,13 @@ void range_arg(char *s, struct enode *e) {
 
     for (; (line[linelim++] = *s++); );
     linelim--;
-    if ( ! find_range((char *)0, 0, e->e.r.left.vp, e->e.r.right.vp, &r) && r->r_is_range) {
+    if ( ! find_range((char *)0, 0, e->range.left.vp, e->range.right.vp, &r) && r->r_is_range) {
         (void) sprintf(line+linelim, "%s", r->r_name);
         linelim += strlen(line+linelim);
     } else {
-        decodev(e->e.r.left);
+        decodev(e->range.left);
         line[linelim++] = ':';
-        decodev(e->e.r.right);
+        decodev(e->range.right);
     }
     line[linelim++] = ')';
 }

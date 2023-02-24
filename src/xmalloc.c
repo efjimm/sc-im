@@ -52,8 +52,6 @@
 #include "color.h"
 #include "conf.h"
 
-#define MAGIC    ((double) 1234567890.12344)
-
 extern void free();
 extern int shall_quit;
 
@@ -65,16 +63,12 @@ extern int shall_quit;
  * \return pointer to 
  */
 
-char * scxmalloc(unsigned n) {
-    //register char *ptr;
-    //if ((ptr = malloc(n + sizeof(double))) == NULL) fatal("scxmalloc: no memory");
-    //*((double *) ptr) = MAGIC;
-    //return(ptr + sizeof(double));
-
-    register char *ptr;
-    ptr = (char *) malloc(n);
-    if (ptr == NULL) fatal("scxmalloc: no memory");
-    return (ptr);
+void *
+scxmalloc(size_t size) {
+    void *const v = malloc(size);
+    if (v == NULL)
+        fatal("scxmalloc: no memory");
+    return v;
 }
 
 /**
@@ -86,18 +80,16 @@ char * scxmalloc(unsigned n) {
  * \returns: pointer
  */
 
-char * scxrealloc(char *ptr, unsigned n) {
-    //if (ptr == NULL) return(scxmalloc(n));
-    //ptr -= sizeof(double);
-    //if (*((double *) ptr) != MAGIC) fatal("scxrealloc: storage not scxmalloc'ed");
-    //if ((ptr = realloc(ptr, n + sizeof(double))) == NULL) fatal("scxmalloc: no memory");
-    //*((double *) ptr) = MAGIC;
-    //return(ptr + sizeof(double));
+void *
+scxrealloc(void *ptr, size_t new_size) {
+    if (ptr == NULL)
+        return scxmalloc(new_size);
 
-    if (ptr == NULL) return(scxmalloc(n));
-    ptr = (char *) realloc(ptr, n);
-    if (ptr == NULL) fatal("scxmalloc: no memory");
-    return(ptr);
+    void *const v = realloc(ptr, new_size);
+    if (v == NULL)
+        fatal("scxmalloc: no memory");
+
+    return v;
 }
 
 /**
@@ -108,14 +100,12 @@ char * scxrealloc(char *ptr, unsigned n) {
  * \returns: none
  */
 
-void scxfree(char *p) {
-    //if (p == NULL) fatal("scxfree: NULL");
-    //p -= sizeof(double);
-    //if (*((double *) p) != MAGIC) fatal("scxfree: storage not malloc'ed");
-    //free(p);
+void
+scxfree(void *ptr) {
+    if (ptr == NULL)
+        fatal("scxfree: NULL");
 
-    if (p == NULL) fatal("scxfree: NULL");
-    free(p);
+    free(ptr);
 }
 
 /**
@@ -126,7 +116,8 @@ void scxfree(char *p) {
  * \return none
  */
 
-void fatal(char * str) {
+void
+fatal(const char *str) {
     //fprintf(stderr,"%s\n", str);
     sc_error("%s", str);
     shall_quit = 2;

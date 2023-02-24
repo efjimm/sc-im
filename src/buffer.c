@@ -54,93 +54,109 @@
 * \brief Create buffer as list of blocks
 * \return b
 */
-struct block * create_buf() {
-    struct block * b = (struct block *) malloc(sizeof(struct block));
-    b->value = '\0';
-    b->pnext = NULL;
-    return b;
+struct block *
+create_buf(void) {
+    struct block *const ret = malloc(sizeof(*ret));
+
+    *ret = (struct block){
+        .value = '\0',
+        .pnext = NULL,
+    };
+
+    return ret;
 }
 
 
 /**
-* \brief Add a wint_t to a buffer
+* \brief Add a int32_t to a buffer
 * \param[in] buf
 * \param[in] d
 * \return none
 */
-void addto_buf(struct block * buf, wint_t d) {
-    struct block * aux = buf;
-
+void
+buffer_append(struct block *const buf, int32_t d) {
     if (buf->value == '\0') {
         buf->value = d;
     } else {
-        struct block * b = (struct block *) malloc(sizeof(struct block));
+        struct block *const b = malloc(sizeof(*b));
         b->value = d;
         b->pnext = NULL;
 
-        while (aux->pnext != NULL)
-            aux = aux->pnext;
+        struct block *aux = buf;
+        for (; aux->pnext != NULL; aux = aux->pnext);
         aux->pnext = b;
     }
-    return;
 }
 
 
 /**
-* \brief Replace the elements of "origen" buffer to "destino" buffer
-* \param[in] origen
-* \param[in] destino
+* \brief Replaces the elements of 'dest' with the elements of 'src'
+* \param[in] dest
+* \param[in] src
 * \return none
 */
-void copybuffer(struct block * origen, struct block * destino) {
-    flush_buf(destino);
-    int len = get_bufsize(origen);
-    int i;
-    for (i=0; i < len; i++)
-        addto_buf(destino, get_bufval(origen, i));
-    return;
+void
+buffer_copy(struct block *const dest, struct block *const src) {
+    buffer_reset(dest);
+
+    const int len = get_bufsize(src);
+    for (int i = 0; i < len; i++)
+        buffer_append(dest, get_bufval(src, i));
 }
 
 
 /**
-* \brief Replace the element of a buffer at 'pos' with a '\0'
+* \brief Remove a piece of a buffer
 * \param[in] buf
 * \param[in] pos
 * \return none
 */
 // FIXME
-void del_buf (struct block * buf, int pos) {
-    int i;
-    struct block * ant = buf;
-    struct block * cur = buf;
-    for (i = 0; i < pos; i++) {
-        ant = cur;
-        cur = cur->pnext;
+void
+buffer_remove(struct block **const buf, size_t pos) {
+    if (buf == NULL || *buf == NULL)
+        return;
+
+    if (pos == 0) {
+        struct block *const temp = *buf;
+        *buf = temp->pnext;
+        free(temp);
+        return;
     }
-    if (ant == cur) {
-        cur->value = '\0';
-        //buf = cur->pnext; //FIXME
-        //free(cur);
-    } else {
-        ant->pnext = cur->pnext;
-        free(cur);
+
+    struct block *prev = *buf;
+    struct block *current = *buf;
+
+    for (int i = 0; i < pos; i++) {
+        prev = current;
+        current = current->pnext;
+
+        if (current == NULL) // pos is out of bounds
+            return;
     }
-    return;
+
+    prev->pnext = current->pnext;
+    free(current);
 }
 
 /**
-* \brief TODO Document flush_buf()
+* \brief Replaces the initial node of a buffer with '\0' and removes all other nodes
 * \param[in] buf
 * \return none
 */
-void flush_buf (struct block * buf) {
-    if (buf == NULL) return;
+void
+buffer_reset(struct block *const buf) {
+    if (buf == NULL)
+        return;
 
-    struct block * aux, * np;
-    for (aux = buf->pnext; aux != NULL; aux = np) {
-        np = aux->pnext;
-        free(aux);
+    {
+        struct block *current, *next;
+        for (current = buf->pnext; current != NULL; current = next) {
+            next = current->pnext;
+            free(current);
+        }
     }
+
     buf->value = '\0';
     buf->pnext = NULL;
     return;
@@ -153,8 +169,12 @@ void flush_buf (struct block * buf) {
 * \param buf
 * \return none
 */
-void erase_buf (struct block * buf) {
-    flush_buf(buf);
+void
+buffer_free(struct block *const buf) {
+    if (buf == NULL)
+        return;
+
+    buffer_reset(buf);
     free(buf);
     return;
 }
@@ -165,15 +185,17 @@ void erase_buf (struct block * buf) {
 * \param[in] buf
 * \return c size of buffer
 */
-int get_bufsize(struct block * buf) {
-    struct block * b_aux = buf;
-    if (b_aux == NULL || b_aux->value == '\0') return 0;
-    int c = 0;
-    while (b_aux != NULL) {
-        c++;
-        b_aux = b_aux->pnext;
+size_t
+get_bufsize(const struct block *const buf) {
+    if (buf == NULL || buf->value == '\0')
+        return 0;
+
+    size_t ret = 0;
+    for (const struct block *b_aux = buf; b_aux != NULL; b_aux = b_aux->pnext) {
+        ret++;
     }
-    return c;
+
+    return ret;
 }
 
 
@@ -184,15 +206,18 @@ int get_bufsize(struct block * buf) {
 * \param[in] buf
 * \return c printable buffer length
 */
-int get_pbuflen(struct block * buf) {
-    struct block * b_aux = buf;
-    if (b_aux == NULL || b_aux->value == '\0') return 0;
-    int c = 0;
-    while (b_aux != NULL) {
-        if ( !is_idchar(b_aux->value) ) c++;
-        b_aux = b_aux->pnext;
+size_t
+get_pbuflen(const struct block *const buf) {
+    if (buf == NULL || buf->value == '\0')
+        return 0;
+
+    size_t ret = 0;
+    for (const struct block *b_aux = buf; b_aux != NULL; b_aux = b_aux->pnext) {
+        if (!is_idchar(b_aux->value))
+            ret++;
     }
-    return c;
+
+    return ret;
 }
 
 

@@ -175,7 +175,7 @@ void handle_input(struct block * buffer) {
                 cmd_digraph = 1;
                 continue;
             }
-            addto_buf(buffer, wd);
+            buffer_append(buffer, wd);
 
             // Replace maps in buffer
             // break if nore mapping
@@ -214,7 +214,7 @@ void handle_input(struct block * buffer) {
         handle_mult( &cmd_multiplier, buffer, msec ); // Handle command and repeat as many times as the multiplier dictates
     }
     ui_print_mult_pend();
-    flush_buf(buffer);        // Flush the buffer
+    buffer_reset(buffer);        // Flush the buffer
     return;
 }
 
@@ -255,7 +255,7 @@ void break_waitcmd_loop(struct block * buffer) {
         chg_mode('.');
         lastmode=NORMAL_MODE;
         inputline[0] = L'\0';  // clean inputline
-        flush_buf(buffer);
+        buffer_reset(buffer);
         ui_update(TRUE);
     }
     cmd_pending = 0;       // No longer wait for command. Set flag.
@@ -307,10 +307,10 @@ int has_cmd (struct block * buf, long timeout) {
     struct block * auxb = (struct block *) create_buf();
 
     for (k = 0; k < len; k++) {
-        addto_buf(auxb, get_bufval(buf, k));
+        buffer_append(auxb, get_bufval(buf, k));
         if ( is_single_command(auxb, timeout)) { found = 1; break; }
     }
-    erase_buf(auxb);
+    buffer_free(auxb);
     auxb = NULL;
     return found;
 }
@@ -360,20 +360,23 @@ void exec_single_cmd (struct block * sb) {
  * \return none
  */
 
-void handle_mult(int * cmd_multiplier, struct block * buf, long timeout) {
+void
+handle_mult(int *cmd_multiplier, struct block *buf, long timeout) {
     int j, k;
-    struct block * b_copy = buf;
-    int lenbuf = get_bufsize(b_copy);
-    if ( ! *cmd_multiplier) *cmd_multiplier = 1;
+    struct block *b_copy = buf;
+    const int buf_len = get_bufsize(b_copy);
+
+    if (!*cmd_multiplier)
+    	*cmd_multiplier = 1;
 
     for (j = 1; j < *cmd_multiplier; j++) {
-        for (k = 0; k < lenbuf; k++) {
-            addto_buf(buf, b_copy->value);
+        for (k = 0; k < buf_len; k++) {
+            buffer_append(buf, b_copy->value);
             b_copy = b_copy->pnext;
         }
     }
     //if (is_single_command(buf, timeout) == EDITION_CMD)
-    //    copybuffer(buf, lastcmd_buffer); // save stdin buffer content in lastcmd buffer
+    //    buffer_copy(lastcmd_buffer, buf); // save stdin buffer content in lastcmd buffer
     exec_mult(buf, timeout);
     if (*cmd_multiplier > 1) {
         *cmd_multiplier = 1;
@@ -391,25 +394,31 @@ void handle_mult(int * cmd_multiplier, struct block * buf, long timeout) {
  * \return none
  */
 
-void exec_mult (struct block * buf, long timeout) {
-    int k, res, len = get_bufsize(buf);
-    if ( ! len ) return;
+void
+exec_mult (struct block *buf, long timeout) {
+    int k, res;
+    const int buf_len = get_bufsize(buf);
+
+    if (buf_len == 0)
+    	return;
 
     // Try to execute the whole buffer content
     if ((res = is_single_command(buf, timeout))) {
-        if (res == EDITION_CMD) copybuffer(buf, lastcmd_buffer); // save stdin buffer content in lastcmd buffer
+        if (res == EDITION_CMD)
+        	buffer_copy(lastcmd_buffer, buf); // save stdin buffer content in lastcmd buffer
         exec_single_cmd(buf);
 
     // If not possible, traverse blockwise
     } else {
         struct block * auxb = (struct block *) create_buf();
-        for (k = 0; k < len; k++) {
-            addto_buf(auxb, get_bufval(buf, k));
+        for (k = 0; k < buf_len; k++) {
+            buffer_append(auxb, get_bufval(buf, k));
 
             if ((res = is_single_command(auxb, timeout))) {
-                if (res == EDITION_CMD) copybuffer(buf, lastcmd_buffer); // save stdin buffer content in lastcmd buffer
+                if (res == EDITION_CMD)
+                	buffer_copy(lastcmd_buffer, buf); // save stdin buffer content in lastcmd buffer
                 exec_single_cmd(auxb);
-                flush_buf(auxb);
+                buffer_reset(auxb);
                 k++; // Take the first K values from 'buf'
                 while ( k-- ) buf = dequeue(buf);
                 // Execute again
@@ -418,7 +427,7 @@ void exec_mult (struct block * buf, long timeout) {
                 break;
             }
         }
-        erase_buf(auxb);
+        buffer_free(auxb);
         auxb = NULL;
     }
     return;

@@ -435,11 +435,11 @@ void delete_structures() {
     // Free yanklist
     free_yanklist();
 
-    // free custom col formats
+    // Free custom col formats
     free_formats();
 
-    // Erase last_command buffer
-    erase_buf(lastcmd_buffer);
+    // Free last_command buffer
+    buffer_free(lastcmd_buffer);
 
     // Free ranges
     free_ranges();
@@ -452,16 +452,16 @@ void delete_structures() {
     clear_undo_list();
 #endif
 
-    // free deleted ents
+    // Free deleted ents
     flush_saved();
 
-    // free calc chain graph
+    // Free calc chain graph
     destroy_graph(graph);
 
     // Free tbl / sheet / roman / session
     free_session(session);
 
-    // free custom_colors
+    // Free custom_colors
     free_custom_colors();
 
     // Free lua stuff
@@ -514,7 +514,7 @@ int exit_app(int status) {
     del_maps();
 
     // Erase stdin
-    erase_buf(buffer);
+    buffer_free(buffer);
 
     // stop CURSES screen
     if (! get_conf_int("nocurses"))

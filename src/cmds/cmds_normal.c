@@ -455,8 +455,8 @@ void do_normalmode(struct block * buf) {
             char cadena[] = ":int goto ";
             int i;
             for (i=0; i<strlen(cadena); i++) {
-                flush_buf(buf);
-                addto_buf(buf, cadena[i]);
+                buffer_reset(buf);
+                buffer_append(buf, cadena[i]);
                 exec_single_cmd(buf);
             }
             break;
@@ -467,8 +467,8 @@ void do_normalmode(struct block * buf) {
             char cadena[] = ":int gotob ";
             int i;
             for (i=0; i<strlen(cadena); i++) {
-                flush_buf(buf);
-                addto_buf(buf, cadena[i]);
+                buffer_reset(buf);
+                buffer_append(buf, cadena[i]);
                 exec_single_cmd(buf);
             }
             break;
@@ -477,7 +477,7 @@ void do_normalmode(struct block * buf) {
         // repeat last command
         case L'.':
             if (get_conf_int("numeric_decimal") == 1 && get_conf_int("numeric") == 1) goto numeric;
-            copybuffer(lastcmd_buffer, buf); // nose graba en lastcmd_buffer!!
+            buffer_copy(buf, lastcmd_buffer); // nose graba en lastcmd_buffer!!
             cmd_multiplier = 1;
             exec_mult(buf, COMPLETECMDTIMEOUT);
             break;

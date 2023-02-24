@@ -387,7 +387,7 @@ char * doLUA(struct sheet * sh, struct enode * se, int type) {
     char * cmd;
     char buffer[PATHLEN];
     char buffer1[PATHLEN];
-    cmd = seval(sh, NULL, se->e.o.left);
+    cmd = seval(sh, NULL, se->left);
 
     sprintf(buffer, "lua/%s", cmd);
     if (plugin_exists(buffer, strlen(buffer), buffer1)) {

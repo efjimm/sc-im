@@ -120,27 +120,26 @@ graphADT GraphCreate() {
  * \param[in] ent
  * \return a pointer to the new vertex
  */
-vertexT * GraphAddVertex(graphADT graph, struct sheet * sh, struct ent * ent) {
+vertexT *
+GraphAddVertex(graphADT graph, struct sheet *sh, struct ent *ent) {
     //if (ent == NULL) {
     //    sc_debug("add vertex-  null ent");
     //    return NULL;
     //}
     //sc_debug("will add vertex %d %d ", ent->row, ent->col);
-    vertexT * newVertex = (vertexT *) malloc(sizeof(vertexT));
-    newVertex->visited = 0;
-    newVertex->eval_visited = 0;
-    newVertex->ent = ent;
-    newVertex->sheet = sh;
-    newVertex->edges = NULL;
-    newVertex->back_edges = NULL;
-    newVertex->next = NULL;
 
-    vertexT * temp_ant = NULL;
-    vertexT * tempNode = NULL;
+    vertexT *new_vertex = malloc(sizeof(*new_vertex));
+    *new_vertex = (vertexT){
+    	.ent = ent,
+    	.sheet = sh,
+    };
+
+    vertexT *temp_ant = NULL;
+    vertexT *temp_node = NULL;
 
     // first element added to the list
-    if( graph->vertices == NULL) {
-        graph->vertices = newVertex;
+    if(graph->vertices == NULL) {
+        graph->vertices = new_vertex;
 
     // append in first position
     } else if (
@@ -148,25 +147,25 @@ vertexT * GraphAddVertex(graphADT graph, struct sheet * sh, struct ent * ent) {
                (sh->id == graph->vertices->sheet->id && ent->row < graph->vertices->ent->row) ||
                (sh->id == graph->vertices->sheet->id && ent->row == graph->vertices->ent->row && ent->col < graph->vertices->ent->col)
               ) {
-        newVertex->next = graph->vertices;
-        graph->vertices = newVertex;
+        new_vertex->next = graph->vertices;
+        graph->vertices = new_vertex;
 
     // append in second position or after that, keeping it ordered
     } else {
-        tempNode = graph->vertices;
-        temp_ant = tempNode;
-        while (tempNode != NULL && (
-                sh->id > tempNode->sheet->id ||
-               (sh->id == tempNode->sheet->id && ent->row > tempNode->ent->row) ||
-               (sh->id == tempNode->sheet->id && ent->row == tempNode->ent->row && ent->col > tempNode->ent->col))) {
-            temp_ant = tempNode;
-            tempNode = temp_ant->next;
+        temp_node = graph->vertices;
+        temp_ant = temp_node;
+        while (temp_node != NULL && (
+                sh->id > temp_node->sheet->id ||
+               (sh->id == temp_node->sheet->id && ent->row > temp_node->ent->row) ||
+               (sh->id == temp_node->sheet->id && ent->row == temp_node->ent->row && ent->col > temp_node->ent->col))) {
+            temp_ant = temp_node;
+            temp_node = temp_ant->next;
         }
-        temp_ant->next = newVertex;
-        newVertex->next = tempNode;
+        temp_ant->next = new_vertex;
+        new_vertex->next = temp_node;
     }
     //sc_debug("Added vertex %d %d in the graph", ent->row, ent->col) ;
-    return newVertex;
+    return new_vertex;
 }
 
 

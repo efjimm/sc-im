@@ -54,7 +54,7 @@
  * The format function will produce a string representation of a number
  * given a _format_ (described below) and a double value.  The result is
  * written into the passed buffer -- if the resulting string is too
- * long to fit into the passed buffer, the function returns FALSE.
+ * long to fit into the passed buffer, the function returns false.
  * Otherwise the function returns true.
  *
  * The fmt parameter contains the format to use to convert the number.
@@ -152,10 +152,11 @@ char * colformat[COLFORMATS];
  *
  * returns: ret
  */
-int format(char *fmt, int lprecision, double val, char *buf, int buflen) {
+bool
+format(char *fmt, int lprecision, double val, char *buf, int buflen) {
     register char *cp;
     char *tmp, *tp;
-    int comma = FALSE, negative = FALSE;
+    int comma = false, negative = false;
     char *integer = NULL, *decimal = NULL;
     char *exponent = NULL;
     int exp_val = 0;
@@ -168,7 +169,7 @@ int format(char *fmt, int lprecision, double val, char *buf, int buflen) {
     int zero_pad = 0;
 
     if (fmt == NULL)
-        return(TRUE);
+        return(true);
 
     if (strlen(fmt) + 1 > fmtlen) {
         fmtlen = strlen(fmt) + 40;
@@ -210,7 +211,7 @@ int format(char *fmt, int lprecision, double val, char *buf, int buflen) {
             break;
 
         case ',':
-            comma = TRUE;
+            comma = true;
             break;
 
         case '.':
@@ -239,7 +240,7 @@ int format(char *fmt, int lprecision, double val, char *buf, int buflen) {
  */
     val = (val + 1.0) - 1.0;
     if (val < 0.0) {
-        negative = TRUE;
+        negative = true;
         val = -val;
     }
 /*
@@ -324,7 +325,7 @@ int format(char *fmt, int lprecision, double val, char *buf, int buflen) {
     static unsigned cilen = 0, cflen = 0;
     char * ci, * cf, * ce;
     int len_ci, len_cf, len_ce;
-    int ret = FALSE;
+    int ret = false;
 
     ci = fmt_int(integer, fmt, comma, negative);
     len_ci = strlen(ci);
@@ -351,7 +352,7 @@ int format(char *fmt, int lprecision, double val, char *buf, int buflen) {
  */
     if (len_ci + len_cf + len_ce < buflen) {
         (void) sprintf(buf, "%s%s%s", ci, cf, ce);
-        ret = TRUE;
+        ret = true;
     }
 
     return (ret);
@@ -363,8 +364,8 @@ int format(char *fmt, int lprecision, double val, char *buf, int buflen) {
  *
  * \param[in] val integer part of the value to be formatted
  * \param[in] fmt integer part of the format
- * \param[in] comma TRUE if we should comma-ify the value
- * \param[in] negative TRUE if the value is actually negative
+ * \param[in] comma true if we should comma-ify the value
+ * \param[in] negative true if the value is actually negative
  * \return none
  */
 static char * fmt_int(char *val, char *fmt, int comma, int negative) {
@@ -471,7 +472,7 @@ static char * fmt_exp(int val, char *fmt) {
     static char buf[MAXBUF];
     register char *bufptr = buf;
     char valbuf[64];
-    int negative = FALSE;
+    int negative = false;
 
     *bufptr++ = *fmt++;
     if (*fmt == '+')
@@ -483,11 +484,11 @@ static char * fmt_exp(int val, char *fmt) {
 
     if (val < 0) {
         val = -val;
-        negative = FALSE;
+        negative = false;
     }
     (void) sprintf(valbuf, "%d", val);
 
-    (void) strcat(buf, fmt_int(valbuf, fmt, FALSE, negative));
+    (void) strcat(buf, fmt_int(valbuf, fmt, false, negative));
     return (buf);
 }
 
@@ -528,7 +529,7 @@ static void reverse(register char *buf) {
  *
  * This formatted value is written into the passed buffer.  if the
  * resulting string is too long to fit into the passed buffer, the
- * function returns FALSE.  Otherwise the function returns TRUE.
+ * function returns false.  Otherwise the function returns true.
  *
  * When a number is formatted as engineering and is outside of the range,
  * the format reverts to scientific.
@@ -570,7 +571,7 @@ int engformat(int fmt, int width, int lprecision, double val, char *buf, int buf
     int engind = 0;
     double engmant, pow(), engabs, engexp;
 
-    if (buflen < width) return (FALSE);
+    if (buflen < width) return (false);
     if (fmt >= 0 && fmt < COLFORMATS && colformat[fmt])
         return (format(colformat[fmt], lprecision, val, buf, buflen));
     if (fmt == REFMTFIX)
@@ -634,7 +635,7 @@ int engformat(int fmt, int width, int lprecision, double val, char *buf, int buf
             buf[i] = '\0';
         }
     }
-    return (TRUE);
+    return (true);
 }
 
 /**

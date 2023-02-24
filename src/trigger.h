@@ -50,13 +50,13 @@
 
 struct trigger {
     int flag;       /* Read + Write + interface */
-    char * file;
-    char * function;
-    void * handle;  /* this is only for C Triggers */
+    char *file;
+    char *function;
+    void *handle;  /* this is only for C Triggers */
     int (*c_function) (struct ent *, int);
 };
 
-void do_trigger(struct ent * p, int rw);
-void set_trigger(struct sheet * sh, int r, int c, int rf, int cf, char * str);
-void del_trigger(struct sheet * sh, int r, int c, int rf, int cf );
-void do_C_Trigger_cell(struct ent * p, int rw);
+void do_trigger(struct ent *p, int rw);
+void set_trigger(struct sheet *sh, int r, int c, int rf, int cf, char *str);
+void del_trigger(struct sheet *sh, int r, int c, int rf, int cf );
+void do_C_Trigger_cell(struct ent *p, int rw);

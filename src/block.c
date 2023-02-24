@@ -128,13 +128,15 @@ int replace_block_in_block (struct block * olist, struct block * in, struct bloc
     int pos = block_in_block (olist, in);
 
     // Remove the 'pos' position of the "olist" list
-    while (lin--) del_buf(ori, lin+pos);
+    while (lin--) {
+        buffer_remove(&ori, lin+pos);
+    }
 
     // Then add the nodes of the 'out' list to "olist"
     while (out != NULL) {
         int e = out->value;
         if (e != '\\' || out->pnext == NULL || out->pnext->value != '"')
-            addto_buf(olist, e);
+            buffer_append(olist, e);
         out = out->pnext;
     }
 

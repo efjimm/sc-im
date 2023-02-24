@@ -96,7 +96,7 @@ int replace_maps (struct block * b) {
 
     if (++mapdepth == 1000) {
         sc_error("recursive mapping");
-        flush_buf(b);
+        buffer_reset(b);
         mapdepth = 0;
         return 0;
     }
@@ -146,7 +146,7 @@ struct block * get_mapbuf_str (char * str) {
         // handle simple < and > mappings
         if (str[i] == '\\' && i+1 < l && i+2 < l && str[i+1] == '\\' &&
         (str[i+2] == '<' || str[i+2] == '>')) {
-           addto_buf(buffer, (wint_t) wc[i+2]);
+           buffer_append(buffer, (wint_t) wc[i+2]);
            i += 2;
 
         // Add special keys
@@ -156,36 +156,36 @@ struct block * get_mapbuf_str (char * str) {
         } else if (str[i] == '>' && !(i>0 && str[i-1] == '\\')) {
            is_specialkey = 0;
            if (! strcasecmp(sk, "CR"))                                  // CR - ENTER key
-               addto_buf(buffer, OKEY_ENTER);
+               buffer_append(buffer, OKEY_ENTER);
            else if (! strcasecmp(sk, "ESC"))                            // ESC
-               addto_buf(buffer, OKEY_ESC);
+               buffer_append(buffer, OKEY_ESC);
            else if (! strcasecmp(sk, "TAB"))                            // TAB
-               addto_buf(buffer, OKEY_TAB);
+               buffer_append(buffer, OKEY_TAB);
            else if (! strcasecmp(sk, "SPACE"))                          // SPACE
-               addto_buf(buffer, OKEY_SPACE);
+               buffer_append(buffer, OKEY_SPACE);
            else if (! strcasecmp(sk, "LEFT"))                           // LEFT
-               addto_buf(buffer, OKEY_LEFT);
+               buffer_append(buffer, OKEY_LEFT);
            else if (! strcasecmp(sk, "RIGHT"))                          // RIGHT
-               addto_buf(buffer, OKEY_RIGHT);
+               buffer_append(buffer, OKEY_RIGHT);
            else if (! strcasecmp(sk, "DOWN"))                           // DOWN
-               addto_buf(buffer, OKEY_DOWN);
+               buffer_append(buffer, OKEY_DOWN);
            else if (! strcasecmp(sk, "UP"))                             // UP
-               addto_buf(buffer, OKEY_UP);
+               buffer_append(buffer, OKEY_UP);
            else if (! strcasecmp(sk, "DEL"))                            // DEL
-               addto_buf(buffer, OKEY_DEL);
+               buffer_append(buffer, OKEY_DEL);
            else if (! strcasecmp(sk, "BS"))                             // BS
-               addto_buf(buffer, OKEY_BS);
+               buffer_append(buffer, OKEY_BS);
            else if (! strcasecmp(sk, "HOME"))                           // HOME
-               addto_buf(buffer, OKEY_HOME);
+               buffer_append(buffer, OKEY_HOME);
            else if (! strcasecmp(sk, "END"))                            // END
-               addto_buf(buffer, OKEY_END);
+               buffer_append(buffer, OKEY_END);
            else if (! strcasecmp(sk, "PGDOWN"))                         // PGDOWN
-               addto_buf(buffer, OKEY_PGDOWN);
+               buffer_append(buffer, OKEY_PGDOWN);
            else if (! strcasecmp(sk, "PGUP"))                           // PGUP
-               addto_buf(buffer, OKEY_PGUP);
+               buffer_append(buffer, OKEY_PGUP);
            else if (! strncmp(sk, "C-", 2) && strlen(sk) == 3           // C-X
                     && ( (sk[2] > 64 && sk[2] < 91) || (sk[2] > 96 && sk[2] < 123)) )
-               addto_buf(buffer, ctl(tolower(sk[2])));
+               buffer_append(buffer, ctl(tolower(sk[2])));
 
            sk[0]='\0';
 
@@ -194,15 +194,15 @@ struct block * get_mapbuf_str (char * str) {
 
         // Add some other characters
         } else {
-                addto_buf(buffer, (wint_t) wc[i]);
+                buffer_append(buffer, (wint_t) wc[i]);
         }
     }
 
     // If the buffer lacks the trailing '>', insert it
     if (is_specialkey && i == l) {
         j = strlen(sk);
-        addto_buf(buffer, '<');
-        for (i=0; i<j; i++) addto_buf(buffer, (int) str[l-j+i]);
+        buffer_append(buffer, '<');
+        for (i=0; i<j; i++) buffer_append(buffer, (int) str[l-j+i]);
     }
     return buffer;
 }
@@ -217,8 +217,8 @@ void del_maps () {
     map * e = m;
     while (m != NULL) {
         e = m->psig;
-        erase_buf(m->out);
-        erase_buf(m->in);
+        buffer_free(m->out);
+        buffer_free(m->in);
         free(m);
         m = e;
     }
@@ -287,9 +287,9 @@ void add_map(char * in, char * out, int mode, short recursive) {
     } else {
         m = maps;
         while (exists--) m = m->psig;
-        erase_buf(m->in);
-        erase_buf(m->out);
-        exists = TRUE;
+        buffer_free(m->in);
+        buffer_free(m->out);
+        exists = true;
     }
 
     m->out = (struct block *) get_mapbuf_str(out);
@@ -297,7 +297,7 @@ void add_map(char * in, char * out, int mode, short recursive) {
     m->mode = mode;
     m->recursive = recursive;
 
-    if (exists == TRUE) return; // in case a map was updated and not created!
+    if (exists == true) return; // in case a map was updated and not created!
 
 // Insert at the beginning
 //    m->psig = maps == NULL ? NULL : maps;
@@ -335,8 +335,8 @@ void del_map(char * in, int mode) {
     get_mapstr_buf(m->in, strin);
     if ( ! strcmp(in, strin) && mode == m->mode) {
         maps = m->psig;
-        erase_buf(m->out);
-        erase_buf(m->in);
+        buffer_free(m->out);
+        buffer_free(m->in);
         free(m);
         len_maps--;
         return;
@@ -350,8 +350,8 @@ void del_map(char * in, int mode) {
         get_mapstr_buf(m->in, strin);
         if ( ! strcmp(in, strin) && mode == m->mode) {
             ant->psig = m->psig;
-            erase_buf(m->out);
-            erase_buf(m->in);
+            buffer_free(m->out);
+            buffer_free(m->in);
             free(m);
             m = ant->psig;
             len_maps--;

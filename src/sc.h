@@ -47,6 +47,8 @@
 
 #include <stdio.h>
 #include <memory.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #define MINROWS      100     /* minimum size at startup */
 
@@ -92,10 +94,12 @@
 // #define A_CHARTEXT 0xff
 //#endif
 
-#ifndef FALSE
-    #define    FALSE   0
-    #define    TRUE    1
-#endif
+enum CopyType {
+    COPY_NONE = 0,
+    COPY_TRANSPOSE = 1,
+    COPY_UNDO = 2,
+};
+
 
 /* structure to hold multiple documents */
 struct session {
@@ -233,18 +237,18 @@ struct enode {
     int op;
     union {
 
-    struct {        /* other cells use to eval() / seval() */
-        struct enode * left, * right;
-        char *s;    /* previous value of @ext function in case */
-    } o;            /* external functions are turned off */
+        struct {                 /* other cells use to eval() / seval() */
+            struct enode *left;
+            struct enode *right;
+            char *last_func_str; /* previous value of @ext function in case */
+        };                       /* external functions are turned off */
 
-    int gram_match; /* some compilers (hp9000ipc) need this */
-    double k;       /* constant # */
-    char * s;       /* string part of a cell */
+        double number;           /* constant # */
+        char *str;               /* string part of a cell */
 
-    struct range_s r;    /* op is on a range */
-    struct ent_ptr v;    /* ref. another cell on which this enode depends */
-    } e;
+        struct range_s range;    /* op is on a range */
+        struct ent_ptr ref;      /* ref. another cell on which this enode depends */
+    };
 };
 
 /* struct impexfilt {
@@ -469,15 +473,15 @@ extern int rndtoeven;
 extern int tbl_style;
 extern int loading;
 
-extern struct enode * copye(struct enode *e, struct sheet * sh, int Rdelta, int Cdelta, int r1, int c1, int r2, int c2, int special);
+extern struct enode *copye(struct enode *e, struct sheet * sh, int Rdelta, int Cdelta, int r1, int c1, int r2, int c2, enum CopyType copy_type);
 extern char dpoint;   // country-dependent decimal point from locale
 extern char thsep;    // country-dependent thousands separator from locale
-extern char * coltoa(int col);
-extern char * findplugin(char * ext, char type);
-extern char * findhome(char * path);
-extern char * r_name(int r1, int c1, int r2, int c2);
-extern char * scxmalloc(unsigned n);
-extern char * scxrealloc(char * ptr, unsigned n);
+extern char *coltoa(int col);
+extern char *findplugin(char *ext, char type);
+extern char *findhome(char *path);
+extern char *r_name(int r1, int c1, int r2, int c2);
+extern void *scxmalloc(size_t new_size);
+extern void *scxrealloc(void *ptr, size_t new_size);
 extern char * seval(struct sheet * sh, struct ent * ent, struct enode * se);
 extern char * v_name(int row, int col);
 extern double eval(struct sheet * sh, struct ent * ent, struct enode * e);
@@ -498,4 +502,5 @@ extern void label(struct ent * v, char * s, int flushdir);
 
 extern double eval_result;
 extern char * seval_result;
+
 #endif // SC_H_

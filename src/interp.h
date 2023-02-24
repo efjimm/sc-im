@@ -44,8 +44,8 @@
 
 struct ent * getent(struct sheet * sh, char * colstr, double rowdoub, int alloc);
 double eval(struct sheet * sh, struct ent * ent, struct enode * e);
-double fn1_eval(double (* fn)(), double arg);
-double fn2_eval(double (* fn)(), double arg1, double arg2);
+double fn1_eval(double (* fn)(double), double arg);
+double fn2_eval(double (* fn)(double, double), double arg1, double arg2);
 char * seval(struct sheet * sh, struct ent * ent, struct enode * se);
 void setiterations(int i);
 void EvalAll();
@@ -71,7 +71,7 @@ void unlock_cells(struct sheet * sh, struct ent * v1, struct ent * v2);
 void let(struct roman * roman, struct sheet * sh, struct ent * v, struct enode * e);
 void slet(struct roman * roman, struct sheet * sh, struct ent * v, struct enode * se, int flushdir);
 void format_cell(struct sheet * sh, struct ent * v1, struct ent * v2, char *s);
-int constant(struct enode * e);
+bool constant(const struct enode *const e);
 void efree(struct enode * e);
 void label(struct ent * v, char * s, int flushdir);
 void decodev(struct ent_ptr v);

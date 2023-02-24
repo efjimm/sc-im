@@ -58,15 +58,12 @@
 #include "conf.h"
 #include "utils/string.h"
 
-typedef int bool;
-enum { false, true };
-
 #include "y.tab.h"
 
 jmp_buf wakeup;
 jmp_buf fpe_buf;
 
-bool decimal = FALSE;
+bool decimal = false;
 
 /**
  * \brief TODO Document fpe_trap()
@@ -283,7 +280,7 @@ int yylex() {
                 if (!isfinite(yylval.fval))
                     ret = K_ERR;
                 else
-                    decimal = TRUE;
+                    decimal = true;
             } else {
                 /* A NUMBER must hold at least MAXROW and MAXCOL */
                 /* This is consistent with a short row and col in struct ent */
@@ -333,7 +330,7 @@ int yylex() {
     }
     linelim = p-line;
     if (!isfunc) isfunc = ((ret == '@') + (ret == S_GOTO) - (ret == S_SET));
-    if (ret == S_GOTO) isgoto = TRUE;
+    if (ret == S_GOTO) isgoto = true;
     tokenst = NULL;
     return ret;
 }

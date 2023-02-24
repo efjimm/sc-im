@@ -137,10 +137,10 @@ char * dostindex(struct sheet * sh, int minr, int minc, int maxr, int maxc, stru
         r = minr + (int) eval(sh, NULL, val) - 1;
         c = minc;
     } else {
-        r = minr + (int) eval(sh, NULL, val->e.o.left) - 1;
-        c = minc + (int) eval(sh, NULL, val->e.o.right) - 1;
+        r = minr + (int) eval(sh, NULL, val->left) - 1;
+        c = minc + (int) eval(sh, NULL, val->right) - 1;
     }
-    if (c <= maxc && c >=minc && r <= maxr && r >=minr)
+    if (c <= maxc && c >= minc && r <= maxr && r >= minr)
         p = *ATBL(sh, sh->tbl, r, c);
 
     if (p && p->label) {
@@ -184,8 +184,8 @@ double doindex(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct
     struct ent * p;
 
     if (val->op == ',') {        /* index by both row and column */
-        r = minr + (int) eval(sh, NULL, val->e.o.left) - 1;
-        c = minc + (int) eval(sh, NULL, val->e.o.right) - 1;
+        r = minr + (int) eval(sh, NULL, val->left) - 1;
+        c = minc + (int) eval(sh, NULL, val->right) - 1;
     } else if (minr == maxr) {        /* look along the row */
         r = minr;
         c = minc + (int) eval(sh, NULL, val) - 1;
@@ -617,7 +617,7 @@ double dotts(int hr, int min, int sec) {
  * \return double
  */
 double dorow(struct enode * ep) {
-    return (double) ep->e.v.vp->row;
+    return (double) ep->ref.vp->row;
 }
 
 
@@ -627,7 +627,7 @@ double dorow(struct enode * ep) {
  * \return double
  */
 double docol(struct enode * ep) {
-    return (double) ep->e.v.vp->col;
+    return (double) ep->ref.vp->col;
 }
 
 
@@ -779,8 +779,8 @@ double dolmax(struct sheet * sh, struct ent * e, struct enode * ep) {
     double v;
 
     cellerror = CELLOK;
-    for (p = ep; p; p = p->e.o.left) {
-        v = eval(sh, e, p->e.o.right);
+    for (p = ep; p; p = p->left) {
+        v = eval(sh, e, p->right);
         if ( !count || v > maxval) {
             maxval = v;
             count++;
@@ -804,8 +804,8 @@ double dolmin(struct sheet * sh, struct ent * e, struct enode * ep) {
     double v;
 
     cellerror = CELLOK;
-    for (p = ep; p; p = p->e.o.left) {
-        v = eval(sh, e, p->e.o.right);
+    for (p = ep; p; p = p->left) {
+        v = eval(sh, e, p->right);
         if ( !count || v < minval) {
             minval = v;
             count++;
@@ -914,9 +914,9 @@ char * dofmt(char * fmtstr, double v) {
  * \brief doext()
  * \details Given a command name and a value, run the command with the given
  * value and read and return its first output line (only) as an allocated
- * string, always a copy of se->e.o.s, whic is set appropriately first
+ * string, always a copy of se->last_func_str, whic is set appropriately first
  * unless external functions are disabled, in which case the previous value
- * is used. The handling of se->e.o.s. and freezing of command is tricky.
+ * is used. The handling of se->last_func_str. and freezing of command is tricky.
  * Returning an allocated string in all cases, even if null, insures cell
  * expressions are written to files, etc..
  * \param[in] se
@@ -927,11 +927,11 @@ char * doext(struct sheet * sh, struct enode *se) {
     char * command;
     double value;
 
-    command = seval(sh, NULL, se->e.o.left);
-    value = eval(sh, NULL, se->e.o.right);
+    command = seval(sh, NULL, se->left);
+    value = eval(sh, NULL, se->right);
     if ( ! get_conf_int("external_functions") ) {
         sc_error("Warning: external functions disabled; using %s value",
-        (se->e.o.s && *se->e.o.s) ? "previous" : "null");
+        (se->last_func_str && *se->last_func_str) ? "previous" : "null");
 
         if (command) scxfree(command);
     } else {
@@ -962,9 +962,9 @@ char * doext(struct sheet * sh, struct enode *se) {
                     if ((cp = strchr(buff, '\n')))    /* contains newline */
                         *cp = '\0';            /* end string there */
 
-                    if (!se->e.o.s || strlen(buff) != strlen(se->e.o.s))
-                        se->e.o.s = scxrealloc(se->e.o.s, strlen(buff)+1);
-                    (void) strcpy (se->e.o.s, buff);
+                    if (!se->last_func_str || strlen(buff) != strlen(se->last_func_str))
+                        se->last_func_str = scxrealloc(se->last_func_str, strlen(buff)+1);
+                    (void) strcpy (se->last_func_str, buff);
                 /* save alloc'd copy */
                 }
                 (void) pclose(pp);
@@ -972,8 +972,8 @@ char * doext(struct sheet * sh, struct enode *se) {
             } /* else */
         } /* else */
     } /* else */
-    if (se->e.o.s)
-        return (strcpy(scxmalloc((size_t) (strlen(se->e.o.s)+1)), se->e.o.s));
+    if (se->last_func_str)
+        return (strcpy(scxmalloc((size_t) (strlen(se->last_func_str)+1)), se->last_func_str));
     else
         return (strcpy(scxmalloc((size_t)1), ""));
 }

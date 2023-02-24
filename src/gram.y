@@ -1136,10 +1136,10 @@ command:
                                      (void) swprintf(inputline, BUFFERSIZE, L"%s", $2);
 
                                      struct block * auxb = (struct block *) create_buf();
-                                     addto_buf(auxb, OKEY_ENTER);
+                                     buffer_append(auxb, OKEY_ENTER);
                                      do_commandmode(auxb);
-                                     flush_buf(auxb);
-                                     erase_buf(auxb);
+                                     buffer_reset(auxb);
+                                     buffer_free(auxb);
                                      auxb = NULL;
                                      inputline[0]=L'\0';
                                      scxfree($2);
@@ -1253,8 +1253,8 @@ term:   var                       {
                                     else {
                                        $1.sheet = NULL;
                                        $$ = new_var(O_VAR, $1);
-                                       $$->e.r.left.expr = NULL;
-                                       $$->e.r.right.expr = NULL;
+                                       $$->range.left.expr = NULL;
+                                       $$->range.right.expr = NULL;
                                     }
                                   }
 
@@ -1267,8 +1267,8 @@ term:   var                       {
                                         ep.vp = lookat(sh, $5.vp->row, $5.vp->col);
                                         ep.sheet = sh;
                                         $$ = new_var(O_VAR, ep);
-                                        $$->e.r.left.expr = NULL;
-                                        $$->e.r.right.expr = NULL;
+                                        $$->range.left.expr = NULL;
+                                        $$->range.right.expr = NULL;
                                         scxfree($2);
                                     } else {
                                         //sc_debug("not sheet found");

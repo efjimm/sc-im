@@ -42,7 +42,7 @@
  * \brief Header file for xmalloc.c
  */
 
-char * scxmalloc(unsigned n);
-char * scxrealloc(char * ptr, unsigned n);
-void scxfree(char * p);
-void fatal(char * str);
+void *scxmalloc(size_t size);
+void *scxrealloc(void *ptr, size_t new_size);
+void scxfree(void *ptr);
+void fatal(const char *str);

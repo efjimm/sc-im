@@ -292,10 +292,10 @@ int growtbl(struct sheet * sh, int rowcol, int toprow, int topcol) {
  */
 
 struct ent ** ATBL(struct sheet * sh, struct ent ***tbl, int row, int col) {
-    struct ent **ent=(*(sh->tbl+row)+(col));
-    struct ent *v= *ent;
+    struct ent **ent = &sh->tbl[row][col];
+    struct ent *v = *ent;
 
-    if ((v) && (v->trigger) && ((v->trigger->flag & TRG_READ) == TRG_READ)) {
+    if (v && v->trigger && ((v->trigger->flag & TRG_READ) == TRG_READ)) {
         //sc_debug("row:%d %d", v->row, v->col);
         do_trigger(v,TRG_READ);
     }

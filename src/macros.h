@@ -69,7 +69,7 @@
 #define OKEY_ESC         '\033'
 #define OKEY_TAB         '\011'
 #define OKEY_ENTER       10
-#define OKEY_SPACE       L' '
+#define OKEY_SPACE       ' '
 #define OKEY_LEFT        0x104
 #define OKEY_RIGHT       0x105
 #define OKEY_DOWN        0x102
