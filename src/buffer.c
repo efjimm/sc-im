@@ -39,23 +39,38 @@
  * \file buffer.c
  * \author Andrés Martinelli <andmarti@gmail.com>
  * \date 2017-07-18
- * \brief buffer functions used by stdin andm mappings
+ * \brief buffer functions used by stdin and mappings
  */
 
 #include <stdlib.h>
 #include <wchar.h>
+#include <assert.h>
 
 #include "buffer.h"
 #include "macros.h"
 #include "utils/string.h"
 
+static struct block *
+buffer_get_block(struct block *const buf, size_t pos) {
+    struct block *temp = buf;
+
+    for (int i = 0; i < pos; i++) {
+        if (temp == NULL)
+            return NULL;
+
+        temp = temp->pnext;
+    }
+
+    return temp;
+}
+
 
 /**
 * \brief Create buffer as list of blocks
-* \return b
+* \return ret
 */
 struct block *
-create_buf(void) {
+buffer_create(void) {
     struct block *const ret = malloc(sizeof(*ret));
 
     *ret = (struct block){
@@ -66,20 +81,25 @@ create_buf(void) {
     return ret;
 }
 
+struct block *
+buffer_create_init(size_t initial_capacity) {
+    return buffer_create();
+}
+
 
 /**
-* \brief Add a int32_t to a buffer
+* \brief Add a uint32_t to a buffer
 * \param[in] buf
-* \param[in] d
+* \param[in] value
 * \return none
 */
 void
-buffer_append(struct block *const buf, int32_t d) {
+buffer_append(struct block *const buf, uint32_t value) {
     if (buf->value == '\0') {
-        buf->value = d;
+        buf->value = value;
     } else {
         struct block *const b = malloc(sizeof(*b));
-        b->value = d;
+        b->value = value;
         b->pnext = NULL;
 
         struct block *aux = buf;
@@ -88,22 +108,14 @@ buffer_append(struct block *const buf, int32_t d) {
     }
 }
 
-
-/**
-* \brief Replaces the elements of 'dest' with the elements of 'src'
-* \param[in] dest
-* \param[in] src
-* \return none
-*/
 void
-buffer_copy(struct block *const dest, struct block *const src) {
-    buffer_reset(dest);
+buffer_append_buffer(struct block *const dest, const struct block *const src) {
+    const struct block *temp = src;
 
-    const int len = get_bufsize(src);
-    for (int i = 0; i < len; i++)
-        buffer_append(dest, get_bufval(src, i));
+    for (; temp; temp = temp->pnext) {
+        buffer_append(dest, temp->value);
+    }
 }
-
 
 /**
 * \brief Remove a piece of a buffer
@@ -111,21 +123,20 @@ buffer_copy(struct block *const dest, struct block *const src) {
 * \param[in] pos
 * \return none
 */
-// FIXME
 void
-buffer_remove(struct block **const buf, size_t pos) {
-    if (buf == NULL || *buf == NULL)
+buffer_remove(struct block **const buf_ptr, size_t pos) {
+    if (buf_ptr == NULL || *buf_ptr == NULL)
         return;
 
     if (pos == 0) {
-        struct block *const temp = *buf;
-        *buf = temp->pnext;
+        struct block *const temp = *buf_ptr;
+        *buf_ptr = temp->pnext;
         free(temp);
         return;
     }
 
-    struct block *prev = *buf;
-    struct block *current = *buf;
+    struct block *prev = *buf_ptr;
+    struct block *current = *buf_ptr;
 
     for (int i = 0; i < pos; i++) {
         prev = current;
@@ -186,7 +197,7 @@ buffer_free(struct block *const buf) {
 * \return c size of buffer
 */
 size_t
-get_bufsize(const struct block *const buf) {
+buffer_size(const struct block *const buf) {
     if (buf == NULL || buf->value == '\0')
         return 0;
 
@@ -207,7 +218,7 @@ get_bufsize(const struct block *const buf) {
 * \return c printable buffer length
 */
 size_t
-get_pbuflen(const struct block *const buf) {
+buffer_printable_len(const struct block *const buf) {
     if (buf == NULL || buf->value == '\0')
         return 0;
 
@@ -227,13 +238,21 @@ get_pbuflen(const struct block *const buf) {
 * \param[in] d
 * \return none
 */
-int get_bufval(struct block * buf, int d) {
-    int i;
-    struct block * b_aux = buf;
-    for (i = 0; i < d; i++) {
-        b_aux = b_aux->pnext;
+uint32_t
+buffer_get(const struct block *const buf, size_t index) {
+    if (buf == NULL)
+        assert(false);
+
+    const struct block *temp = buf;
+
+    for (int i = 0; i < index; i++) {
+        if (temp == NULL)
+            assert(false);
+
+        temp = temp->pnext;
     }
-    return b_aux->value;
+
+    return temp->value;
 }
 
 
@@ -242,32 +261,32 @@ int get_bufval(struct block * buf, int d) {
 * \details Search a buffer for a given integer value.
 * \return 0 if not found, 1 if found
 */
-int find_val(struct block * buf, int value) {
-    struct block * b_aux = buf;
-    while ( b_aux != NULL && b_aux->value != '\0' ) {
-        if (b_aux->value == value) return 1;
-        b_aux = b_aux->pnext;
+bool
+buffer_contains(const struct block *const buf, uint32_t value) {
+    const struct block *temp = buf;
+
+    for (; temp && temp->value != '\0'; temp = temp->pnext) {
+        if (temp->value == value)
+            return 1;
     }
+
     return 0;
 }
 
+void
+buffer_truncate(struct block *const buf, size_t pos) {
+    struct block *temp = buffer_get_block(buf, pos);
 
-/**
-* \brief Delete the first element in a buffer
-* \param[in] buf
-* \return none
-*/
-struct block * dequeue (struct block * buf) {
-    if (buf == NULL) return buf;
-    struct block * sig;
-    if (buf->value == '\0') return buf;
+    if (temp == NULL)
+        return;
 
-    if (buf->pnext == NULL) {
-       buf->value = '\0';
-    } else {
-        sig = buf->pnext;
-        //free(buf);
-        buf = sig;
+    temp->value = '\0';
+    struct block *next = temp->pnext;
+    temp->pnext = NULL;
+
+
+    for (temp = next; temp; temp = next) {
+        next = temp->pnext;
+        free(temp);
     }
-    return buf;
 }

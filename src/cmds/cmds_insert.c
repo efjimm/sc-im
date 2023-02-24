@@ -75,13 +75,13 @@ void do_insertmode(struct block * sb) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
 
-    if (sb->value == ctl('v') ) {  // VISUAL SUBMODE
+    if (buffer_get(sb, 0) == ctl('v') ) {  // VISUAL SUBMODE
         visual_submode = insert_edit_submode;
         chg_mode('v');
         start_visualmode(sh->currow, sh->curcol, sh->currow, sh->curcol);
         return;
 
-    } else if (sb->value == OKEY_LEFT) {   // LEFT
+    } else if (buffer_get(sb, 0) == OKEY_LEFT) {   // LEFT
         if (inputline_pos) {
             real_inputline_pos--;
             int l = wcwidth(inputline[real_inputline_pos]);
@@ -90,7 +90,7 @@ void do_insertmode(struct block * sb) {
         ui_show_header();
         return;
 
-    } else if (sb->value == OKEY_RIGHT) {  // RIGHT
+    } else if (buffer_get(sb, 0) == OKEY_RIGHT) {  // RIGHT
         int max = wcswidth(inputline, wcslen(inputline));
         if (inputline_pos < max) {
             int l = wcwidth(inputline[real_inputline_pos++]);
@@ -100,11 +100,11 @@ void do_insertmode(struct block * sb) {
         return;
 
 #ifdef INS_HISTORY_FILE
-    } else if (sb->value == OKEY_UP || sb->value == ctl('p') ||         // UP
-               sb->value == OKEY_DOWN || sb->value == ctl('n')) {       // DOWN
+    } else if (buffer_get(sb, 0) == OKEY_UP || buffer_get(sb, 0) == ctl('p') ||         // UP
+               buffer_get(sb, 0) == OKEY_DOWN || buffer_get(sb, 0) == ctl('n')) {       // DOWN
 
         int delta = 0, i, cmp;
-        if (sb->value == OKEY_UP || sb->value == ctl('p')) {            // up
+        if (buffer_get(sb, 0) == OKEY_UP || buffer_get(sb, 0) == ctl('p')) {            // up
             for (i=insert_history->pos; -i+1 < insert_history->len; i--, delta--)
                 if (wcslen(get_line_from_history(insert_history, 0))) {
                     if (! (cmp = wcsncmp(inputline, &get_line_from_history(insert_history, i-1)[1], wcslen(get_line_from_history(insert_history, 0))))) {
@@ -118,7 +118,7 @@ void do_insertmode(struct block * sb) {
                     delta--;
                     break;
                 }
-        } else if (sb->value == OKEY_DOWN || sb->value == ctl('n')) {   // down
+        } else if (buffer_get(sb, 0) == OKEY_DOWN || buffer_get(sb, 0) == ctl('n')) {   // down
             for (i=insert_history->pos; i != 0; i++, delta++)
                 if (wcslen(get_line_from_history(insert_history, 0))) {
                     if (! (cmp = wcsncmp(inputline, &get_line_from_history(insert_history, i+1)[1], wcslen(get_line_from_history(insert_history, 0))))) {
@@ -151,7 +151,7 @@ void do_insertmode(struct block * sb) {
         return;
 #endif
 
-    } else if (sb->value == OKEY_BS || sb->value == OKEY_BS2) {  // BS
+    } else if (buffer_get(sb, 0) == OKEY_BS || buffer_get(sb, 0) == OKEY_BS2) {  // BS
         if ( ! wcslen(inputline) || ! real_inputline_pos ) return;
 
         int l = wcwidth(inputline[real_inputline_pos - 1]);
@@ -164,7 +164,7 @@ void do_insertmode(struct block * sb) {
             del_wchar(get_line_from_history(insert_history, insert_history->pos), real_inputline_pos); // Clean history
 #endif
 
-    } else if (sb->value == OKEY_DEL) {    // DEL
+    } else if (buffer_get(sb, 0) == OKEY_DEL) {    // DEL
         int max = wcswidth(inputline, wcslen(inputline));
         if (inputline_pos > max) return;
         del_wchar(inputline, real_inputline_pos);
@@ -174,7 +174,7 @@ void do_insertmode(struct block * sb) {
 #endif
         ui_show_header();
 
-    } else if (sb->value == OKEY_TAB) {    // TAB
+    } else if (buffer_get(sb, 0) == OKEY_TAB) {    // TAB
         if (inputline_pos && wcslen(inputline) >= inputline_pos) {
             real_inputline_pos--;
             int l = wcwidth(inputline[real_inputline_pos]);
@@ -183,7 +183,7 @@ void do_insertmode(struct block * sb) {
         chg_mode(insert_edit_submode == '=' ? 'e' : 'E');
         ui_show_header();
 
-    } else if (find_val(sb, OKEY_ENTER)) { // ENTER
+    } else if (buffer_contains(sb, OKEY_ENTER)) { // ENTER
         char ope[BUFFERSIZE] = "";
         wchar_t content[BUFFERSIZE] = L"";
         wcscpy(content, inputline);
@@ -246,40 +246,40 @@ void do_insertmode(struct block * sb) {
         return;
 
 
-    } else if (sb->value == OKEY_HOME) {   // HOME
+    } else if (buffer_get(sb, 0) == OKEY_HOME) {   // HOME
         real_inputline_pos = 0;
         inputline_pos = wcswidth(inputline, real_inputline_pos);
         ui_show_header();
         return;
 
-    } else if (sb->value == OKEY_END) {    // END
+    } else if (buffer_get(sb, 0) == OKEY_END) {    // END
         real_inputline_pos = wcslen(inputline);
         inputline_pos = wcswidth(inputline, real_inputline_pos);
         ui_show_header();
         return;
 
     // Write new char !!
-    //} else if ( wcslen(inputline) < (COLS - 16) && sc_isprint(sb->value)) {
-    } else if ( sc_isprint(sb->value)) {
-        //DEBUG sc_info("2: %d %lc", sb->value, sb->value);
-        ins_in_line(sb->value);
+    //} else if ( wcslen(inputline) < (COLS - 16) && sc_isprint(buffer_get(sb, 0))) {
+    } else if ( sc_isprint(buffer_get(sb, 0))) {
+        //DEBUG sc_info("2: %d %lc", buffer_get(sb, 0), buffer_get(sb, 0));
+        ins_in_line(buffer_get(sb, 0));
         ui_show_header();
 #ifdef INS_HISTORY_FILE
         if (insert_history->pos == 0) {          // Only if editing the new command
             wchar_t * sl = get_line_from_history(insert_history, 0);
-            add_wchar(sl, sb->value, real_inputline_pos-1); // Insert into history
+            add_wchar(sl, buffer_get(sb, 0), real_inputline_pos-1); // Insert into history
         }
 #endif
 
-    } else if (sb->value == ctl('r') && get_bufsize(sb) == 2 &&        // C-r      // FIXME ???
-        (sb->pnext->value - (L'a' - 1) < 1 || sb->pnext->value > 26)) {
+    } else if (buffer_get(sb, 0) == ctl('r') && buffer_size(sb) == 2 &&        // C-r      // FIXME ???
+        (buffer_get(sb, 1) - (L'a' - 1) < 1 || buffer_get(sb, 1) > 26)) {
         wchar_t cline [BUFFERSIZE];
-        int i, r = get_mark(sb->pnext->value)->row;
+        int i, r = get_mark(buffer_get(sb, 1))->row;
         if (r != -1) {
-            swprintf(cline, BUFFERSIZE, L"%s%d", coltoa(get_mark(sb->pnext->value)->col), r);
+            swprintf(cline, BUFFERSIZE, L"%s%d", coltoa(get_mark(buffer_get(sb, 1))->col), r);
         } else {
-            swprintf(cline, BUFFERSIZE, L"%s%d:", coltoa(get_mark(sb->pnext->value)->rng->tlcol), get_mark(sb->pnext->value)->rng->tlrow);
-            swprintf(cline + wcslen(cline), BUFFERSIZE, L"%s%d", coltoa(get_mark(sb->pnext->value)->rng->brcol), get_mark(sb->pnext->value)->rng->brrow);
+            swprintf(cline, BUFFERSIZE, L"%s%d:", coltoa(get_mark(buffer_get(sb, 1))->rng->tlcol), get_mark(buffer_get(sb, 1))->rng->tlrow);
+            swprintf(cline + wcslen(cline), BUFFERSIZE, L"%s%d", coltoa(get_mark(buffer_get(sb, 1))->rng->brcol), get_mark(buffer_get(sb, 1))->rng->brrow);
         }
         for(i = 0; i < wcslen(cline); i++) ins_in_line(cline[i]);
 

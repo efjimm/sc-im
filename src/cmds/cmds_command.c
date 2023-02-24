@@ -203,7 +203,7 @@ void do_commandmode(struct block * sb) {
     /*
      * Normal KEY handlers for this MODE
      */
-    if (sb->value == OKEY_BS || sb->value == OKEY_BS2) {  // BS
+    if (buffer_get(sb, 0) == OKEY_BS || buffer_get(sb, 0) == OKEY_BS2) {  // BS
         if ( ! wcslen(inputline) || ! real_inputline_pos ) return;
         int l = wcwidth(inputline[real_inputline_pos - 1]);
         real_inputline_pos--;
@@ -218,7 +218,7 @@ void do_commandmode(struct block * sb) {
         ui_show_header();
         return;
 
-    } else if (sb->value == OKEY_LEFT) {   // LEFT
+    } else if (buffer_get(sb, 0) == OKEY_LEFT) {   // LEFT
         if (inputline_pos) {
             real_inputline_pos--;
             int l = wcwidth(inputline[real_inputline_pos]);
@@ -227,7 +227,7 @@ void do_commandmode(struct block * sb) {
         ui_show_header();
         return;
 
-    } else if (sb->value == OKEY_RIGHT) {  // RIGHT
+    } else if (buffer_get(sb, 0) == OKEY_RIGHT) {  // RIGHT
         int max = wcswidth(inputline, wcslen(inputline));
         if (inputline_pos < max) {
             int l = wcwidth(inputline[real_inputline_pos++]);
@@ -236,7 +236,7 @@ void do_commandmode(struct block * sb) {
         ui_show_header();
         return;
 
-    } else if (sb->value == OKEY_DEL) {    // DEL
+    } else if (buffer_get(sb, 0) == OKEY_DEL) {    // DEL
         if (inputline_pos > wcswidth(inputline, wcslen(inputline))) return;
         del_wchar(inputline, real_inputline_pos);
 
@@ -248,11 +248,11 @@ void do_commandmode(struct block * sb) {
         return;
 
 #ifdef HISTORY_FILE
-    } else if (sb->value == OKEY_UP || sb->value == ctl('p') ||         // UP
-               sb->value == OKEY_DOWN || sb->value == ctl('n')) {       // DOWN
+    } else if (buffer_get(sb, 0) == OKEY_UP || buffer_get(sb, 0) == ctl('p') ||         // UP
+               buffer_get(sb, 0) == OKEY_DOWN || buffer_get(sb, 0) == ctl('n')) {       // DOWN
 
         int delta = 0, k = 0, i, cmp;
-        if (sb->value == OKEY_UP || sb->value == ctl('p')) {            // up
+        if (buffer_get(sb, 0) == OKEY_UP || buffer_get(sb, 0) == ctl('p')) {            // up
             for (i=commandline_history->pos; -i+1 < commandline_history->len; i--, k--)
                 if (wcslen(get_line_from_history(commandline_history, 0))) {
                     if (! (cmp = wcsncmp(inputline, get_line_from_history(commandline_history, i-1), wcslen(get_line_from_history(commandline_history, 0))))) {
@@ -266,7 +266,7 @@ void do_commandmode(struct block * sb) {
                     k--;
                     break;
                 }
-        } else if (sb->value == OKEY_DOWN || sb->value == ctl('n')) {   // down
+        } else if (buffer_get(sb, 0) == OKEY_DOWN || buffer_get(sb, 0) == ctl('n')) {   // down
             for (i=commandline_history->pos; i != 0; i++, k++)
                 if (wcslen(get_line_from_history(commandline_history, 0))) {
                     if (! (cmp = wcsncmp(inputline, get_line_from_history(commandline_history, i+1), wcslen(get_line_from_history(commandline_history, 0))))) {
@@ -289,21 +289,21 @@ void do_commandmode(struct block * sb) {
         return;
 #endif
 
-    } else if (sb->value == ctl('v') ) {  // VISUAL SUBMODE
+    } else if (buffer_get(sb, 0) == ctl('v') ) {  // VISUAL SUBMODE
         visual_submode = ':';
         chg_mode('v');
         start_visualmode(sh->currow, sh->curcol, sh->currow, sh->curcol);
         return;
 
-    } else if (sb->value == ctl('r') && get_bufsize(sb) == 2 &&        // C-r      // FIXME ???
-        (sb->pnext->value - (L'a' - 1) < 1 || sb->pnext->value > 26)) {
+    } else if (buffer_get(sb, 0) == ctl('r') && buffer_size(sb) == 2 &&        // C-r      // FIXME ???
+        (buffer_get(sb, 1) - (L'a' - 1) < 1 || buffer_get(sb, 1) > 26)) {
         wchar_t cline [BUFFERSIZE];
-        int i, r = get_mark(sb->pnext->value)->row;
+        int i, r = get_mark(buffer_get(sb, 1))->row;
         if (r != -1) {
-            swprintf(cline, BUFFERSIZE, L"%s%d", coltoa(get_mark(sb->pnext->value)->col), r);
+            swprintf(cline, BUFFERSIZE, L"%s%d", coltoa(get_mark(buffer_get(sb, 1))->col), r);
         } else {
-            swprintf(cline, BUFFERSIZE, L"%s%d:", coltoa(get_mark(sb->pnext->value)->rng->tlcol), get_mark(sb->pnext->value)->rng->tlrow);
-            swprintf(cline + wcslen(cline), BUFFERSIZE, L"%s%d", coltoa(get_mark(sb->pnext->value)->rng->brcol), get_mark(sb->pnext->value)->rng->brrow);
+            swprintf(cline, BUFFERSIZE, L"%s%d:", coltoa(get_mark(buffer_get(sb, 1))->rng->tlcol), get_mark(buffer_get(sb, 1))->rng->tlrow);
+            swprintf(cline + wcslen(cline), BUFFERSIZE, L"%s%d", coltoa(get_mark(buffer_get(sb, 1))->rng->brcol), get_mark(buffer_get(sb, 1))->rng->brrow);
         }
         for(i = 0; i < wcslen(cline); i++) ins_in_line(cline[i]);
 
@@ -316,7 +316,7 @@ void do_commandmode(struct block * sb) {
         ui_show_header();
         return;
 
-    } else if (sb->value == ctl('f')) {               // C-f
+    } else if (buffer_get(sb, 0) == ctl('f')) {               // C-f
         wchar_t cline [BUFFERSIZE];
         int i;
         struct ent * p1 = *ATBL(sh, sh->tbl, sh->currow, sh->curcol);
@@ -336,9 +336,9 @@ void do_commandmode(struct block * sb) {
         ui_show_header();
         return;
 
-    } else if ( sb->value == ctl('w') || sb->value == ctl('b') ||
-                sb->value == OKEY_HOME || sb->value == OKEY_END) {
-        switch (sb->value) {
+    } else if ( buffer_get(sb, 0) == ctl('w') || buffer_get(sb, 0) == ctl('b') ||
+                buffer_get(sb, 0) == OKEY_HOME || buffer_get(sb, 0) == OKEY_END) {
+        switch (buffer_get(sb, 0)) {
         case ctl('w'):
             real_inputline_pos = for_word(1, 0, 1) + 1;   // E
             break;
@@ -356,7 +356,7 @@ void do_commandmode(struct block * sb) {
         ui_show_header();
         return;
 
-    } else if (sb->value == '\t') {                  // TAB completion
+    } else if (buffer_get(sb, 0) == '\t') {                  // TAB completion
         int i, clen = (sizeof(valid_commands) / sizeof(char *)) - 1;
 
         if (! get_comp()) copy_to_curcmd(inputline); // keep original cmd
@@ -387,14 +387,14 @@ void do_commandmode(struct block * sb) {
         ui_show_header();
         return;
 
-    } else if (sc_isprint(sb->value)) {               //  Write new char
-        ins_in_line(sb->value);
+    } else if (sc_isprint(buffer_get(sb, 0))) {               //  Write new char
+        ins_in_line(buffer_get(sb, 0));
         ui_show_header();
 
 #ifdef HISTORY_FILE
         if (commandline_history->pos == 0) {          // Only if editing the new command
             wchar_t * sl = get_line_from_history(commandline_history, 0);
-            add_wchar(sl, sb->value, real_inputline_pos-1); // Insert into history
+            add_wchar(sl, buffer_get(sb, 0), real_inputline_pos-1); // Insert into history
         }
 #endif
         return;
@@ -403,7 +403,7 @@ void do_commandmode(struct block * sb) {
     /*
      * CONFIRM A COMMAND PRESSING ENTER
      */
-    } else if (find_val(sb, OKEY_ENTER)) {
+    } else if (buffer_contains(sb, OKEY_ENTER)) {
 
         if ( ! wcscmp(inputline, L"refresh")) {
             sig_winchg();

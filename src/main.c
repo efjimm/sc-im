@@ -88,7 +88,7 @@
 #endif
 
 // global variable to store a session
-struct session * session;
+struct session *session;
 
 // this variable stores the filename passed to sc-im via argv
 // by design, if more than one is passed, we keep the last one.
@@ -165,7 +165,8 @@ extern graphADT graph;
  *
  * \return 0 on success; -1 on errors
  */
-int main (int argc, char ** argv) {
+int
+main(int argc, char **argv) {
     // Define how the file stream should be buffered. Error if unsuccessful.
     if (setvbuf(stderr, stderr_buffer, _IOFBF, STDERRBUF) != 0) {
         fprintf(stderr, "Error setting stderr buffer\n");
@@ -189,13 +190,15 @@ int main (int argc, char ** argv) {
     read_argv(argc, argv);
 
     // check if help is in argv. if so, show usage and quit
-    if (get_conf_int("help")) show_usage_and_quit();
+    if (get_conf_int("help"))
+        show_usage_and_quit();
 
     // check if version is in argv. if so, show version and quit
-    if (get_conf_int("version")) show_version_and_quit();
+    if (get_conf_int("version"))
+         show_version_and_quit();
 
     // if starting tui..
-    if (! get_conf_int("nocurses")) {
+    if (!get_conf_int("nocurses")) {
         // create command line history structure
 #ifdef HISTORY_FILE
         commandline_history = (struct history *) create_history(':');
@@ -235,7 +238,7 @@ int main (int argc, char ** argv) {
             return exit_app(-1);
         }
 
-        if (! get_conf_int("nocurses")) { // WE MUST STOP SCREEN!
+        if (!get_conf_int("nocurses")) { // WE MUST STOP SCREEN!
             ui_stop_screen();
 
             // if output is set, nocurses should always be 1 !
@@ -258,7 +261,7 @@ int main (int argc, char ** argv) {
     create_structures();
 
     // create main session
-    session = (struct session *) calloc(1, sizeof(struct session));
+    session = calloc(1, sizeof(*session));
 
     /*
      * create a new roman struct for each file passed as argv
@@ -293,11 +296,11 @@ int main (int argc, char ** argv) {
     chg_mode('.');
 
     // initiate ui
-    FILE * f;
-    if ( ! get_conf_int("nocurses")) {
+    FILE *f;
+    if (!get_conf_int("nocurses")) {
         // we show welcome screen if no spreadsheet was passed to sc-im
         // and no input was sent throw pipeline
-        if ( ! session->cur_doc->name && ! wcslen(stdin_buffer)) {
+        if (!session->cur_doc->name && !wcslen(stdin_buffer)) {
             ui_do_welcome();
             // show mode and cell's details in status bar
             ui_print_mode();
@@ -313,7 +316,8 @@ int main (int argc, char ** argv) {
 
     // handle input from keyboard
     // this should only take place if curses ui
-    if (! get_conf_int("nocurses")) buffer = (struct block *) create_buf();
+    if (!get_conf_int("nocurses"))
+        buffer = buffer_create();
 
     wchar_t nocurses_buffer[BUFFERSIZE];
 
@@ -328,7 +332,7 @@ int main (int argc, char ** argv) {
     // handle --exports passed as argv
     handle_argv_exports();
 
-    while ( ! shall_quit && ! get_conf_int("quit_afterload")) {
+    while (!shall_quit && !get_conf_int("quit_afterload")) {
         // save current time for runtime timer
         gettimeofday(&current_tv, NULL);
 
@@ -336,7 +340,7 @@ int main (int argc, char ** argv) {
         handle_backup();
 
         // if we are in ncurses
-        if (! get_conf_int("nocurses")) {
+        if (!get_conf_int("nocurses")) {
             handle_input(buffer);
 
         // if we are not in ncurses
@@ -363,13 +367,14 @@ int main (int argc, char ** argv) {
  * \brief Creates the basic structures used by sc-im
  * \return none
  */
-void create_structures() {
+void
+create_structures(void) {
 
     // initiate mark array
     create_mark_array();
 
     // create last command buffer
-    lastcmd_buffer = (struct block *) create_buf();
+    lastcmd_buffer = buffer_create();
 
     // create yank list structure
     init_yanklist();
@@ -389,7 +394,8 @@ void create_structures() {
  * \brief read_stdin()
  * \return none
  */
-void read_stdin() {
+void
+read_stdin(void) {
     //sc_debug("reading stdin from pipeline");
     fd_set readfds;
     FD_ZERO(&readfds);
@@ -415,7 +421,7 @@ void read_stdin() {
     readfds = savefds;
     if (f != NULL) fclose(f);
 
-    if ( ! freopen("/dev/tty", "rw", stdin)) {
+    if ( !freopen("/dev/tty", "rw", stdin)) {
         perror(NULL);
         exit(-1);
     }
@@ -427,7 +433,8 @@ void read_stdin() {
  * \brief Delete basic structures that depend on the loaded files.
  * \return none
  */
-void delete_structures() {
+void
+delete_structures(void) {
 
     // Free marks array
     free_marks_array();
@@ -481,17 +488,18 @@ void delete_structures() {
  *         return 0 on normal exit.
  *         return -1 on error.
  */
-int exit_app(int status) {
+int
+exit_app(int status) {
     // free history
-    if (! get_conf_int("nocurses")) {
+    if (!get_conf_int("nocurses")) {
 
 #ifdef HISTORY_FILE
-        if (! save_history(commandline_history, "w")) sc_error("Could not save commandline history");
+        if (!save_history(commandline_history, "w")) sc_error("Could not save commandline history");
         if (commandline_history != NULL) destroy_history(commandline_history);
 #endif
 
 #ifdef INS_HISTORY_FILE
-        if (! save_history(insert_history, "a")) sc_error("Could not save input mode history");
+        if (!save_history(insert_history, "a")) sc_error("Could not save input mode history");
         if (insert_history != NULL) destroy_history(insert_history);
 #endif
     }
@@ -517,7 +525,7 @@ int exit_app(int status) {
     buffer_free(buffer);
 
     // stop CURSES screen
-    if (! get_conf_int("nocurses"))
+    if (!get_conf_int("nocurses"))
         ui_stop_screen();
 
     // close fdoutput
@@ -546,10 +554,11 @@ int exit_app(int status) {
  *
  * \return none
  */
-void read_argv(int argc, char ** argv) {
+void
+read_argv(int argc, char ** argv) {
     int i;
     for (i = 1; i < argc; i++) {
-        if ( ! strncmp(argv[i], "--", 2) ) {       // it was passed a parameter
+        if ( !strncmp(argv[i], "--", 2) ) {       // it was passed a parameter
             parse_str(user_conf_d, argv[i] + 2, 0);
         } else {                                   // it was passed a file
             //printf("%s-\n", argv[i]);
@@ -566,7 +575,8 @@ void read_argv(int argc, char ** argv) {
  * TODO: move to a new offline.c
  * \return none
  */
-void handle_argv_exports() {
+void
+handle_argv_exports(void) {
     if (get_conf_value("export_csv") && session->cur_doc != NULL) {
         export_delim(NULL, ',', 0, 0, session->cur_doc->cur_sh->maxrow, session->cur_doc->cur_sh->maxcol, 0);
     }
@@ -590,14 +600,15 @@ void handle_argv_exports() {
  * \brief Set up signals catched by sc-im
  * \return none
  */
-void signals() {
-    void sig_int();
-    void sig_abrt();
-    void sig_term();
-    void sig_nopipe();
-    void sig_winchg();
-    void sig_tstp();
-    void sig_cont();
+void
+signals(void) {
+    void sig_int(int);
+    void sig_abrt(int);
+    void sig_term(int);
+    void sig_nopipe(int);
+    void sig_winchg(int);
+    void sig_tstp(int);
+    void sig_cont(int);
 
     signal(SIGINT, sig_int);
     signal(SIGABRT, sig_abrt);
@@ -617,7 +628,8 @@ void signals() {
  * \brief Handles the SIGPIPE signal
  * \return none
  */
-void sig_nopipe() {
+void
+sig_nopipe(int sig) {
     sc_error("brokenpipe!");
     brokenpipe = TRUE;
     return;
@@ -628,7 +640,8 @@ void sig_nopipe() {
  * \brief Handles the SIGTSTP signal
  * \return none
  */
-void sig_tstp() {
+void
+sig_tstp(int sig) {
     //sc_info("Got SIGTSTP.");
     def_prog_mode();
     endwin();
@@ -641,7 +654,8 @@ void sig_tstp() {
  * \brief Handles the SIGCONT signal
  * \return none
  */
-void sig_cont() {
+void
+sig_cont(int sig) {
     signal(SIGTSTP, sig_tstp); /* set handler back to this */
     sig_winchg();
     reset_prog_mode();
@@ -655,10 +669,11 @@ void sig_cont() {
  * \brief Handles the SIGINT signal
  * \return none
  */
-void sig_int() {
-    if ( ! get_conf_int("debug")) {
+void
+sig_int(int sig) {
+    if ( !get_conf_int("debug")) {
         sc_error("Got SIGINT. Press «:q<Enter>» to quit sc-im");
-    } else if (get_bufsize(buffer)) {
+    } else if (buffer_size(buffer)) {
         break_waitcmd_loop(buffer);
     } else {
         shall_quit = 2;
@@ -671,8 +686,9 @@ void sig_int() {
  * \brief Handles the SIGABRT signal
  * \return none
  */
-void sig_abrt() {
-    sc_error("Error !!! Quitting sc-im.");
+void
+sig_abrt(int sig) {
+    sc_error("Error !!!Quitting sc-im.");
     shall_quit = -1; // error !
     return;
 }
@@ -682,7 +698,8 @@ void sig_abrt() {
  * \brief Handles the SIGABRT signal
  * \return none
  */
-void sig_term() {
+void
+sig_term(int sig) {
     sc_error("Got SIGTERM signal. Quitting sc-im.");
     shall_quit = 2;
     return;

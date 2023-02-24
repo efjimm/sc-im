@@ -95,15 +95,14 @@ char * v_name(int row, int col) {
  * \return cell name
  */
 
-char * parse_cell_name(int ignore_first_blocks, struct block * buf_in) {
-    struct block * b = buf_in;
+char *
+parse_cell_name(int ignore_first_blocks, struct block * buf_in) {
     static char cell_name[3]; //length of max col is 3 (ZZZ)
     cell_name[0] = '\0';
 
-    while (ignore_first_blocks--) b = b->pnext;
-    while( b != NULL) {
-          (void) sprintf(cell_name + strlen(cell_name), "%c", b->value);
-          b = b->pnext;
+    const size_t len = buffer_size(buf_in);
+    for (int i = ignore_first_blocks; i < len; i++) {
+        snprintf(cell_name + strlen(cell_name), sizeof(cell_name), "%c", buffer_get(buf_in, i));
     }
     return cell_name;
 }

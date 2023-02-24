@@ -83,7 +83,8 @@ MEVENT event;              // mouse event
  * \return none
  */
 
-void handle_input(struct block * buffer) {
+void
+handle_input(struct block *const buffer) {
     struct timeval start_tv, m_tv, init_tv; // For measuring timeout
     gettimeofday(&start_tv, NULL);
     gettimeofday(&m_tv, NULL);
@@ -133,10 +134,10 @@ void handle_input(struct block * buffer) {
 
         // Handle multiplier of commands in NORMAL VISUAL and EDIT modes
         if ( return_value != -1 && isdigit(d)
-                && ( buffer->value == L'\0' || iswdigit((wchar_t) buffer->value))
-                && ( curmode == NORMAL_MODE || curmode == VISUAL_MODE || curmode == EDIT_MODE )
-                && ( cmd_multiplier || d != L'0' )
-                && ( ! get_conf_int("numeric"))
+                && (buffer_get(buffer, 0) == '\0' || iswdigit(buffer_get(buffer, 0)))
+                && (curmode == NORMAL_MODE || curmode == VISUAL_MODE || curmode == EDIT_MODE)
+                && (cmd_multiplier || d != L'0')
+                && (!get_conf_int("numeric"))
            ) {
             cmd_multiplier *= 10;
             cmd_multiplier += (int) (d - '0');
@@ -197,7 +198,8 @@ void handle_input(struct block * buffer) {
         fix_timeout(&start_tv);
 
         // to handle map of ESC
-        if ( (buffer->value == OKEY_ESC || buffer->value == ctl('g')) && curmode != EDIT_MODE) {
+        if ((buffer_get(buffer, 0) == OKEY_ESC ||
+                buffer_get(buffer, 0) == ctl('g')) && curmode != EDIT_MODE) {
             break_waitcmd_loop(buffer);
             ui_print_mult_pend();
             ui_refresh_pad(0);
@@ -223,7 +225,8 @@ void handle_input(struct block * buffer) {
  *
  * \return none
  */
-void break_waitcmd_loop(struct block * buffer) {
+void
+break_waitcmd_loop(struct block *const buffer) {
     if (curmode == COMMAND_MODE) {
 #ifdef HISTORY_FILE
         del_item_from_history(commandline_history, 0);
@@ -274,7 +277,8 @@ void break_waitcmd_loop(struct block * buffer) {
  * \return none
  */
 
-void fix_timeout(struct timeval * start_tv) {
+void
+fix_timeout(struct timeval *const start_tv) {
     switch (curmode) {
         case COMMAND_MODE:
         case INSERT_MODE:
@@ -299,15 +303,16 @@ void fix_timeout(struct timeval * start_tv) {
  * \return none
  */
 
-int has_cmd (struct block * buf, long timeout) {
-    int len = get_bufsize(buf);
+int
+has_cmd(struct block *const buf, long timeout) {
+    int len = buffer_size(buf);
     if ( ! len ) return 0;
     int k, found = 0;
 
-    struct block * auxb = (struct block *) create_buf();
+    struct block * auxb = buffer_create();
 
     for (k = 0; k < len; k++) {
-        buffer_append(auxb, get_bufval(buf, k));
+        buffer_append(auxb, buffer_get(buf, k));
         if ( is_single_command(auxb, timeout)) { found = 1; break; }
     }
     buffer_free(auxb);
@@ -315,11 +320,11 @@ int has_cmd (struct block * buf, long timeout) {
     return found;
 }
 
-void do_commandmode(struct block * sb);
-void do_normalmode (struct block * buf);
-void do_insertmode(struct block * sb);
-void do_editmode(struct block * sb);
-void do_visualmode(struct block * sb);
+void do_commandmode(struct block *const sb);
+void do_normalmode (struct block *const buf);
+void do_insertmode(struct block *const sb);
+void do_editmode(struct block *const sb);
+void do_visualmode(struct block *const sb);
 
 /**
  * \brief Use specific functions for every command on each mode
@@ -329,7 +334,8 @@ void do_visualmode(struct block * sb);
  * \return none
  */
 
-void exec_single_cmd (struct block * sb) {
+void
+exec_single_cmd(struct block *const sb) {
     switch (curmode) {
         case NORMAL_MODE:
             do_normalmode(sb);
@@ -362,21 +368,17 @@ void exec_single_cmd (struct block * sb) {
 
 void
 handle_mult(int *cmd_multiplier, struct block *buf, long timeout) {
-    int j, k;
-    struct block *b_copy = buf;
-    const int buf_len = get_bufsize(b_copy);
+    if (*cmd_multiplier == 0)
+        *cmd_multiplier = 1;
 
-    if (!*cmd_multiplier)
-    	*cmd_multiplier = 1;
+    const int len = buffer_size(buf);
+    struct block *temp_buf = buffer_create_init(len);
 
-    for (j = 1; j < *cmd_multiplier; j++) {
-        for (k = 0; k < buf_len; k++) {
-            buffer_append(buf, b_copy->value);
-            b_copy = b_copy->pnext;
-        }
-    }
-    //if (is_single_command(buf, timeout) == EDITION_CMD)
-    //    buffer_copy(lastcmd_buffer, buf); // save stdin buffer content in lastcmd buffer
+    buffer_append_buffer(temp_buf, buf);
+
+    for (int i = 1; i < *cmd_multiplier; i++)
+        buffer_append_buffer(buf, temp_buf);
+
     exec_mult(buf, timeout);
     if (*cmd_multiplier > 1) {
         *cmd_multiplier = 1;
@@ -395,9 +397,9 @@ handle_mult(int *cmd_multiplier, struct block *buf, long timeout) {
  */
 
 void
-exec_mult (struct block *buf, long timeout) {
+exec_mult(struct block *buf, long timeout) {
     int k, res;
-    const int buf_len = get_bufsize(buf);
+    const int buf_len = buffer_size(buf);
 
     if (buf_len == 0)
     	return;
@@ -410,9 +412,9 @@ exec_mult (struct block *buf, long timeout) {
 
     // If not possible, traverse blockwise
     } else {
-        struct block * auxb = (struct block *) create_buf();
+        struct block * auxb = buffer_create();
         for (k = 0; k < buf_len; k++) {
-            buffer_append(auxb, get_bufval(buf, k));
+            buffer_append(auxb, buffer_get(buf, k));
 
             if ((res = is_single_command(auxb, timeout))) {
                 if (res == EDITION_CMD)
@@ -420,7 +422,8 @@ exec_mult (struct block *buf, long timeout) {
                 exec_single_cmd(auxb);
                 buffer_reset(auxb);
                 k++; // Take the first K values from 'buf'
-                while ( k-- ) buf = dequeue(buf);
+                while (k--)
+                    buffer_remove_first(&buf);
                 // Execute again
                 if (cmd_multiplier == 0) break;
                 exec_mult (buf, timeout);

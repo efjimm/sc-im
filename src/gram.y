@@ -1135,7 +1135,7 @@ command:
 
                                      (void) swprintf(inputline, BUFFERSIZE, L"%s", $2);
 
-                                     struct block * auxb = (struct block *) create_buf();
+                                     struct block * auxb = (struct block *) buffer_create();
                                      buffer_append(auxb, OKEY_ENTER);
                                      do_commandmode(auxb);
                                      buffer_reset(auxb);

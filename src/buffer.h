@@ -45,21 +45,34 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 // Block of buffer
+
 struct block {
-  int32_t value;
-  struct block * pnext;
+    uint32_t value;
+    struct block *pnext;
 };
 
-struct block * create_buf();
-void buffer_append(struct block *const buf, int32_t d);
-void buffer_copy(struct block *const dest, struct block *const src);
-void buffer_remove (struct block **const buf, size_t pos);
+struct block *buffer_create(void);
+struct block *buffer_create_init(size_t initial_capacity);
+void buffer_append(struct block *const buf, uint32_t d);
+void buffer_remove (struct block **const buf_ptr, size_t pos);
 void buffer_reset(struct block *const buf);
 void buffer_free (struct block *const buf);
-size_t get_bufsize(const struct block *const buf);
-size_t get_pbuflen(const struct block *const buf);
-int get_bufval(struct block * buf, int d);
-int find_val(struct block * buf, int value);
-struct block * dequeue (struct block * buf);
+size_t buffer_size(const struct block *const buf);
+size_t buffer_printable_len(const struct block *const buf);
+uint32_t buffer_get(const struct block *const buf, size_t d);
+bool buffer_contains(const struct block *const buf, uint32_t value);
+void buffer_append_buffer(struct block *const dest, const struct block *const src);
+
+static inline void
+buffer_remove_first(struct block **const buf_ptr) {
+    buffer_remove(buf_ptr, 0);
+}
+
+static inline void
+buffer_copy(struct block *const dest, const struct block *const src) {
+    buffer_reset(dest);
+    buffer_append_buffer(dest, src);
+}

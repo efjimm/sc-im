@@ -91,10 +91,10 @@ extern char ori_insert_edit_submode;
 void do_normalmode(struct block * buf) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
-    int bs = get_bufsize(buf);
+    int bs = buffer_size(buf);
     struct ent * e;
 
-    switch (buf->value) {
+    switch (buffer_get(buf, 0)) {
         // FOR TEST PURPOSES
         case L'A':
             //;
@@ -184,7 +184,7 @@ void do_normalmode(struct block * buf) {
         case L'\'':
             if (bs != 2) break;
             unselect_ranges();
-            struct ent_ptr * ep = tick(buf->pnext->value);
+            struct ent_ptr * ep = tick(buffer_get(buf, 1));
             if (sh->row_hidden[ep->vp->row]) {
                 sc_error("Cell row is hidden");
                 if (ep != NULL) free(ep);
@@ -348,17 +348,17 @@ void do_normalmode(struct block * buf) {
             break;
 
         case L'g':
-            if (buf->pnext->value == L'0') {                               // g0
+            if (buffer_get(buf, 1) == L'0') {                               // g0
                 sh->lastcol = sh->curcol;
                 sh->lastrow = sh->currow;
                 sh->curcol = go_bol(sh)->col;
 
-            } else if (buf->pnext->value == L'$') {                        // g$
+            } else if (buffer_get(buf, 1) == L'$') {                        // g$
                 sh->lastcol = sh->curcol;
                 sh->lastrow = sh->currow;
                 sh->curcol = go_eol(sh)->col;
 
-            } else if (buf->pnext->value == L'f') {                        // gf
+            } else if (buffer_get(buf, 1) == L'f') {                        // gf
                 unselect_ranges();
                 ui_update(TRUE);
                 ui_stop_screen();
@@ -367,7 +367,7 @@ void do_normalmode(struct block * buf) {
                 start_default_ucolors();
                 set_colors_param_dict();
 
-            } else if (buf->pnext->value == L'g') {                        // gg
+            } else if (buffer_get(buf, 1) == L'g') {                        // gg
                 e = go_home(sh);
                 sh->lastcol = sh->curcol;
                 sh->lastrow = sh->currow;
@@ -376,20 +376,20 @@ void do_normalmode(struct block * buf) {
                 sh->offscr_sc_rows = 0;
                 sh->offscr_sc_cols = 0;
 
-            } else if (buf->pnext->value == L'G') {                        // gG
+            } else if (buffer_get(buf, 1) == L'G') {                        // gG
                 e = go_end(sh);
                 sh->lastcol = sh->curcol;
                 sh->lastrow = sh->currow;
                 sh->currow = e->row;
                 sh->curcol = e->col;
 
-            } else if (buf->pnext->value == L'M') {                        // gM
+            } else if (buffer_get(buf, 1) == L'M') {                        // gM
                 sh->lastcol = sh->curcol;
                 sh->lastrow = sh->currow;
                 sh->curcol = horiz_middle(sh)->col;
 
             // goto last cell position
-            } else if (buf->pnext->value == L'l') {                        // gl
+            } else if (buffer_get(buf, 1) == L'l') {                        // gl
                 int newlr = sh->currow;
                 int newlc = sh->curcol;
                 sh->curcol = sh->lastcol;
@@ -397,15 +397,15 @@ void do_normalmode(struct block * buf) {
                 sh->lastrow = newlr;
                 sh->lastcol = newlc;
 
-            } else if (buf->pnext->value == L't') {                        // gt
+            } else if (buffer_get(buf, 1) == L't') {                        // gt
                 (void) swprintf(interp_line, BUFFERSIZE, L"nextsheet");
                 send_to_interp(interp_line);
 
-            } else if (buf->pnext->value == L'T') {                        // gT
+            } else if (buffer_get(buf, 1) == L'T') {                        // gT
                 (void) swprintf(interp_line, BUFFERSIZE, L"prevsheet");
                 send_to_interp(interp_line);
 
-            } else if (buf->pnext->value == L'o') {                        // goA4 (goto cell A4)
+            } else if (buffer_get(buf, 1) == L'o') {                        // goA4 (goto cell A4)
                 (void) swprintf(interp_line, BUFFERSIZE, L"goto %s", parse_cell_name(2, buf));
                 send_to_interp(interp_line);
             }
@@ -508,10 +508,10 @@ void do_normalmode(struct block * buf) {
         case L'<':
         case L'>':
             if (locked_cell(sh, sh->currow, sh->curcol)) return;
-            insert_edit_submode = buf->value;
+            insert_edit_submode = buffer_get(buf, 0);
             chg_mode(insert_edit_submode);
 #ifdef INS_HISTORY_FILE
-            ori_insert_edit_submode = buf->value;
+            ori_insert_edit_submode = buffer_get(buf, 0);
             add(insert_history, L"");
 #endif
             inputline_pos = 0;
@@ -553,7 +553,7 @@ void do_normalmode(struct block * buf) {
             if (bs != 2) return;
 
             // freeze row / column or area
-            if (buf->pnext->value == 'r' || buf->pnext->value == 'c' || buf->pnext->value == 'a') {
+            if (buffer_get(buf, 1) == 'r' || buffer_get(buf, 1) == 'c' || buffer_get(buf, 1) == 'a') {
                 int p = is_range_selected(), r = sh->currow, c = sh->curcol, rf = sh->currow, cf = sh->curcol;
 
                 if (p != -1) { // mark range
@@ -564,13 +564,13 @@ void do_normalmode(struct block * buf) {
                     cf = sr->brcol;
                 }
 
-                if (buf->pnext->value == 'r') {
+                if (buffer_get(buf, 1) == 'r') {
                     handle_freeze(sh, lookat(sh, r, c), lookat(sh, rf, cf), 1, 'r');
                     sc_info("Row%s frozen", r != rf ? "s" : "");
-                } else if (buf->pnext->value == 'c') {
+                } else if (buffer_get(buf, 1) == 'c') {
                     handle_freeze(sh, lookat(sh, r, c), lookat(sh, rf, cf), 1, 'c');
                     sc_info("Column%s frozen", c != cf ? "s" : "");
-                } else if (buf->pnext->value == 'a') {
+                } else if (buffer_get(buf, 1) == 'a') {
                     handle_freeze(sh, lookat(sh, r, c), lookat(sh, rf, cf), 1, 'r');
                     handle_freeze(sh, lookat(sh, r, c), lookat(sh, rf, cf), 1, 'c');
                     sc_info("Area frozen");
@@ -579,7 +579,7 @@ void do_normalmode(struct block * buf) {
                 break;
 
             // decrease row height
-            } else if (buf->pnext->value == 'k' || buf->pnext->value == OKEY_UP) {
+            } else if (buffer_get(buf, 1) == 'k' || buffer_get(buf, 1) == OKEY_UP) {
 
 #ifdef UNDO
                 create_undo_action();
@@ -598,7 +598,7 @@ void do_normalmode(struct block * buf) {
                 break;
 
             // increase row height
-            } else if (buf->pnext->value == 'j' || buf->pnext->value == OKEY_DOWN) {
+            } else if (buffer_get(buf, 1) == 'j' || buffer_get(buf, 1) == OKEY_DOWN) {
 
 #ifdef UNDO
                 create_undo_action();
@@ -622,7 +622,7 @@ void do_normalmode(struct block * buf) {
                 create_undo_action();
                 add_undo_col_format(sh->curcol, 'R', sh->fwidth[sh->curcol], sh->precision[sh->curcol], sh->realfmt[sh->curcol]);
 #endif
-            formatcol(sh, buf->pnext->value);
+            formatcol(sh, buffer_get(buf, 1));
 #ifdef UNDO
             add_undo_col_format(sh->curcol, 'A', sh->fwidth[sh->curcol], sh->precision[sh->curcol], sh->realfmt[sh->curcol]);
             end_undo_action();
@@ -636,9 +636,9 @@ void do_normalmode(struct block * buf) {
             int p = is_range_selected();
             if (p != -1) { // mark range
                 struct srange * sr = get_range_by_pos(p);
-                set_range_mark(buf->pnext->value, sh, sr);
+                set_range_mark(buffer_get(buf, 1), sh, sr);
             } else         // mark cell
-                set_cell_mark(buf->pnext->value, sh, sh->currow, sh->curcol);
+                set_cell_mark(buffer_get(buf, 1), sh, sh->currow, sh->curcol);
             roman->modflg++;
             break;
 
@@ -646,7 +646,7 @@ void do_normalmode(struct block * buf) {
         case L'c':
             {
             if (bs != 2) break;
-            struct mark * m = get_mark(buf->pnext->value);
+            struct mark * m = get_mark(buffer_get(buf, 1));
             if ( m == NULL) return;
 
 
@@ -661,7 +661,7 @@ void do_normalmode(struct block * buf) {
 
             // if m represents just one cell
             } else {
-                struct mark * m = get_mark(buf->pnext->value);
+                struct mark * m = get_mark(buffer_get(buf, 1));
                 struct ent * p = lookat(sh, m->row, m->col);
                 struct ent * n;
                 int c1;
@@ -686,10 +686,10 @@ void do_normalmode(struct block * buf) {
                     ents_that_depends_on_range(sh, n->row, n->col, n->row, n->col);
                     copy_to_undostruct(sh, sh->currow, c1, sh->currow, c1, UNDO_DEL, HANDLE_DEPS, NULL);
 #endif
-                    copyent(n, sh, p, sh->currow - get_mark(buf->pnext->value)->row, c1 - get_mark(buf->pnext->value)->col, 0, 0, sh->maxrow, sh->maxcol, 0);
+                    copyent(n, sh, p, sh->currow - get_mark(buffer_get(buf, 1))->row, c1 - get_mark(buffer_get(buf, 1))->col, 0, 0, sh->maxrow, sh->maxcol, 0);
 
-                    n->row += sh->currow - get_mark(buf->pnext->value)->row;
-                    n->col += c1 - get_mark(buf->pnext->value)->col;
+                    n->row += sh->currow - get_mark(buffer_get(buf, 1))->row;
+                    n->col += c1 - get_mark(buffer_get(buf, 1))->col;
 
                     n->flags |= is_changed;
                     if (n->expr) EvalJustOneVertex(sh, n, 1);
@@ -721,11 +721,11 @@ void do_normalmode(struct block * buf) {
                 rf = sr->brrow;
                 cf = sr->brcol;
             }
-            if (buf->pnext->value == L'l') {
+            if (buffer_get(buf, 1) == L'l') {
                 lock_cells(sh, lookat(sh, r, c), lookat(sh, rf, cf));
-            } else if (buf->pnext->value == L'u') { // watch out if you do C-r and u too quickly !
+            } else if (buffer_get(buf, 1) == L'u') { // watch out if you do C-r and u too quickly !
                 unlock_cells(sh, lookat(sh, r, c), lookat(sh, rf, cf));
-            } else if (buf->pnext->value == L'v') {
+            } else if (buffer_get(buf, 1) == L'v') {
                 valueize_area(sh, r, c, rf, cf);
             }
             ui_update(TRUE);
@@ -735,7 +735,7 @@ void do_normalmode(struct block * buf) {
         // create range with two marks
         case L'R':
             if (bs == 3) {
-                create_range(buf->pnext->value, buf->pnext->pnext->value, NULL, NULL);
+                create_range(buffer_get(buf, 1), buffer_get(buf, 2), NULL, NULL);
                 ui_update(TRUE);
             }
             break;
@@ -751,15 +751,15 @@ void do_normalmode(struct block * buf) {
                 cmd_multiplier = 1;
                 r = sr->tlrow;
                 c = sr->tlcol;
-                arg = buf->pnext->value == L'r' ? sr->brrow - sr->tlrow + 1 : sr->brcol - sr->tlcol + 1;
+                arg = buffer_get(buf, 1) == L'r' ? sr->brrow - sr->tlrow + 1 : sr->brcol - sr->tlcol + 1;
             }
-            if (buf->value == L'Z' && buf->pnext->value == L'r') {
+            if (buffer_get(buf, 0) == L'Z' && buffer_get(buf, 1) == L'r') {
                 hide_row(r, arg);
-            } else if (buf->value == L'Z' && buf->pnext->value == L'c') {
+            } else if (buffer_get(buf, 0) == L'Z' && buffer_get(buf, 1) == L'c') {
                 hide_col(c, arg);
-            } else if (buf->value == L'S' && buf->pnext->value == L'r') {
+            } else if (buffer_get(buf, 0) == L'S' && buffer_get(buf, 1) == L'r') {
                 show_row(r, arg);
-            } else if (buf->value == L'S' && buf->pnext->value == L'c') {
+            } else if (buffer_get(buf, 0) == L'S' && buffer_get(buf, 1) == L'c') {
                 show_col(c, arg);
             }
             cmd_multiplier = 0;
@@ -778,7 +778,7 @@ void do_normalmode(struct block * buf) {
                 rf = sr->brrow;
                 cf = sr->brcol;
             }
-            shift(sh, r, c, rf, cf, buf->pnext->value);
+            shift(sh, r, c, rf, cf, buffer_get(buf, 1));
             unselect_ranges();
             rebuild_graph();
             ui_update(TRUE);
@@ -792,16 +792,16 @@ void do_normalmode(struct block * buf) {
             int ic = cmd_multiplier; // orig
 
             // deleterow
-            if (buf->pnext->value == L'r') {
+            if (buffer_get(buf, 1) == L'r') {
                 deleterow(sh, sh->currow, ic);
                 if (cmd_multiplier > 1) cmd_multiplier = 0;
 
             // deletecol
-            } else if (buf->pnext->value == L'c') {
+            } else if (buffer_get(buf, 1) == L'c') {
                 deletecol(sh, sh->curcol, ic);
                 if (cmd_multiplier > 1) cmd_multiplier = 0;
 
-            } else if (buf->pnext->value == L'd') {
+            } else if (buffer_get(buf, 1) == L'd') {
                 del_selected_cells(sh);
             }
 
@@ -818,7 +818,7 @@ void do_normalmode(struct block * buf) {
             create_undo_action();
 #endif
 
-            if (buf->pnext->value == L'r') {
+            if (buffer_get(buf, 1) == L'r') {
 #ifdef UNDO
                 save_undo_range_shift(1, 0, sh->currow, 0, sh->currow, sh->maxcol);
 #endif
@@ -828,7 +828,7 @@ void do_normalmode(struct block * buf) {
                 add_undo_row_format(sh->currow, 'A', sh->row_format[sh->currow]);
 #endif
 
-            } else if (buf->pnext->value == L'c') {
+            } else if (buffer_get(buf, 1) == L'c') {
 #ifdef UNDO
                 save_undo_range_shift(0, 1, 0, sh->curcol, sh->maxrow, sh->curcol);
 #endif
@@ -853,7 +853,7 @@ void do_normalmode(struct block * buf) {
 #ifdef UNDO
             create_undo_action();
 #endif
-            if (buf->pnext->value == L'r') {
+            if (buffer_get(buf, 1) == L'r') {
 #ifdef UNDO
                 save_undo_range_shift(1, 0, sh->currow+1, 0, sh->currow+1, sh->maxcol);
 #endif
@@ -863,7 +863,7 @@ void do_normalmode(struct block * buf) {
                 add_undo_row_format(sh->currow, 'A', sh->row_format[sh->currow]);
 #endif
 
-            } else if (buf->pnext->value == L'c') {
+            } else if (buffer_get(buf, 1) == L'c') {
 #ifdef UNDO
                 save_undo_range_shift(0, 1, 0, sh->curcol+1, sh->maxrow, sh->curcol+1);
 #endif
@@ -883,17 +883,17 @@ void do_normalmode(struct block * buf) {
 
         case L'y':
             // yank row
-            if ( bs == 2 && buf->pnext->value == L'r') {
+            if ( bs == 2 && buffer_get(buf, 1) == L'r') {
                 yank_area(sh, sh->currow, 0, sh->currow + cmd_multiplier - 1, sh->maxcol, 'r', cmd_multiplier);
                 if (cmd_multiplier > 1) cmd_multiplier = 0;
 
             // yank col
-            } else if ( bs == 2 && buf->pnext->value == L'c') {
+            } else if ( bs == 2 && buffer_get(buf, 1) == L'c') {
                 yank_area(sh, 0, sh->curcol, sh->maxrow, sh->curcol + cmd_multiplier - 1, 'c', cmd_multiplier);
                 if (cmd_multiplier > 1) cmd_multiplier = 0;
 
             // yank cell
-            } else if ( bs == 2 && buf->pnext->value == L'y' && is_range_selected() == -1) {
+            } else if ( bs == 2 && buffer_get(buf, 1) == L'y' && is_range_selected() == -1) {
                 yank_area(sh, sh->currow, sh->curcol, sh->currow, sh->curcol, 'e', cmd_multiplier);
 
             // yank range
@@ -915,8 +915,8 @@ void do_normalmode(struct block * buf) {
         case L'P':
         case L'T':
             if (bs != 2) break;
-            if (buf->pnext->value == L'v' || buf->pnext->value == L'f' || buf->pnext->value == L'c') {
-                int res = buf->value == L'P' ? paste_yanked_ents(sh, 0, buf->pnext->value) : paste_yanked_ents(sh, 1, buf->pnext->value); // paste cell above or right
+            if (buffer_get(buf, 1) == L'v' || buffer_get(buf, 1) == L'f' || buffer_get(buf, 1) == L'c') {
+                int res = buffer_get(buf, 0) == L'P' ? paste_yanked_ents(sh, 0, buffer_get(buf, 1)) : paste_yanked_ents(sh, 1, buffer_get(buf, 1)); // paste cell above or right
                 if (res == -1) {
                     sc_error("Locked cells encountered. Nothing changed");
                     break;
@@ -936,8 +936,8 @@ void do_normalmode(struct block * buf) {
 
         // select inner range - Vir
         case L'V':
-            if (buf->value == L'V' && bs == 3 &&
-            buf->pnext->value == L'i' && buf->pnext->pnext->value == L'r') {
+            if (buffer_get(buf, 0) == L'V' && bs == 3 &&
+            buffer_get(buf, 1) == L'i' && buffer_get(buf, 2) == L'r') {
                 int tlrow = sh->currow;
                 int brrow = sh->currow;
                 int tlcol = sh->curcol;
@@ -955,7 +955,7 @@ void do_normalmode(struct block * buf) {
         case L'a':
             if ( bs != 2 ) break;
 
-            if (buf->pnext->value == L'a') {
+            if (buffer_get(buf, 1) == L'a') {
                 int p, r = sh->currow, c = sh->curcol, rf = sh->currow, cf = sh->curcol;
                 if ( (p = is_range_selected()) != -1) {
                     struct srange * sr = get_range_by_pos(p);
@@ -981,7 +981,7 @@ void do_normalmode(struct block * buf) {
             if ( bs != 2 ) break;
             int scroll = 0;
 
-            switch (buf->pnext->value) {
+            switch (buffer_get(buf, 1)) {
                 case L'l':
                     scroll_right(sh, 1);
                     break;
@@ -1026,7 +1026,7 @@ void do_normalmode(struct block * buf) {
                     {
                     int i = 0, r = sh->offscr_sc_rows-1;
 
-                    if (buf->pnext->value == L't') {
+                    if (buffer_get(buf, 1) == L't') {
                         while (i < SC_DISPLAY_ROWS && r < sh->currow) {
                             r++;
                             if (sh->row_frozen[r]) continue;
@@ -1034,7 +1034,7 @@ void do_normalmode(struct block * buf) {
                         }
                         scroll_down(sh, --i);
 
-                    } else if (buf->pnext->value == L'b') {
+                    } else if (buffer_get(buf, 1) == L'b') {
                         int hidden = 0;
                         while (i < SC_DISPLAY_ROWS) {
                             r++;
@@ -1045,7 +1045,7 @@ void do_normalmode(struct block * buf) {
                         }
                         scroll_up(sh, r-sh->currow-hidden);
 
-                    } else if (buf->pnext->value == L'z' || buf->pnext->value == L'.') {
+                    } else if (buffer_get(buf, 1) == L'z' || buffer_get(buf, 1) == L'.') {
                         while (i < SC_DISPLAY_ROWS && r <= sh->currow) {
                             r++;
                             if (sh->row_frozen[r]) continue;
@@ -1123,9 +1123,9 @@ void do_normalmode(struct block * buf) {
 #ifdef UNDO
             create_undo_action();
 #endif
-            if (buf->value == L'{')      swprintf(interp_line, BUFFERSIZE, L"leftjustify %s", v_name(r, c));
-            else if (buf->value == L'}') swprintf(interp_line, BUFFERSIZE, L"rightjustify %s", v_name(r, c));
-            else if (buf->value == L'|') swprintf(interp_line, BUFFERSIZE, L"center %s", v_name(r, c));
+            if (buffer_get(buf, 0) == L'{')      swprintf(interp_line, BUFFERSIZE, L"leftjustify %s", v_name(r, c));
+            else if (buffer_get(buf, 0) == L'}') swprintf(interp_line, BUFFERSIZE, L"rightjustify %s", v_name(r, c));
+            else if (buffer_get(buf, 0) == L'|') swprintf(interp_line, BUFFERSIZE, L"center %s", v_name(r, c));
             if (p != -1) swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L":%s", v_name(rf, cf));
 #ifdef UNDO
             copy_to_undostruct(sh, r, c, rf, cf, UNDO_DEL, IGNORE_DEPS, NULL);
@@ -1181,7 +1181,7 @@ void do_normalmode(struct block * buf) {
                         //sc_error("Can't increment / decrement a formula");
                         continue;
                     } else if (p->flags & is_valid) {
-                        p->v += buf->value == L'+' ? (double) arg : - 1 * (double) arg;
+                        p->v += buffer_get(buf, 0) == L'+' ? (double) arg : - 1 * (double) arg;
                         if (mf == roman->modflg) roman->modflg++; // increase just one time
                     }
                 }
@@ -1199,19 +1199,19 @@ void do_normalmode(struct block * buf) {
         // input of numbers
         default:
         numeric:
-            if ( (isdigit(buf->value) || buf->value == L'-' || buf->value == L'+' ||
-                  ( buf->value == L'.' &&  get_conf_int("numeric_decimal") )) &&
+            if ( (isdigit(buffer_get(buf, 0)) || buffer_get(buf, 0) == L'-' || buffer_get(buf, 0) == L'+' ||
+                  ( buffer_get(buf, 0) == L'.' &&  get_conf_int("numeric_decimal") )) &&
                 get_conf_int("numeric") ) {
                 if (locked_cell(sh, sh->currow, sh->curcol)) return;
                 insert_edit_submode='=';
                 chg_mode(insert_edit_submode);
 #ifdef INS_HISTORY_FILE
-                ori_insert_edit_submode = buf->value;
+                ori_insert_edit_submode = buffer_get(buf, 0);
                 add(insert_history, L"");
 #endif
                 inputline_pos = 0;
                 real_inputline_pos = 0;
-                ins_in_line(buf->value);
+                ins_in_line(buffer_get(buf, 0));
                 ui_show_header();
             }
     }

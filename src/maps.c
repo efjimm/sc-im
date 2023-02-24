@@ -131,7 +131,7 @@ int replace_maps (struct block * b) {
 
 struct block * get_mapbuf_str (char * str) {
 
-    struct block * buffer = create_buf();
+    struct block * buffer = buffer_create();
     unsigned short i, j;
     unsigned short is_specialkey = 0;
     char sk[MAXSC+1];
@@ -331,7 +331,7 @@ void del_map(char * in, int mode) {
     if (m == NULL) return;
 
     // If the node is the fist one
-    char strin [MAXSC * get_bufsize(m->in)];
+    char strin [MAXSC * buffer_size(m->in)];
     get_mapstr_buf(m->in, strin);
     if ( ! strcmp(in, strin) && mode == m->mode) {
         maps = m->psig;
@@ -346,7 +346,7 @@ void del_map(char * in, int mode) {
     ant = m;
     m = m->psig;
     while (m != NULL) {
-        char strin [MAXSC * get_bufsize(m->in)];
+        char strin [MAXSC * buffer_size(m->in)];
         get_mapstr_buf(m->in, strin);
         if ( ! strcmp(in, strin) && mode == m->mode) {
             ant->psig = m->psig;
@@ -377,44 +377,44 @@ void del_map(char * in, int mode) {
 
 void get_mapstr_buf (struct block * b, char * str) {
     struct block * a = b;
-    int i, len = get_bufsize(a);
+    int i, len = buffer_size(a);
 
     str[0]='\0';
-    for (i=0; i < len; i++) {
-        if (a->value == OKEY_ENTER) {
+    for (i = 0; i < len; i++) {
+        const int32_t e = buffer_get(b, i);
+        if (e == OKEY_ENTER) {
             strcat(str, "<CR>");                                 // CR - ENTER
-        } else if (a->value == OKEY_TAB) {
+        } else if (e == OKEY_TAB) {
             strcat(str, "<TAB>");                                // TAB
-        } else if (a->value == OKEY_SPACE) {
+        } else if (e == OKEY_SPACE) {
             strcat(str, "<SPACE>");                              // SPACE
-        } else if (a->value == OKEY_LEFT) {
+        } else if (e == OKEY_LEFT) {
             strcat(str, "<LEFT>");                               // LEFT
-        } else if (a->value == OKEY_RIGHT) {
+        } else if (e == OKEY_RIGHT) {
             strcat(str, "<RIGHT>");                              // RIGHT
-        } else if (a->value == OKEY_DOWN) {
+        } else if (e == OKEY_DOWN) {
             strcat(str, "<DOWN>");                               // DOWN
-        } else if (a->value == OKEY_UP) {
+        } else if (e == OKEY_UP) {
             strcat(str, "<UP>");                                 // UP
-        } else if (a->value == OKEY_DEL) {
+        } else if (e == OKEY_DEL) {
             strcat(str, "<DEL>");                                // DEL
-        } else if (a->value == OKEY_BS || a->value == OKEY_BS2) {
+        } else if (e == OKEY_BS || e == OKEY_BS2) {
             strcat(str, "<BS>");                                 // BS
-        } else if (a->value == OKEY_HOME) {
+        } else if (e == OKEY_HOME) {
             strcat(str, "<HOME>");                               // HOME
-        } else if (a->value == OKEY_END) {
+        } else if (e == OKEY_END) {
             strcat(str, "<END>");                                // END
-        } else if (a->value == OKEY_PGDOWN) {
+        } else if (e == OKEY_PGDOWN) {
             strcat(str, "<PGDOWN>");                             // PGDOWN
-        } else if (a->value == OKEY_PGUP) {
+        } else if (e == OKEY_PGUP) {
             strcat(str, "<PGUP>");                               // PGUP
-        } else if (a->value == OKEY_ESC) {
+        } else if (e == OKEY_ESC) {
             strcat(str, "<ESC>");                                // ESC
-        } else if (sc_isprint(a->value)) {
-            sprintf(str + strlen(str), "%lc", a->value);         // ISPRINT
-        } else if ( a->value == (uncl(a->value) & 0x1f)) {
-            sprintf(str + strlen(str), "<C-%c>", uncl(a->value));// C-x
+        } else if (sc_isprint(e)) {
+            sprintf(str + strlen(str), "%lc", e);         // ISPRINT
+        } else if ( e == (uncl(e) & 0x1f)) {
+            sprintf(str + strlen(str), "<C-%c>", uncl(e));// C-x
         }
-        a = a->pnext;
     }
     return;
 }
