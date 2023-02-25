@@ -2903,7 +2903,7 @@ void pad_and_align (char * str_value, char * numeric_value, int col_width, int a
  *
  * \return result
  */
-int is_single_command (struct block *buf, long timeout) {
+int is_single_command (Buffer *buf, long timeout) {
     static const uint8_t table[OKEY_END+1] = {
         [':'] = MOVEMENT_CMD, ['\\'] = MOVEMENT_CMD,
         ['<'] = MOVEMENT_CMD, ['>']  = MOVEMENT_CMD,

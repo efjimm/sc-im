@@ -84,7 +84,7 @@ MEVENT event;              // mouse event
  */
 
 void
-handle_input(struct block *const buffer) {
+handle_input(Buffer *const buffer) {
     struct timeval start_tv, m_tv, init_tv; // For measuring timeout
     gettimeofday(&start_tv, NULL);
     gettimeofday(&m_tv, NULL);
@@ -180,7 +180,8 @@ handle_input(struct block *const buffer) {
 
             // Replace maps in buffer
             // break if nore mapping
-            if (replace_maps(buffer) == 1) break;
+            if (replace_maps(buffer) == 1)
+                break;
         }
 
         /*
@@ -226,7 +227,7 @@ handle_input(struct block *const buffer) {
  * \return none
  */
 void
-break_waitcmd_loop(struct block *const buffer) {
+break_waitcmd_loop(Buffer *const buffer) {
     if (curmode == COMMAND_MODE) {
 #ifdef HISTORY_FILE
         del_item_from_history(commandline_history, 0);
@@ -303,28 +304,32 @@ fix_timeout(struct timeval *const start_tv) {
  * \return none
  */
 
-int
-has_cmd(struct block *const buf, long timeout) {
-    int len = buffer_size(buf);
-    if ( ! len ) return 0;
-    int k, found = 0;
+bool
+has_cmd(Buffer *const buf, long timeout) {
+    const size_t len = buffer_size(buf);
+    if (!len)
+        return 0;
 
-    struct block * auxb = buffer_create();
+    Buffer * auxb = buffer_create(len);
+    bool found = false;
 
-    for (k = 0; k < len; k++) {
+    for (size_t k = 0; k < len; k++) {
         buffer_append(auxb, buffer_get(buf, k));
-        if ( is_single_command(auxb, timeout)) { found = 1; break; }
+        if (is_single_command(auxb, timeout)) {
+            found = true;
+            break;
+        }
     }
-    buffer_free(auxb);
-    auxb = NULL;
+    buffer_destroy(auxb);
+
     return found;
 }
 
-void do_commandmode(struct block *const sb);
-void do_normalmode (struct block *const buf);
-void do_insertmode(struct block *const sb);
-void do_editmode(struct block *const sb);
-void do_visualmode(struct block *const sb);
+void do_commandmode(Buffer *const sb);
+void do_normalmode (Buffer *const buf);
+void do_insertmode(Buffer *const sb);
+void do_editmode(Buffer *const sb);
+void do_visualmode(Buffer *const sb);
 
 /**
  * \brief Use specific functions for every command on each mode
@@ -335,7 +340,7 @@ void do_visualmode(struct block *const sb);
  */
 
 void
-exec_single_cmd(struct block *const sb) {
+exec_single_cmd(Buffer *const sb) {
     switch (curmode) {
         case NORMAL_MODE:
             do_normalmode(sb);
@@ -367,12 +372,12 @@ exec_single_cmd(struct block *const sb) {
  */
 
 void
-handle_mult(int *cmd_multiplier, struct block *buf, long timeout) {
+handle_mult(int *cmd_multiplier, Buffer *buf, long timeout) {
     if (*cmd_multiplier == 0)
         *cmd_multiplier = 1;
 
     const int len = buffer_size(buf);
-    struct block *temp_buf = buffer_create_init(len);
+    Buffer *temp_buf = buffer_create(len);
 
     buffer_append_buffer(temp_buf, buf);
 
@@ -397,9 +402,9 @@ handle_mult(int *cmd_multiplier, struct block *buf, long timeout) {
  */
 
 void
-exec_mult(struct block *buf, long timeout) {
+exec_mult(Buffer *buf, long timeout) {
     int k, res;
-    const int buf_len = buffer_size(buf);
+    const size_t buf_len = buffer_size(buf);
 
     if (buf_len == 0)
     	return;
@@ -412,7 +417,7 @@ exec_mult(struct block *buf, long timeout) {
 
     // If not possible, traverse blockwise
     } else {
-        struct block * auxb = buffer_create();
+        Buffer * auxb = buffer_create(buf_len);
         for (k = 0; k < buf_len; k++) {
             buffer_append(auxb, buffer_get(buf, k));
 
@@ -423,14 +428,14 @@ exec_mult(struct block *buf, long timeout) {
                 buffer_reset(auxb);
                 k++; // Take the first K values from 'buf'
                 while (k--)
-                    buffer_remove_first(&buf);
+                    buffer_remove_first(buf);
                 // Execute again
                 if (cmd_multiplier == 0) break;
                 exec_mult (buf, timeout);
                 break;
             }
         }
-        buffer_free(auxb);
+        buffer_destroy(auxb);
         auxb = NULL;
     }
     return;

@@ -59,7 +59,7 @@
 // TODO: IMPROVE this. Use two while statements in order to create an array
 // from a block, and make them work separately. Leave the logic unmodified
 int
-block_in_block (struct block *const o, struct block *const b) {
+block_in_block (Buffer *const o, Buffer *const b) {
     int lori = buffer_size(o);
     int lbus = buffer_size(b);
 
@@ -70,7 +70,7 @@ block_in_block (struct block *const o, struct block *const b) {
     int32_t ori[lori];
     int32_t bus[lbus];
 
-//    struct block * aux = o;
+//    Buffer * aux = o;
 //    int i = 0;
 //    while (aux != NULL) {
 //        ori[i++] = aux->value;
@@ -122,11 +122,11 @@ block_in_block (struct block *const o, struct block *const b) {
  */
 int
 replace_block_in_block(
-    struct block *const olist,
-    struct block *const in,
-    struct block *out
+    Buffer *const olist,
+    Buffer *const in,
+    Buffer *out
 ) {
-    struct block *ori = olist;
+    Buffer *ori = olist;
 
     size_t lori = buffer_size(ori);
     size_t lin = buffer_size(in);
@@ -142,7 +142,7 @@ replace_block_in_block(
 
     // Remove the 'pos' position of the "olist" list
     while (lin--) {
-        buffer_remove(&ori, lin+pos);
+        buffer_remove(ori, lin+pos);
     }
 
     // Then add the nodes of the 'out' list to "olist"

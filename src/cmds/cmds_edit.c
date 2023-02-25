@@ -75,7 +75,7 @@ extern struct session * session;
  * \return none
  */
 
-void do_editmode(struct block * sb) {
+void do_editmode(Buffer * sb) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     int pos;
@@ -665,7 +665,7 @@ void del_for_char() {       // X    BS
  * \brief start_edit_mode()
  * \returns: 1 on success; 0 on error
  */
-int start_edit_mode(struct block * buf, char type) {
+int start_edit_mode(Buffer * buf, char type) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     chg_mode(buffer_get(buf, 0));

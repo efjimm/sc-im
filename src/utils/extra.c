@@ -96,7 +96,7 @@ char * v_name(int row, int col) {
  */
 
 char *
-parse_cell_name(int ignore_first_blocks, struct block * buf_in) {
+parse_cell_name(int ignore_first_blocks, Buffer * buf_in) {
     static char cell_name[3]; //length of max col is 3 (ZZZ)
     cell_name[0] = '\0';
 

@@ -130,8 +130,8 @@ int shall_quit = 0;
 unsigned int curmode;
 unsigned int lastmode;
 
-struct block * buffer;
-struct block * lastcmd_buffer;
+Buffer * buffer;
+Buffer * lastcmd_buffer;
 struct dictionary * user_conf_d; /* User's configuration dictionary */
 struct history * commandline_history;
 struct history * insert_history;
@@ -317,7 +317,7 @@ main(int argc, char **argv) {
     // handle input from keyboard
     // this should only take place if curses ui
     if (!get_conf_int("nocurses"))
-        buffer = buffer_create();
+        buffer = buffer_create(0);
 
     wchar_t nocurses_buffer[BUFFERSIZE];
 
@@ -374,7 +374,7 @@ create_structures(void) {
     create_mark_array();
 
     // create last command buffer
-    lastcmd_buffer = buffer_create();
+    lastcmd_buffer = buffer_create(0);
 
     // create yank list structure
     init_yanklist();
@@ -446,7 +446,9 @@ delete_structures(void) {
     free_formats();
 
     // Free last_command buffer
-    buffer_free(lastcmd_buffer);
+    //buffer_destroy(lastcmd_buffer);
+
+    buffer_free_all();
 
     // Free ranges
     free_ranges();
@@ -522,7 +524,7 @@ exit_app(int status) {
     del_maps();
 
     // Erase stdin
-    buffer_free(buffer);
+    //buffer_destroy(buffer);
 
     // stop CURSES screen
     if (!get_conf_int("nocurses"))

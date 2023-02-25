@@ -45,5 +45,5 @@
 
 #include "buffer.h"
 
-int block_in_block (struct block * o, struct block * b);
-int replace_block_in_block (struct block * olist, struct block * in, struct block * out);
+int block_in_block (Buffer * o, Buffer * b);
+int replace_block_in_block (Buffer * olist, Buffer * in, Buffer * out);

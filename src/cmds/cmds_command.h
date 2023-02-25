@@ -51,5 +51,5 @@ extern int shall_quit;
 extern struct dictionary * user_conf_d;
 extern struct history * commandline_history;
 
-void do_commandmode(struct block * sb);
+void do_commandmode(Buffer * sb);
 void ins_in_line(wint_t d);

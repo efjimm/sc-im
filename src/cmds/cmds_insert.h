@@ -49,4 +49,4 @@
 extern struct history * insert_history;
 #endif
 
-void do_insertmode(struct block * sb);
+void do_insertmode(Buffer * sb);

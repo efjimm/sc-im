@@ -45,6 +45,6 @@
 #include "../input.h"
 extern int shall_quit;
 
-void do_normalmode (struct block * buf);
+void do_normalmode (Buffer * buf);
 
 extern struct history * commandline_history;

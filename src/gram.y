@@ -1135,11 +1135,11 @@ command:
 
                                      (void) swprintf(inputline, BUFFERSIZE, L"%s", $2);
 
-                                     struct block * auxb = (struct block *) buffer_create();
+                                     Buffer *auxb = buffer_create(1);
                                      buffer_append(auxb, OKEY_ENTER);
                                      do_commandmode(auxb);
                                      buffer_reset(auxb);
-                                     buffer_free(auxb);
+                                     buffer_destroy(auxb);
                                      auxb = NULL;
                                      inputline[0]=L'\0';
                                      scxfree($2);

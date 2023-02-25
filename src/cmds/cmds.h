@@ -45,14 +45,15 @@
 #include <wchar.h>
 #include "../macros.h"
 #include "../sc.h"
+#include "../buffer.h"
 
 extern char insert_edit_submode;       // insert or edit submode
 extern wchar_t inputline[BUFFERSIZE];
 extern int inputline_pos;
 extern int real_inputline_pos;
-extern struct block * lastcmd_buffer;
+extern Buffer * lastcmd_buffer;
 
-int is_single_command (struct block * buf, long timeout);
+int is_single_command (Buffer * buf, long timeout);
 void enter_cell_content(struct sheet * sh, int r, int c, char * submode,  wchar_t * content);
 void send_to_interp(wchar_t * oper);   // Send command to interpreter
 void chg_mode(char strcmd);            // Change mode function

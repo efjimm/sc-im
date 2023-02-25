@@ -88,7 +88,7 @@ extern char ori_insert_edit_submode;
  * \param[in] buf
  * \return none
  */
-void do_normalmode(struct block * buf) {
+void do_normalmode(Buffer * buf) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     int bs = buffer_size(buf);

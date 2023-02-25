@@ -190,7 +190,7 @@ L"x",
  * \return none
  */
 
-void do_commandmode(struct block * sb) {
+void do_commandmode(Buffer * sb) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
 

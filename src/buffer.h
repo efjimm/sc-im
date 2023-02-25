@@ -42,33 +42,36 @@
  * \brief Header file for buffer.c
  */
 
+#ifndef BUFFER_H
+#define BUFFER_H
 #include <wchar.h>
 #include <wctype.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 // Block of buffer
-struct block;
+typedef union Buffer Buffer;
 
-struct block *buffer_create(void);
-struct block *buffer_create_init(size_t initial_capacity);
-void buffer_append(struct block *const buf, uint32_t d);
-void buffer_remove (struct block **const buf_ptr, size_t pos);
-void buffer_reset(struct block *const buf);
-void buffer_free (struct block *const buf);
-size_t buffer_size(const struct block *const buf);
-size_t buffer_printable_len(const struct block *const buf);
-uint32_t buffer_get(const struct block *const buf, size_t d);
-bool buffer_contains(const struct block *const buf, uint32_t value);
-void buffer_append_buffer(struct block *const dest, const struct block *const src);
+Buffer *buffer_create(size_t initial_capacity);
+void buffer_destroy(Buffer *const buf);
+void buffer_append(Buffer *const buf, uint32_t d);
+void buffer_remove (Buffer *const buf, size_t pos);
+void buffer_reset(Buffer *const buf);
+size_t buffer_size(const Buffer *const buf);
+size_t buffer_printable_len(const Buffer *const buf);
+uint32_t buffer_get(const Buffer *const buf, size_t d);
+bool buffer_contains(const Buffer *const buf, uint32_t value);
+void buffer_append_buffer(Buffer *const dest, const Buffer *const src);
+void buffer_free_all(void);
 
 static inline void
-buffer_remove_first(struct block **const buf_ptr) {
-    buffer_remove(buf_ptr, 0);
+buffer_remove_first(Buffer *const buf) {
+    buffer_remove(buf, 0);
 }
 
 static inline void
-buffer_copy(struct block *const dest, const struct block *const src) {
+buffer_copy(Buffer *const dest, const Buffer *const src) {
     buffer_reset(dest);
     buffer_append_buffer(dest, src);
 }
+#endif // BUFFER_H

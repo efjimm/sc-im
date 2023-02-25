@@ -71,7 +71,7 @@ extern struct session * session;
  * returns: none
  */
 
-void do_insertmode(struct block * sb) {
+void do_insertmode(Buffer * sb) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
 

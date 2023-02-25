@@ -146,7 +146,7 @@ void exit_visualmode() {
  * \return none
  */
 
-void do_visualmode(struct block * buf) {
+void do_visualmode(Buffer * buf) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
 

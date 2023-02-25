@@ -45,253 +45,178 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <assert.h>
+#include <string.h>
 
 #include "buffer.h"
 #include "macros.h"
 #include "utils/string.h"
 
-struct block {
-    uint32_t value;
-    struct block *pnext;
+// TODO: use utf8
+union Buffer {
+    struct {
+        uint32_t len;
+        uint32_t capacity;
+        uint32_t *chars;
+    };
+
+    Buffer *next;
 };
 
-static struct block *
-buffer_get_block(struct block *const buf, size_t pos) {
-    struct block *temp = buf;
+#define POOL_SIZE 1024
 
-    for (int i = 0; i < pos; i++) {
-        if (temp == NULL)
-            return NULL;
+typedef struct Pool Pool;
 
-        temp = temp->pnext;
+struct Pool {
+    Buffer buffers[POOL_SIZE];
+    Pool *prev;
+};
+
+static size_t pool_len = POOL_SIZE;
+static Pool *pool_tail = NULL;
+static Buffer *free_list = NULL;
+
+static Buffer *
+buffer_alloc(void) {
+    if (free_list) {
+        Buffer *const ret = free_list;
+        free_list = free_list->next;
+        return ret;
     }
 
-    return temp;
+    if (pool_len >= POOL_SIZE) {
+        Pool *const new_pool = malloc(sizeof(*new_pool));
+
+        *new_pool = (Pool){
+            .prev = pool_tail,
+        };
+
+        pool_tail = new_pool;
+        pool_len = 0;
+    }
+
+    return &pool_tail->buffers[pool_len++];
 }
 
+static void
+buffer_free(Buffer *buf) {
+    free(buf->chars);
+    *buf = (Buffer){
+        .next = free_list,
+        .chars = NULL,
+    };
+    free_list = buf;
+}
 
-/**
-* \brief Create buffer as list of blocks
-* \return ret
-*/
-struct block *
-buffer_create(void) {
-    struct block *const ret = malloc(sizeof(*ret));
+static void
+buffer_ensure_capacity(Buffer *buf, size_t capacity) {
+    if (buf->capacity < capacity) {
+        buf->chars = realloc(buf->chars, sizeof(buf->chars) * capacity);
+        buf->capacity = capacity;
+    }
+}
 
-    *ret = (struct block){
-        .value = '\0',
-        .pnext = NULL,
+void
+buffer_free_all(void) {
+    Pool *temp = pool_tail;
+    Pool *prev;
+
+    for(; temp; temp = prev) {
+        for (size_t i = 0; i < POOL_SIZE; i++) {
+            if (temp->buffers[i].chars)
+                free(temp->buffers[i].chars);
+        }
+        prev = temp->prev;
+        free(temp);
+    }
+}
+
+Buffer *
+buffer_create(size_t initial_capacity) {
+    Buffer *ret = buffer_alloc();
+    const size_t real_capacity = initial_capacity < 4 ? 4 : initial_capacity;
+
+    *ret = (Buffer){
+        .capacity = real_capacity,
+        .chars = malloc(sizeof(uint32_t) * real_capacity),
     };
 
     return ret;
 }
 
-struct block *
-buffer_create_init(size_t initial_capacity) {
-    return buffer_create();
-}
-
-
-/**
-* \brief Add a uint32_t to a buffer
-* \param[in] buf
-* \param[in] value
-* \return none
-*/
 void
-buffer_append(struct block *const buf, uint32_t value) {
-    if (buf->value == '\0') {
-        buf->value = value;
-    } else {
-        struct block *const b = malloc(sizeof(*b));
-        b->value = value;
-        b->pnext = NULL;
-
-        struct block *aux = buf;
-        for (; aux->pnext != NULL; aux = aux->pnext);
-        aux->pnext = b;
-    }
+buffer_destroy(Buffer *buf) {
+    buffer_free(buf);
 }
 
 void
-buffer_append_buffer(struct block *const dest, const struct block *const src) {
-    const struct block *temp = src;
+buffer_append(Buffer *const buf, uint32_t d) {
+    if (buf->len >= buf->capacity)
+        buf->chars = realloc(buf->chars, sizeof(*buf->chars) * (buf->capacity += 2));
 
-    for (; temp; temp = temp->pnext) {
-        buffer_append(dest, temp->value);
-    }
+    buf->chars[buf->len++] = d;
 }
 
-/**
-* \brief Remove a piece of a buffer
-* \param[in] buf
-* \param[in] pos
-* \return none
-*/
 void
-buffer_remove(struct block **const buf_ptr, size_t pos) {
-    if (buf_ptr == NULL || *buf_ptr == NULL)
+buffer_remove(Buffer *const buf, size_t pos) {
+    if (pos >= buf->len)
         return;
 
-    if (pos == 0) {
-        struct block *const temp = *buf_ptr;
-        *buf_ptr = temp->pnext;
-        free(temp);
+    if (pos + 1 == buf->len) {
+        buf->len--;
         return;
     }
 
-    struct block *prev = *buf_ptr;
-    struct block *current = *buf_ptr;
-
-    for (int i = 0; i < pos; i++) {
-        prev = current;
-        current = current->pnext;
-
-        if (current == NULL) // pos is out of bounds
-            return;
-    }
-
-    prev->pnext = current->pnext;
-    free(current);
+    memmove(&buf->chars[pos], &buf->chars[pos + 1], buf->len - (pos + 1));
+    buf->len--;
 }
 
-/**
-* \brief Replaces the initial node of a buffer with '\0' and removes all other nodes
-* \param[in] buf
-* \return none
-*/
 void
-buffer_reset(struct block *const buf) {
-    if (buf == NULL)
-        return;
-
-    {
-        struct block *current, *next;
-        for (current = buf->pnext; current != NULL; current = next) {
-            next = current->pnext;
-            free(current);
-        }
-    }
-
-    buf->value = '\0';
-    buf->pnext = NULL;
-    return;
+buffer_reset(Buffer *const buf) {
+    buf->len = 0;
 }
 
-
-/**
-* \brief Delete all blocks of a buffer including the initial node
-* \details Delete all blocks of a buffer including the initial node
-* \param buf
-* \return none
-*/
-void
-buffer_free(struct block *const buf) {
-    if (buf == NULL)
-        return;
-
-    buffer_reset(buf);
-    free(buf);
-    return;
-}
-
-
-/**
-* \brief Get size of buffer (included special chars)
-* \param[in] buf
-* \return c size of buffer
-*/
 size_t
-buffer_size(const struct block *const buf) {
-    if (buf == NULL || buf->value == '\0')
-        return 0;
-
-    size_t ret = 0;
-    for (const struct block *b_aux = buf; b_aux != NULL; b_aux = b_aux->pnext) {
-        ret++;
-    }
-
-    return ret;
+buffer_size(const Buffer *const buf) {
+    return buf->len;
 }
 
-
-/**
-* \brief Get printable buffer length (excluded special chars)
-* \details Get printable bufferlength, which excludes special characters
-* as they should never be printed to a screen.
-* \param[in] buf
-* \return c printable buffer length
-*/
 size_t
-buffer_printable_len(const struct block *const buf) {
-    if (buf == NULL || buf->value == '\0')
-        return 0;
+buffer_printable_len(const Buffer *const buf) {
+    size_t total = 0;
 
-    size_t ret = 0;
-    for (const struct block *b_aux = buf; b_aux != NULL; b_aux = b_aux->pnext) {
-        if (!is_idchar(b_aux->value))
-            ret++;
+    for (size_t i = 0; i < buf->len; i++) {
+        if (!is_idchar(buf->chars[i]))
+            total++;
     }
 
-    return ret;
+    return total;
 }
 
-
-/**
-* \brief Return the int value of n block
-* \param[in] buf
-* \param[in] d
-* \return none
-*/
 uint32_t
-buffer_get(const struct block *const buf, size_t index) {
-    if (buf == NULL)
-        assert(false);
+buffer_get(const Buffer *const buf, size_t pos) {
+    if (pos >= buf->len) // TODO: disallow this
+        return '\0';
 
-    const struct block *temp = buf;
-
-    for (int i = 0; i < index; i++) {
-        if (temp == NULL)
-            assert(false);
-
-        temp = temp->pnext;
-    }
-
-    return temp->value;
+    return buf->chars[pos];
 }
 
-
-/**
-* \brief Return an int value if found in a buffer
-* \details Search a buffer for a given integer value.
-* \return 0 if not found, 1 if found
-*/
 bool
-buffer_contains(const struct block *const buf, uint32_t value) {
-    const struct block *temp = buf;
+buffer_contains(const Buffer *const buf, uint32_t ch) {
+    for (size_t i = 0; i < buf->len; i++)
+        if (buf->chars[i] == ch)
+            return true;
 
-    for (; temp && temp->value != '\0'; temp = temp->pnext) {
-        if (temp->value == value)
-            return 1;
-    }
-
-    return 0;
+    return false;
 }
 
 void
-buffer_truncate(struct block *const buf, size_t pos) {
-    struct block *temp = buffer_get_block(buf, pos);
-
-    if (temp == NULL)
+buffer_append_buffer(Buffer *const dest, const Buffer *const src) {
+    if (dest == NULL || src == NULL)
         return;
 
-    temp->value = '\0';
-    struct block *next = temp->pnext;
-    temp->pnext = NULL;
+    buffer_ensure_capacity(dest, dest->len + src->len);
 
-
-    for (temp = next; temp; temp = next) {
-        next = temp->pnext;
-        free(temp);
+    for (size_t i = 0; i < src->len; i++) {
+        buffer_append(dest, src->chars[i]);
     }
 }

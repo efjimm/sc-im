@@ -30,11 +30,11 @@ del_for_char	cmds_edit.c	/^void del_for_char() {       \/\/ X    BS$/;"	f	typere
 del_selected_cells	cmds.c	/^void del_selected_cells(struct sheet * sh) {$/;"	f	typeref:typename:void
 doformat	cmds.c	/^void doformat(struct sheet * sh, int c1, int c2, int w, int p, int r) {$/;"	f	typeref:typename:void
 dorowformat	cmds.c	/^void dorowformat(struct sheet * sh, int r, unsigned char size) {$/;"	f	typeref:typename:void
-do_commandmode	cmds_command.c	/^void do_commandmode(struct block * sb) {$/;"	f	typeref:typename:void
-do_editmode	cmds_edit.c	/^void do_editmode(struct block * sb) {$/;"	f	typeref:typename:void
-do_insertmode	cmds_insert.c	/^void do_insertmode(struct block * sb) {$/;"	f	typeref:typename:void
-do_normalmode	cmds_normal.c	/^void do_normalmode(struct block * buf) {$/;"	f	typeref:typename:void
-do_visualmode	cmds_visual.c	/^void do_visualmode(struct block * buf) {$/;"	f	typeref:typename:void
+do_commandmode	cmds_command.c	/^void do_commandmode(Buffer * sb) {$/;"	f	typeref:typename:void
+do_editmode	cmds_edit.c	/^void do_editmode(Buffer * sb) {$/;"	f	typeref:typename:void
+do_insertmode	cmds_insert.c	/^void do_insertmode(Buffer * sb) {$/;"	f	typeref:typename:void
+do_normalmode	cmds_normal.c	/^void do_normalmode(Buffer * buf) {$/;"	f	typeref:typename:void
+do_visualmode	cmds_visual.c	/^void do_visualmode(Buffer * buf) {$/;"	f	typeref:typename:void
 enter_cell_content	cmds.c	/^void enter_cell_content(struct sheet * sh, int r, int c, char * submode,  wchar_t * content) {$/;"	f	typeref:typename:void
 erase_area	cmds.c	/^void erase_area(struct sheet * sh, int sr, int sc, int er, int ec, int ignorelock, int mark_as_d/;"	f	typeref:typename:void
 etype	cmds.c	/^int etype(struct enode *e) {$/;"	f	typeref:typename:int
@@ -72,7 +72,7 @@ interp_line	cmds.c	/^wchar_t interp_line[BUFFERSIZE];$/;"	v	typeref:typename:wch
 int_deletecol	cmds.c	/^void int_deletecol(struct sheet * sh, int col, int mult) {$/;"	f	typeref:typename:void
 int_deleterow	cmds.c	/^void int_deleterow(struct sheet * sh, int row, int mult) {$/;"	f	typeref:typename:void
 istext	cmds_edit.c	/^#define istext(/;"	d	file:
-is_single_command	cmds.c	/^int is_single_command (struct block * buf, long timeout) {$/;"	f	typeref:typename:int
+is_single_command	cmds.c	/^int is_single_command (Buffer * buf, long timeout) {$/;"	f	typeref:typename:int
 last_nonblank_char	cmds_edit.c	/^int last_nonblank_char() {$/;"	f	typeref:typename:int
 left_limit	cmds.c	/^struct ent * left_limit(struct sheet * sh) {$/;"	f	typeref:struct:ent *
 ljustify	cmds.c	/^void ljustify(struct sheet * sh, int sr, int sc, int er, int ec) {$/;"	f	typeref:typename:void
@@ -95,7 +95,7 @@ scroll_right	cmds.c	/^void scroll_right(struct sheet * sh, int n) {$/;"	f	typere
 scroll_up	cmds.c	/^void scroll_up(struct sheet * sh, int n) {$/;"	f	typeref:typename:void
 select_inner_range	cmds.c	/^void select_inner_range(struct sheet * sh, int * vir_tlrow, int * vir_tlcol, int * vir_brrow, in/;"	f	typeref:typename:void
 send_to_interp	cmds.c	/^void send_to_interp(wchar_t * oper) {$/;"	f	typeref:typename:void
-start_edit_mode	cmds_edit.c	/^int start_edit_mode(struct block * buf, char type) {$/;"	f	typeref:typename:int
+start_edit_mode	cmds_edit.c	/^int start_edit_mode(Buffer * buf, char type) {$/;"	f	typeref:typename:int
 start_visualmode	cmds_visual.c	/^void start_visualmode(int tlrow, int tlcol, int brrow, int brcol) {$/;"	f	typeref:typename:void
 syncref	cmds.c	/^void syncref(struct sheet * sh, struct enode * e) {$/;"	f	typeref:typename:void
 sync_refs	cmds.c	/^void sync_refs(struct sheet * sh) {$/;"	f	typeref:typename:void

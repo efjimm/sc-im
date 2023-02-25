@@ -64,11 +64,11 @@ int len_maps = 0;
  * a buffer may contain a valid command (for instance, just a letter in insert mode)
  * but that buffer beginning may also be a possible mapping
  *
- * \param[in] struct block * (b)
+ * \param[in] Buffer * (b)
  * \return 0 if false. 1 otherwise
  */
 
-int could_be_mapping(struct block * b) {
+int could_be_mapping(Buffer * b) {
     // Traverse session mappings
     map * m = maps;
 
@@ -83,7 +83,7 @@ int could_be_mapping(struct block * b) {
 
 
 /**
- * \brief replace_maps() inside a struct block * list.
+ * \brief replace_maps() inside a Buffer * list.
  * \param[in] b
  * \return r
  * return 0 when no mapping replaced
@@ -91,7 +91,7 @@ int could_be_mapping(struct block * b) {
  * return 1 when no recursive mapping was applied
  * return 2 when recursive mapping was applied
  */
-int replace_maps (struct block * b) {
+int replace_maps (Buffer * b) {
     int r = 0;
 
     if (++mapdepth == 1000) {
@@ -129,20 +129,24 @@ int replace_maps (struct block * b) {
  * \return buffer
  */
 
-struct block * get_mapbuf_str (char * str) {
-
-    struct block * buffer = buffer_create();
-    unsigned short i, j;
-    unsigned short is_specialkey = 0;
+Buffer *
+get_mapbuf_str(char *str) {
     char sk[MAXSC+1];
     sk[0] = '\0';
     const size_t size = strlen(str) + 1;
+
     wchar_t wc[BUFFERSIZE] = { L'\0' };
     size_t result = mbstowcs(wc, str, size);
-    if (result == (size_t)-1 ) return buffer;
-    unsigned short l = wcslen(wc);
 
-    for (i=0; i<l; i++) {
+    size_t l = wcslen(wc);
+    Buffer *buffer = buffer_create(l+1);
+
+    if (result == (size_t)-1)
+        return buffer;
+
+    bool is_specialkey = 0;
+    size_t i = 0;
+    for (; i < l; i++) {
         // handle simple < and > mappings
         if (str[i] == '\\' && i+1 < l && i+2 < l && str[i+1] == '\\' &&
         (str[i+2] == '<' || str[i+2] == '>')) {
@@ -200,9 +204,10 @@ struct block * get_mapbuf_str (char * str) {
 
     // If the buffer lacks the trailing '>', insert it
     if (is_specialkey && i == l) {
-        j = strlen(sk);
+        size_t j = strlen(sk);
         buffer_append(buffer, '<');
-        for (i=0; i<j; i++) buffer_append(buffer, (int) str[l-j+i]);
+        for (i = 0; i < j; i++)
+            buffer_append(buffer, (int) str[l-j+i]);
     }
     return buffer;
 }
@@ -217,8 +222,8 @@ void del_maps () {
     map * e = m;
     while (m != NULL) {
         e = m->psig;
-        buffer_free(m->out);
-        buffer_free(m->in);
+        buffer_destroy(m->out);
+        buffer_destroy(m->in);
         free(m);
         m = e;
     }
@@ -287,13 +292,13 @@ void add_map(char * in, char * out, int mode, short recursive) {
     } else {
         m = maps;
         while (exists--) m = m->psig;
-        buffer_free(m->in);
-        buffer_free(m->out);
+        buffer_destroy(m->in);
+        buffer_destroy(m->out);
         exists = true;
     }
 
-    m->out = (struct block *) get_mapbuf_str(out);
-    m->in = (struct block *) get_mapbuf_str(in);
+    m->out = (Buffer *) get_mapbuf_str(out);
+    m->in = (Buffer *) get_mapbuf_str(in);
     m->mode = mode;
     m->recursive = recursive;
 
@@ -335,8 +340,8 @@ void del_map(char * in, int mode) {
     get_mapstr_buf(m->in, strin);
     if ( ! strcmp(in, strin) && mode == m->mode) {
         maps = m->psig;
-        buffer_free(m->out);
-        buffer_free(m->in);
+        buffer_destroy(m->out);
+        buffer_destroy(m->in);
         free(m);
         len_maps--;
         return;
@@ -350,8 +355,8 @@ void del_map(char * in, int mode) {
         get_mapstr_buf(m->in, strin);
         if ( ! strcmp(in, strin) && mode == m->mode) {
             ant->psig = m->psig;
-            buffer_free(m->out);
-            buffer_free(m->in);
+            buffer_destroy(m->out);
+            buffer_destroy(m->in);
             free(m);
             m = ant->psig;
             len_maps--;
@@ -375,8 +380,8 @@ void del_map(char * in, int mode) {
  * \return none
  */
 
-void get_mapstr_buf (struct block * b, char * str) {
-    struct block * a = b;
+void get_mapstr_buf (Buffer * b, char * str) {
+    Buffer * a = b;
     int i, len = buffer_size(a);
 
     str[0]='\0';
