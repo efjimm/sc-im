@@ -102,7 +102,6 @@ buffer_free(Buffer *buf) {
     free(buf->chars);
     *buf = (Buffer){
         .next = free_list,
-        .chars = NULL,
     };
     free_list = buf;
 }

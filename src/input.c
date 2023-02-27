@@ -82,9 +82,8 @@ MEVENT event;              // mouse event
  *
  * \return none
  */
-
 void
-handle_input(Buffer *const buffer) {
+handle_input(SC *const sc, Buffer *const buffer) {
     struct timeval start_tv, m_tv, init_tv; // For measuring timeout
     gettimeofday(&start_tv, NULL);
     gettimeofday(&m_tv, NULL);
@@ -104,8 +103,8 @@ handle_input(Buffer *const buffer) {
      * if so, wait a mapping_timeout (1500ms), before triggering has_cmd..
      */
     while (
-            ( ! has_cmd(buffer, msec) && msec <= get_conf_int("command_timeout")) ||
-            ( could_be_mapping(buffer) && msec_init < get_conf_int("mapping_timeout"))
+            ( ! has_cmd(buffer, msec) && msec <= config_get_int("command_timeout")) ||
+            ( could_be_mapping(buffer) && msec_init < config_get_int("mapping_timeout"))
           ) {
 
         // if command pending, refresh 'ef' only. Multiplier and cmd pending
@@ -137,7 +136,7 @@ handle_input(Buffer *const buffer) {
                 && (buffer_get(buffer, 0) == '\0' || iswdigit(buffer_get(buffer, 0)))
                 && (curmode == NORMAL_MODE || curmode == VISUAL_MODE || curmode == EDIT_MODE)
                 && (cmd_multiplier || d != L'0')
-                && (!get_conf_int("numeric"))
+                && (!config_get_bool("numeric"))
            ) {
             cmd_multiplier *= 10;
             cmd_multiplier += (int) (d - '0');
@@ -208,7 +207,7 @@ handle_input(Buffer *const buffer) {
         }
 
     }
-    if (msec >= get_conf_int("command_timeout")) { // timeout. Command incomplete
+    if (msec >= config_get_int("command_timeout")) { // timeout. Command incomplete
         cmd_pending = 0;      // No longer wait for a command, set flag.
         cmd_multiplier = 0;   // Reset multiplier
     } else {                  // Execute command or mapping
@@ -400,7 +399,6 @@ handle_mult(int *cmd_multiplier, Buffer *buf, long timeout) {
  *
  * \return none
  */
-
 void
 exec_mult(Buffer *buf, long timeout) {
     int k, res;

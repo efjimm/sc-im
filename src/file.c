@@ -181,7 +181,7 @@ int file_exists(const char * fname) {
  */
 int modcheck() {
     struct roman * roman = session->cur_doc;
-    if (roman->modflg && ! get_conf_int("nocurses")) {
+    if (roman->modflg && ! config_get_bool("nocurses")) {
         sc_error("File not saved since last change. Add '!' to force");
         return(1);
     }
@@ -199,14 +199,14 @@ char get_delim(char *type) {
     if (!strcasecmp(type, "tsv") || !strcasecmp(type, "tab"))
         delim = '\t';
 
-    if (get_conf_value("txtdelim") != NULL) {
-        if (!strcasecmp(get_conf_value("txtdelim"), "\\t")) {
+    if (config_get_string("txtdelim") != NULL) {
+        if (!strcasecmp(config_get_string("txtdelim"), "\\t")) {
             delim = '\t';
-        } else if (!strcasecmp(get_conf_value("txtdelim"), ",")) {
+        } else if (!strcasecmp(config_get_string("txtdelim"), ",")) {
             delim = ',';
-        } else if (!strcasecmp(get_conf_value("txtdelim"), ";")) {
+        } else if (!strcasecmp(config_get_string("txtdelim"), ";")) {
             delim = ';';
-        } else if (!strcasecmp(get_conf_value("txtdelim"), "|")) {
+        } else if (!strcasecmp(config_get_string("txtdelim"), "|")) {
             delim = '|';
         }
     }
@@ -1048,7 +1048,7 @@ void closefile(FILE *f, int pid, int rfd) {
         } else {
             close(rfd);
 #ifdef NCURSES
-            if (! get_conf_int("nocurses")) {
+            if (! config_get_bool("nocurses")) {
                 cbreak();
                 nonl();
                 noecho ();
@@ -1074,7 +1074,7 @@ void print_options(FILE *f) {
             ! rndtoeven &&
             calc_order == BYROWS &&
             prescale == 1.0 &&
-            ! get_conf_int("external_functions")
+            ! config_get_bool("external_functions")
        )
         return; // No reason to do this
 
@@ -1083,7 +1083,7 @@ void print_options(FILE *f) {
     if (rndtoeven)             (void) fprintf(f, " rndtoeven");
     if (calc_order != BYROWS ) (void) fprintf(f, " bycols");
     if (prescale != 1.0)       (void) fprintf(f, " prescale");
-    if ( get_conf_int("external_functions") ) (void) fprintf(f, " external_functions");
+    if ( config_get_bool("external_functions") ) (void) fprintf(f, " external_functions");
     (void) fprintf(f, "\n");
 }
 
@@ -1164,7 +1164,7 @@ int import_csv(char * fname, char d) {
             }
 
             // number import
-            if (strlen(token) && isnumeric(token) && ! get_conf_int("import_delimited_as_text")
+            if (strlen(token) && isnumeric(token) && ! config_get_bool("import_delimited_as_text")
             ) {
                 //wide char
                 swprintf(line_interp, BUFFERSIZE, L"let %s%d=%s", coltoa(c), r, token);
@@ -1336,7 +1336,7 @@ int import_markdown(char * fname) {
                 char * st = str_replace(token, "\"", "''"); //replace double quotes inside string
 
                 // number import
-                if (isnumeric(st) && strlen(st) && ! atoi(get_conf_value("import_delimited_as_text"))) {
+                if (isnumeric(st) && strlen(st) && ! atoi(config_get_string("import_delimited_as_text"))) {
                     //wide char
                     swprintf(line_interp, BUFFERSIZE, L"let %s%d=%s", coltoa(c), rownr, st);
 
@@ -1514,7 +1514,7 @@ void export_markdown(char * fname, int r0, int c0, int rn, int cn) {
     int dash_num;
     int rowfmt;
 
-    int ignore_hidden = get_conf_int("ignore_hidden");
+    int ignore_hidden = config_get_bool("ignore_hidden");
 
     for (row = r0; row <= rn; row++) {
         for (rowfmt=0; rowfmt < roman->cur_sh->row_format[row]; rowfmt++) {
@@ -1602,7 +1602,7 @@ void export_markdown(char * fname, int r0, int c0, int rn, int cn) {
                         new[cw] = L'\0';
                         fprintf (f, "%ls", new);
                     } else if (! rowfmt && wcslen(new)) {
-                        if (get_conf_int("truncate") || !get_conf_int("overlap")) new[cw] = L'\0';
+                        if (config_get_bool("truncate") || !config_get_bool("overlap")) new[cw] = L'\0';
                         fprintf (f, "%ls", new);
                     } else {
                         fprintf (f, "%*s", roman->cur_sh->fwidth[col], " ");
@@ -1666,7 +1666,7 @@ void export_plain(char * fname, int r0, int c0, int rn, int cn) {
     int align = 1;
     int rowfmt;
 
-    int ignore_hidden = get_conf_int("ignore_hidden");
+    int ignore_hidden = config_get_bool("ignore_hidden");
 
     for (row = r0; row <= rn; row++) {
         for (rowfmt = 0; rowfmt < roman->cur_sh->row_format[row]; rowfmt++) {
@@ -1729,7 +1729,7 @@ void export_plain(char * fname, int r0, int c0, int rn, int cn) {
                         new[cw] = L'\0';
                         fprintf (f, "%ls", new);
                     } else if (! rowfmt && wcslen(new)) {
-                        if (get_conf_int("truncate") || !get_conf_int("overlap")) new[cw] = L'\0';
+                        if (config_get_bool("truncate") || !config_get_bool("overlap")) new[cw] = L'\0';
                         fprintf (f, "%ls", new);
                     } else {
                         fprintf (f, "%*s", roman->cur_sh->fwidth[col], " ");
@@ -1900,7 +1900,7 @@ void export_delim(char * fname, char coldelim, int r0, int c0, int rn, int cn, i
         }
     }
 
-    int ignore_hidden = get_conf_int("ignore_hidden");
+    int ignore_hidden = config_get_bool("ignore_hidden");
     for (row = r0; row <= rn; row++) {
         if (ignore_hidden && sh->row_hidden[row]) continue;
         for (pp = ATBL(sh, sh->tbl, row, col = c0); col <= cn; col++, pp++) {
@@ -2070,7 +2070,7 @@ void * do_autobackup() {
     add_char(name, '.', pos+1);
     sprintf(name + strlen(name), ".bak");
     sprintf(namenew, "%.*s.new", PATHLEN-5, name);
-    //if (get_conf_int("debug")) sc_info("doing autobackup of file:%s", name);
+    //if (config_get_int("debug")) sc_info("doing autobackup of file:%s", name);
 
     // create new version
     if (! strcmp(&name[strlen(name)-7], ".sc.bak")) {
@@ -2108,7 +2108,7 @@ void handle_backup() {
     extern struct timeval lastbackup_tv; // last backup timer
     extern struct timeval current_tv; //runtime timer
 
-    int autobackup = get_conf_int("autobackup");
+    int autobackup = config_get_int("autobackup");
     if (autobackup && autobackup > 0 && (current_tv.tv_sec - lastbackup_tv.tv_sec > autobackup || (lastbackup_tv.tv_sec == 0 && lastbackup_tv.tv_usec == 0))) {
         #ifdef HAVE_PTHREAD
             if (pthread_exists) pthread_join (fthread, NULL);
@@ -2173,7 +2173,7 @@ int backup_exists(char * file) {
  * \return none
  */
 void openfile_nested(char * file) {
-    char * cmd = get_conf_value("default_open_file_under_cursor_cmd");
+    char * cmd = config_get_string("default_open_file_under_cursor_cmd");
     if (cmd == NULL || ! strlen(cmd)) return;
     pid_t pid = fork();
     if (pid == 0) {
@@ -2300,7 +2300,7 @@ void load_tbl(char * loading_file) {
 
     if (strlen(name) != 0) {
         sc_readfile_result result = readfile(name, 0);
-        if (! get_conf_int("nocurses")) {
+        if (! config_get_bool("nocurses")) {
             if (result == SC_READFILE_DOESNTEXIST) {
                 // It's a new record!
                 sc_info("New file: \"%s\"", name);

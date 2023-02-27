@@ -268,7 +268,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
                 (i_fmtid > 13 && i_fmtid < 18)) {
                     long l = strtol((char *) child_node->xmlChildrenNode->xmlChildrenNode->content, (char **) NULL, 10);
 
-                    swprintf(line_interp, FBUFLEN, L"let %s%d=%.15ld", coltoa(c), r, (l - 25568) * 86400 - get_conf_int("tm_gmtoff"));
+                    swprintf(line_interp, FBUFLEN, L"let %s%d=%.15ld", coltoa(c), r, (l - 25568) * 86400 - config_get_int("tm_gmtoff"));
                     send_to_interp(line_interp);
                     struct ent * n = lookat(sh, r, c);
                     n->format = 0;
@@ -283,7 +283,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
                 && (i_fmtid > 17 && i_fmtid < 22)
                 ) {
                     double l = atof((char *) child_node->xmlChildrenNode->xmlChildrenNode->content);
-                    swprintf(line_interp, FBUFLEN, L"let %s%d=%.15f", coltoa(c), r, (l - get_conf_int("tm_gmtoff") * 1.0 / 60 / 60 / 24) * 86400);
+                    swprintf(line_interp, FBUFLEN, L"let %s%d=%.15f", coltoa(c), r, (l - config_get_int("tm_gmtoff") * 1.0 / 60 / 60 / 24) * 86400);
                     send_to_interp(line_interp);
                     struct ent * n = lookat(sh, r, c);
                     n->format = 0;
@@ -305,7 +305,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
                 child_node->xmlChildrenNode != NULL && ! strcmp((char *) child_node->xmlChildrenNode->name, "f")) {
 
                     // handle the formula if that is whats desidered!!
-                    if (get_conf_int("xlsx_readformulas") &&
+                    if (config_get_bool("xlsx_readformulas") &&
                         // dont handle shared formulas right now
                         ! (xmlHasProp(child_node->xmlChildrenNode, (xmlChar *) "t") &&
                         ! strcmp((shared = (char *) xmlGetProp(child_node->xmlChildrenNode, (xmlChar *) "t")), "shared"))
@@ -569,7 +569,7 @@ int export_xlsx(char * filename) {
     struct roman * roman = session->cur_doc;
     lxw_workbook  * workbook  = workbook_new(filename);
 
-    int ignore_hidden = get_conf_int("ignore_hidden");
+    int ignore_hidden = config_get_bool("ignore_hidden");
     struct sheet * sh = roman->first_sh;
     while (sh != NULL) {
 
@@ -686,10 +686,10 @@ int export_xlsx(char * filename) {
                         strcpy(sc_format, st);
                         free(st);
                         format_set_num_format(format, sc_format);
-                        worksheet_write_number(worksheet, row-1, col, (((*pp)->v + get_conf_int("tm_gmtoff")) / 86400 + 25568) , format);
+                        worksheet_write_number(worksheet, row-1, col, (((*pp)->v + config_get_int("tm_gmtoff")) / 86400 + 25568) , format);
 
                         // formula
-                    } else if ((*pp) && (*pp)->expr && get_conf_int("xlsx_readformulas"))  {
+                    } else if ((*pp) && (*pp)->expr && config_get_bool("xlsx_readformulas"))  {
                         linelim = 0;
                         editexp(sh, (*pp)->row, (*pp)->col);
                         linelim = -1;

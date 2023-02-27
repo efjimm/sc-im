@@ -929,7 +929,7 @@ char * doext(struct sheet * sh, struct enode *se) {
 
     command = seval(sh, NULL, se->left);
     value = eval(sh, NULL, se->right);
-    if ( ! get_conf_int("external_functions") ) {
+    if ( ! config_get_bool("external_functions") ) {
         sc_error("Warning: external functions disabled; using %s value",
         (se->last_func_str && *se->last_func_str) ? "previous" : "null");
 

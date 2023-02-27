@@ -182,23 +182,28 @@ main(int argc, char **argv) {
     setlocale(LC_CTYPE, "");
 #endif
 
+    SC sc = {
+        .user_config = map_new(),
+    };
+
     // start configuration dictionaries
     user_conf_d = create_dictionary();
-    store_default_config_values(); // Stores default values in user_conf_d
+    config_init(sc.user_config);
+    //config_init_default(); // Stores default values in user_conf_d
 
     // Read the main() parameters and replace values in user_conf_d as necessary
     read_argv(argc, argv);
 
     // check if help is in argv. if so, show usage and quit
-    if (get_conf_int("help"))
-        show_usage_and_quit();
+//    if (config_get_int("help"))
+//        show_usage_and_quit();
 
     // check if version is in argv. if so, show version and quit
-    if (get_conf_int("version"))
-         show_version_and_quit();
+  //  if (config_get_int("version"))
+  //       show_version_and_quit();
 
     // if starting tui..
-    if (!get_conf_int("nocurses")) {
+    if (!config_get_bool("nocurses")) {
         // create command line history structure
 #ifdef HISTORY_FILE
         commandline_history = (struct history *) create_history(':');
@@ -231,14 +236,14 @@ main(int argc, char **argv) {
      * To achieve that, we open the output file and keep it open until exit.
      * otherwise, sc-im will output to stdout.
      */
-    if (get_conf_value("output") != NULL) {
-        fdoutput = fopen(get_conf_value("output"), "w+");
+    if (config_get_string("output") != NULL) {
+        fdoutput = fopen(config_get_string("output"), "w+");
         if (fdoutput == NULL) {
-            sc_error("Cannot open file: %s.", get_conf_value("output"));
+            sc_error("Cannot open file: %s.", config_get_string("output"));
             return exit_app(-1);
         }
 
-        if (!get_conf_int("nocurses")) { // WE MUST STOP SCREEN!
+        if (!config_get_bool("nocurses")) { // WE MUST STOP SCREEN!
             ui_stop_screen();
 
             // if output is set, nocurses should always be 1 !
@@ -297,7 +302,7 @@ main(int argc, char **argv) {
 
     // initiate ui
     FILE *f;
-    if (!get_conf_int("nocurses")) {
+    if (!config_get_bool("nocurses")) {
         // we show welcome screen if no spreadsheet was passed to sc-im
         // and no input was sent throw pipeline
         if (!session->cur_doc->name && !wcslen(stdin_buffer)) {
@@ -316,7 +321,7 @@ main(int argc, char **argv) {
 
     // handle input from keyboard
     // this should only take place if curses ui
-    if (!get_conf_int("nocurses"))
+    if (!config_get_bool("nocurses"))
         buffer = buffer_create(0);
 
     wchar_t nocurses_buffer[BUFFERSIZE];
@@ -332,18 +337,15 @@ main(int argc, char **argv) {
     // handle --exports passed as argv
     handle_argv_exports();
 
-    while (!shall_quit && !get_conf_int("quit_afterload")) {
+    while (!shall_quit && !config_get_bool("quit_afterload")) {
         // save current time for runtime timer
         gettimeofday(&current_tv, NULL);
 
         // autobackup if it is time to do so
         handle_backup();
 
-        // if we are in ncurses
-        if (!get_conf_int("nocurses")) {
-            handle_input(buffer);
-
-        // if we are not in ncurses
+        if (!config_get_bool("nocurses")) {
+            handle_input(&sc, buffer);
         } else if (fgetws(nocurses_buffer, BUFFERSIZE, f) != NULL) {
             sc_debug("Interp will receive: %ls", nocurses_buffer);
             send_to_interp(nocurses_buffer);
@@ -357,7 +359,7 @@ main(int argc, char **argv) {
          */
         if (shall_quit == 1 && modcheck()) shall_quit = 0;
     }
-    if (get_conf_int("nocurses") && f != NULL) fclose(f);
+    if (config_get_bool("nocurses") && f != NULL) fclose(f);
 
     return shall_quit == -1 ? exit_app(-1) : exit_app(0);
 }
@@ -446,9 +448,9 @@ delete_structures(void) {
     free_formats();
 
     // Free last_command buffer
-    //buffer_destroy(lastcmd_buffer);
+    buffer_destroy(lastcmd_buffer);
 
-    buffer_free_all();
+    //buffer_free_all();
 
     // Free ranges
     free_ranges();
@@ -477,6 +479,8 @@ delete_structures(void) {
 #ifdef XLUA
     doLuaclose();
 #endif
+
+    config_deinit();
 }
 
 
@@ -493,7 +497,7 @@ delete_structures(void) {
 int
 exit_app(int status) {
     // free history
-    if (!get_conf_int("nocurses")) {
+    if (!config_get_bool("nocurses")) {
 
 #ifdef HISTORY_FILE
         if (!save_history(commandline_history, "w")) sc_error("Could not save commandline history");
@@ -527,11 +531,11 @@ exit_app(int status) {
     //buffer_destroy(buffer);
 
     // stop CURSES screen
-    if (!get_conf_int("nocurses"))
+    if (!config_get_bool("nocurses"))
         ui_stop_screen();
 
     // close fdoutput
-    if (get_conf_value("output") != NULL && get_conf_value("output")[0] != '\0' && fdoutput != NULL) {
+    if (config_get_string("output") != NULL && config_get_string("output")[0] != '\0' && fdoutput != NULL) {
         fclose(fdoutput);
     }
 
@@ -561,7 +565,7 @@ read_argv(int argc, char ** argv) {
     int i;
     for (i = 1; i < argc; i++) {
         if ( !strncmp(argv[i], "--", 2) ) {       // it was passed a parameter
-            parse_str(user_conf_d, argv[i] + 2, 0);
+            config_parse_str(argv[i] + 2, 0);
         } else {                                   // it was passed a file
             //printf("%s-\n", argv[i]);
             strncpy(loadingfile, argv[i], PATHLEN-1);
@@ -579,19 +583,19 @@ read_argv(int argc, char ** argv) {
  */
 void
 handle_argv_exports(void) {
-    if (get_conf_value("export_csv") && session->cur_doc != NULL) {
+    if (config_get_string("export_csv") && session->cur_doc != NULL) {
         export_delim(NULL, ',', 0, 0, session->cur_doc->cur_sh->maxrow, session->cur_doc->cur_sh->maxcol, 0);
     }
 
-    if (get_conf_value("export_tab") && session->cur_doc != NULL) {
+    if (config_get_string("export_tab") && session->cur_doc != NULL) {
         export_delim(NULL, '\t', 0, 0, session->cur_doc->cur_sh->maxrow, session->cur_doc->cur_sh->maxcol, 0);
     }
 
-    if (get_conf_value("export_mkd") && session->cur_doc != NULL) {
+    if (config_get_string("export_mkd") && session->cur_doc != NULL) {
         export_markdown(NULL, 0, 0, session->cur_doc->cur_sh->maxrow, session->cur_doc->cur_sh->maxcol);
     }
 
-    if ((get_conf_value("export") || get_conf_value("export_txt")) && session->cur_doc != NULL) {
+    if ((config_get_string("export") || config_get_string("export_txt")) && session->cur_doc != NULL) {
         export_plain(NULL, 0, 0, session->cur_doc->cur_sh->maxrow, session->cur_doc->cur_sh->maxcol);
     }
     return;
@@ -659,7 +663,7 @@ sig_tstp(int sig) {
 void
 sig_cont(int sig) {
     signal(SIGTSTP, sig_tstp); /* set handler back to this */
-    sig_winchg();
+    sig_winchg(SIGWINCH);
     reset_prog_mode();
     refresh();
     ui_update(TRUE);
@@ -673,7 +677,7 @@ sig_cont(int sig) {
  */
 void
 sig_int(int sig) {
-    if ( !get_conf_int("debug")) {
+    if ( !config_get_bool("debug")) {
         sc_error("Got SIGINT. Press «:q<Enter>» to quit sc-im");
     } else if (buffer_size(buffer)) {
         break_waitcmd_loop(buffer);

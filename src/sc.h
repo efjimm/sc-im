@@ -50,6 +50,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "utils/map.h"
+
 #define MINROWS      100     /* minimum size at startup */
 
 /* MAX rows size of sheet. Default 65536.   */
@@ -437,6 +439,10 @@ struct go_save {
 #define GROWROW       2       /* add rows */
 #define GROWCOL       3       /* add columns */
 #define GROWBOTH      4       /* grow both */
+
+typedef struct {
+    Map *user_config;
+} SC;
 
 extern int arg;
 extern int gmyrow, gmycol;    // globals used for @myrow, @mycol cmds

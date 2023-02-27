@@ -128,8 +128,8 @@ void ui_start_screen() {
     sstdout = newterm(NULL, stdout, stdin);
     set_term(sstdout);
 
-    main_win = newwin(LINES - RESROW, COLS, get_conf_int("input_bar_bottom") ? 0 : RESROW, 0);
-    input_win = newwin(RESROW-1, COLS, get_conf_int("input_bar_bottom") ? LINES-RESROW : 0, 0);
+    main_win = newwin(LINES - RESROW, COLS, config_get_bool("input_bar_bottom") ? 0 : RESROW, 0);
+    input_win = newwin(RESROW-1, COLS, config_get_bool("input_bar_bottom") ? LINES-RESROW : 0, 0);
     input_pad = newpad(RESROW-1, MAX_IB_LEN);
 
     status_line_empty = 1;
@@ -253,13 +253,13 @@ int ui_getch_b(wint_t * wd) {
  */
 
 void ui_sc_msg(char * s, int type, ...) {
-    if (get_conf_int("quiet")) return;
-    if (type == DEBUG_MSG && ! get_conf_int("debug")) return;
+    if (config_get_bool("quiet")) return;
+    if (type == DEBUG_MSG && ! config_get_bool("debug")) return;
     char t[BUFFERSIZE];
     va_list args;
     va_start(args, type);
     vsprintf (t, s, args);
-    if ( ! get_conf_int("nocurses")) {
+    if ( ! config_get_bool("nocurses")) {
 #ifdef USECOLORS
         if (type == ERROR_MSG)
             ui_set_ucolor(input_pad, &ucolors[ERROR_MSG], DEFAULT_COLOR);
@@ -282,7 +282,7 @@ void ui_sc_msg(char * s, int type, ...) {
             wtimeout(input_pad, TIMEOUT_CURSES);
         }
 
-    } else if (type == VALUE_MSG && get_conf_value("output") != NULL && fdoutput != NULL) {
+    } else if (type == VALUE_MSG && config_get_string("output") != NULL && fdoutput != NULL) {
         fwprintf(fdoutput, L"%s\n", t);
     } else if (type == VALUE_MSG) {
         if (fwide(stdout, 0) >0)
@@ -310,7 +310,7 @@ void ui_sc_msg(char * s, int type, ...) {
 void ui_do_welcome() {
     char * msg_title = "sc-im - SpreadSheet Calculator Improvised";
     char * msg_by = "An SC fork by Andrés Martinelli";
-    char * msg_version = rev;
+    const char * msg_version = rev;
     char * msg_help  = "Press  :help<Enter>  to get help         ";
     char * msg_help2 = "Press  <Enter>       to enter NORMAL mode";
     int i;
@@ -368,7 +368,7 @@ void ui_do_welcome() {
     }
     wrefresh(main_win);
 
-    if (get_conf_int("show_cursor")) {
+    if (config_get_bool("show_cursor")) {
         /* land cursor next to the help line */
         curwinrow = LINES / 2;
         curwincol = COLS / 2 - strlen(msg_help) / 2 - 1;
@@ -398,7 +398,7 @@ void ui_update(int header) {
 
     if (roman->loading) return;
     if (cmd_multiplier > 1) return;
-    if (get_conf_int("nocurses")) return;
+    if (config_get_bool("nocurses")) return;
 
     #ifdef USECOLORS
     wbkgd(main_win, COLOR_PAIR((ucolors[DEFAULT].fg+1) * (COLORS) + ucolors[DEFAULT].bg + 2));
@@ -450,7 +450,7 @@ void ui_update(int header) {
     // Show sc_row headings: 0, 1, 2, 3..
     ui_show_sc_row_headings(main_win, nb_mobile_rows); // schow_sc_row_headings must be after show_content
 
-    if (status_line_empty && get_conf_int("show_cursor")) {
+    if (status_line_empty && config_get_bool("show_cursor")) {
         // Leave cursor on selected cell when no status message
         wmove(main_win, curwinrow, curwincol);
     }
@@ -547,7 +547,7 @@ void ui_print_mult_pend() {
     if (inputline_pos > COLS - 14) scroll = inputline_pos - COLS + 14;
     ui_refresh_pad(scroll);
 
-    if (status_line_empty && curmode != EDIT_MODE && get_conf_int("show_cursor")) {
+    if (status_line_empty && curmode != EDIT_MODE && config_get_bool("show_cursor")) {
         // Leave cursor on selected cell when no status message
         wmove(main_win, curwinrow, curwincol);
         wrefresh(main_win);
@@ -820,10 +820,10 @@ int ui_show_content(WINDOW * win, int nb_mobile_rows, int nb_mobile_cols) {
     int redraw_needed = FALSE;
 
     srange * s = get_selected_range();
-    int conf_underline_grid = get_conf_int("underline_grid");
-    int conf_truncate = get_conf_int("truncate");
-    int conf_overlap = get_conf_int("overlap");
-    int conf_autowrap = get_conf_int("autowrap");
+    int conf_underline_grid = config_get_bool("underline_grid");
+    int conf_truncate = config_get_bool("truncate");
+    int conf_overlap = config_get_bool("overlap");
+    int conf_autowrap = config_get_bool("autowrap");
 
     int winrow = RESCOLHEADER;
     int mobile_rows = nb_mobile_rows;
@@ -1002,9 +1002,9 @@ int ui_show_content(WINDOW * win, int nb_mobile_rows, int nb_mobile_cols) {
             if ( (*p) && ( ((*p)->flags & is_valid) || (*p)->label ) ) {
                 // hide text or number from num & text combined cells
                 // if ((strlen(text) && strlen(num)) {
-                //    if get_conf_int("hide_text_from_combined"))
+                //    if config_get_bool("hide_text_from_combined"))
                 //        text[0]='\0';
-                //    else if get_conf_int("hide_number_from_combined"))
+                //    else if config_get_bool("hide_number_from_combined"))
                 //        num[0]='\0';
                 // }
                 pad_and_align(text, num, fieldlen, align, (*p)->pad, out, sh->row_format[row]);
@@ -1152,12 +1152,12 @@ void ui_show_celldetails() {
 #ifdef USECOLORS
                 ui_set_ucolor(input_win, &ucolors[CURRENT_SHEET], DEFAULT_COLOR);
 #endif
-                if (get_conf_int("show_cursor")) mvwprintw(input_win, 0, il_pos++, "*");
+                if (config_get_bool("show_cursor")) mvwprintw(input_win, 0, il_pos++, "*");
             } else {
 #ifdef USECOLORS
                 ui_set_ucolor(input_win, &ucolors[SHEET], DEFAULT_COLOR);
 #endif
-                if (get_conf_int("show_cursor")) mvwprintw(input_win, 0, il_pos++, " ");
+                if (config_get_bool("show_cursor")) mvwprintw(input_win, 0, il_pos++, " ");
             }
             mvwprintw(input_win, 0, il_pos, "{%s}", sh->name);
             il_pos += strlen(sh->name) + 2;
@@ -1284,7 +1284,7 @@ int ui_get_formated_value(struct ent ** p, int col, char * value) {
  *
  * \param[in] val
  */
-void ui_show_text(char * val) {
+void ui_show_text(const char * val) {
     int pid;
     char px[MAXCMD];
     char * pager;
@@ -1318,7 +1318,7 @@ void ui_show_text(char * val) {
  * UI function thats called after SIGWINCH signal.
  * \return none
  */
-void sig_winchg() {
+void sig_winchg(int sig) {
     if (isendwin()) return;
     endwin();
     refresh();
@@ -1408,7 +1408,7 @@ char * ui_query(char * initial_msg) {
     hline[0]='\0';
 
     // curses is not enabled
-    if ( get_conf_int("nocurses")) {
+    if ( config_get_bool("nocurses")) {
         if (strlen(initial_msg)) wprintf(L"%s", initial_msg);
 
         if (fgets(hline, BUFFERSIZE-1, stdin) == NULL)
@@ -1569,7 +1569,7 @@ void ui_resume() {
     set_term(sstdout);
     reset_prog_mode();
     clearok(stdscr, TRUE);
-    sig_winchg();
+    sig_winchg(0);
 
     return;
 }
@@ -1581,8 +1581,8 @@ void ui_resume() {
  * \return none
  */
 void ui_mv_bottom_bar() {
-    mvwin(main_win, get_conf_int("input_bar_bottom") ? 0 : RESROW, 0);
-    mvwin(input_win, get_conf_int("input_bar_bottom") ? LINES-RESROW : 0, 0);
+    mvwin(main_win, config_get_bool("input_bar_bottom") ? 0 : RESROW, 0);
+    mvwin(input_win, config_get_bool("input_bar_bottom") ? LINES-RESROW : 0, 0);
     return;
 }
 
@@ -1593,8 +1593,8 @@ void ui_mv_bottom_bar() {
  * \return none
  */
 void ui_refresh_pad(int scroll) {
-    prefresh(input_pad, 0, scroll, get_conf_int("input_bar_bottom") ? LINES-RESROW+1: RESROW-1, 0,
-             get_conf_int("input_bar_bottom") ? LINES-RESROW+1: RESROW-1, COLS-1);
+    prefresh(input_pad, 0, scroll, config_get_bool("input_bar_bottom") ? LINES-RESROW+1: RESROW-1, 0,
+             config_get_bool("input_bar_bottom") ? LINES-RESROW+1: RESROW-1, COLS-1);
 }
 
 
@@ -1617,7 +1617,7 @@ void ui_handle_mouse(MEVENT event) {
     if (curmode == NORMAL_MODE && (event.bstate & BUTTON4_PRESSED || // scroll up
         event.bstate & BUTTON5_PRESSED)) { // scroll down
             int n = calc_mobile_rows(sh, NULL);
-            if (get_conf_int("half_page_scroll")) n = n / 2;
+            if (config_get_bool("half_page_scroll")) n = n / 2;
             sh->lastcol = sh->curcol;
             sh->lastrow = sh->currow;
             sh->currow = event.bstate & BUTTON5_PRESSED ? forw_row(sh, n)->row : back_row(sh, n)->row;
@@ -1637,7 +1637,7 @@ void ui_handle_mouse(MEVENT event) {
 
     // get coordinates corresponding to the grid area
     int c = event.x - sh->rescol;
-    int r = event.y - RESROW + (get_conf_int("input_bar_bottom") ? 1 : -1);
+    int r = event.y - RESROW + (config_get_bool("input_bar_bottom") ? 1 : -1);
 
     // if out of range return
     if ( c < 0 || c >= SC_DISPLAY_COLS ||

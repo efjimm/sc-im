@@ -164,7 +164,7 @@ void yank_area(struct sheet * sh, int tlrow, int tlcol, int brrow, int brcol, ch
     type_of_yank = type;
     yank_arg = arg;
     free_yanklist();
-    int ignore_hidden = get_conf_int("ignore_hidden");
+    int ignore_hidden = config_get_bool("ignore_hidden");
 
     struct ent * e_ori;
     // ask for memory to keep struct ent_ptr * and struct ent * for the whole range
@@ -360,14 +360,14 @@ int paste_yanked_ents(struct sheet * sh, int above, int type_paste) {
 
         if (destino->expr) {
             syncref(sh, destino->expr);
-            if (get_conf_int("autocalc")) EvalJustOneVertex(sh, destino, 1);
+            if (config_get_bool("autocalc")) EvalJustOneVertex(sh, destino, 1);
             //EvalRange(destino->row, destino->col, destino->row, destino->col);
         }
 
         int i;
         for (i = 0; deps != NULL && i < deps->vf; i++) {
             syncref(sh, deps[i].vp->expr);
-            if (get_conf_int("autocalc") && deps[i].vp->expr) EvalJustOneVertex(sh, deps[i].vp, 0);
+            if (config_get_bool("autocalc") && deps[i].vp->expr) EvalJustOneVertex(sh, deps[i].vp, 0);
         }
         /*******************/
 #ifdef UNDO
@@ -382,7 +382,7 @@ int paste_yanked_ents(struct sheet * sh, int above, int type_paste) {
 #endif
 
     //rebuild_graph();
-    //if (get_conf_int("autocalc")) EvalAll();
+    //if (config_get_bool("autocalc")) EvalAll();
     roman->modflg++;
 
 #ifdef UNDO

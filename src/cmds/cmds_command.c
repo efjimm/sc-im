@@ -72,13 +72,12 @@
 #include "../formats/xls.h"
 #include "../formats/xlsx.h"
 #include "../actions/plot.h"
+#include "../version.h"
 
 #ifdef UNDO
 #include "../undo.h"
 #endif
 
-extern char * rev;
-extern struct dictionary * user_conf_d;
 extern struct session * session;
 
 wchar_t inputline[BUFFERSIZE];
@@ -196,8 +195,9 @@ void do_commandmode(Buffer * sb) {
 
     // If a visual selected range exists
     int p = is_range_selected();
-    struct srange * sr = NULL;
-    if (p != -1) sr = get_range_by_pos(p);
+    struct srange *sr = NULL;
+    if (p != -1)
+        sr = get_range_by_pos(p);
 
 
     /*
@@ -406,7 +406,7 @@ void do_commandmode(Buffer * sb) {
     } else if (buffer_contains(sb, OKEY_ENTER)) {
 
         if ( ! wcscmp(inputline, L"refresh")) {
-            sig_winchg();
+            sig_winchg(0);
 
         } else if ( ! wcscmp(inputline, L"help") || ! wcscmp(inputline, L"h") ) {
             help();
@@ -486,7 +486,7 @@ void do_commandmode(Buffer * sb) {
                     session = (struct session *) calloc(1, sizeof(struct session));
                     load_file(name);
 
-                    if (! get_conf_int("nocurses")) {
+                    if (! config_get_bool("nocurses")) {
                       ui_show_header();
                     }
                 }
@@ -951,9 +951,9 @@ void do_commandmode(Buffer * sb) {
             plotedit(aux);
 
         } else if ( ! wcscmp(inputline, L"set") ) {
-            char valores[get_dict_buffer_size(user_conf_d) + 1];
-            get_conf_values(valores);
-            ui_show_text(valores);
+            char *buffer = config_get_strings(NULL, 0);
+            ui_show_text(buffer);
+            free(buffer);
 
         } else if ( ! wcscmp(inputline, L"version") ) {
             ui_show_text(rev);

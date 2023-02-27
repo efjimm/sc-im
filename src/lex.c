@@ -155,12 +155,12 @@ int yylex() {
             if (!linelim || isfunc) {
                 if (isfunc) isfunc--;
                 for (tblp = linelim ? experres : statres; tblp->key; tblp++)
-                    if (((tblp->key[0]^tokenst[0])&0137)==0
+                    if (((tblp->key[0]^tokenst[0])&0137)==0 // TODO: retarded way to ignore case
                         && tblp->key[tokenl]==0) {
                     int i = 1;
                     while (i<tokenl && ((tokenst[i]^tblp->key[i])&0137)==0)
                         i++;
-                    if (i >= tokenl) {
+                    if (i >= tokenl) { // Matched
                         ret = tblp->val;
                         colstate = (ret <= S_FORMAT);
                         if (isgoto) {
@@ -262,13 +262,12 @@ int yylex() {
                     yylval.ival = (int)v;
                     dateflag = 2;
                 } else if (*p == 'e' || *p == 'E') {
-                    while (isdigit(*++p))
-                        ;
-                        if (isalpha(*p) || *p == '_') {
-                            linelim = p - line;
-                            return (yylex());
-                        } else
-                            ret = FNUMBER;
+                    while (isdigit(*++p));
+                    if (isalpha(*p) || *p == '_') {
+                        linelim = p - line;
+                        return (yylex());
+                    } else
+                        ret = FNUMBER;
                 } else if (isalpha(*p) || *p == '_') {
                     linelim = p - line;
                     return (yylex());

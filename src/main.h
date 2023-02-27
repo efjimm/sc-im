@@ -55,10 +55,10 @@ void show_version_and_quit();
 void show_usage_and_quit();
 
 // signals
-void signals();
-void sig_int();
-void sig_nopipe();
-void sig_winchg();
+void signals(void);
+void sig_int(int);
+void sig_nopipe(int);
+void sig_winchg(int);
 
 extern FILE * fdoutput; // output file descriptor (stdout or file)
 extern unsigned int curmode;

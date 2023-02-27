@@ -1001,7 +1001,7 @@ command:
 #ifdef USECOLORS
                                    struct roman * roman = session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
-                                   if ( ! get_conf_int("nocurses"))
+                                   if ( ! config_get_bool("nocurses"))
                                        color_cell(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col, $3);
 #endif
                                    scxfree($3);
@@ -1051,7 +1051,7 @@ command:
                                    struct roman * roman = session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
 #ifdef USECOLORS
-                                   if ( ! get_conf_int("nocurses"))
+                                   if ( ! config_get_bool("nocurses"))
                                        color_cell(sh, sh->currow, sh->curcol, sh->currow, sh->curcol, $2);
 #endif
                                    scxfree($2);
@@ -1061,7 +1061,7 @@ command:
                                    struct roman * roman = session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
 #ifdef USECOLORS
-                                   if ( ! get_conf_int("nocurses")) unformat(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col);
+                                   if ( ! config_get_bool("nocurses")) unformat(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col);
 #endif
                                    }
 
@@ -1069,7 +1069,7 @@ command:
                                    struct roman * roman = session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
 #ifdef USECOLORS
-                                   if ( ! get_conf_int("nocurses")) unformat(sh, sh->currow, sh->curcol, sh->currow, sh->curcol);
+                                   if ( ! config_get_bool("nocurses")) unformat(sh, sh->currow, sh->curcol, sh->currow, sh->curcol);
 #endif
                                    }
 
@@ -1089,7 +1089,7 @@ command:
                                      plot($2, $3.left.vp->row, $3.left.vp->col, $3.right.vp->row, $3.right.vp->col);
                                      scxfree($2);
                                    }
-/*  |    S_SET STRING              { parse_str(user_conf_d, $2, TRUE);
+/*  |    S_SET STRING              { config_parse_str($2, TRUE);
                                      scxfree($2);
                                    }
 */
@@ -1551,174 +1551,174 @@ setlist :
 
 /* things that you can 'set' */
 setitem :
-    K_OVERLAP '=' NUMBER          {  if ($3 == 0) parse_str(user_conf_d, "overlap=0", TRUE);
-                                     else         parse_str(user_conf_d, "overlap=1", TRUE); }
-    |    K_OVERLAP                {               parse_str(user_conf_d, "overlap=1", TRUE); }
-    |    K_INPUT_BAR_BOTTOM '=' NUMBER   {  if ($3 == 0) parse_str(user_conf_d, "input_bar_bottom=0", TRUE);
-                                     else         parse_str(user_conf_d, "input_bar_bottom=1", TRUE);
-                                                  ui_mv_bottom_bar(); }
-    |    K_INPUT_BAR_BOTTOM       {               parse_str(user_conf_d, "input_bar_bottom=1", TRUE);
+    K_OVERLAP '=' NUMBER          {  if ($3 == 0) config_parse_str("overlap=0", TRUE);
+                                     else         config_parse_str("overlap=1", TRUE); }
+    |    K_OVERLAP                {               config_parse_str("overlap=1", TRUE); }
+    |    K_INPUT_BAR_BOTTOM '=' NUMBER   {  if ($3 == 0) config_parse_str("input_bar_bottom=0", TRUE);
+                                     else         config_parse_str("input_bar_bottom=1", TRUE);
+                                            ui_mv_bottom_bar(); }
+    |    K_INPUT_BAR_BOTTOM       {               config_parse_str("input_bar_bottom=1", TRUE);
                                                   ui_mv_bottom_bar();
                                   }
 
-    |    K_UNDERLINE_GRID '=' NUMBER {            if ($3 == 0) parse_str(user_conf_d, "underline_grid=0", TRUE);
-                                                  else parse_str(user_conf_d, "underline_grid=1", TRUE); }
-    |    K_UNDERLINE_GRID         {               parse_str(user_conf_d, "underline_grid=1", TRUE);
+    |    K_UNDERLINE_GRID '=' NUMBER {            if ($3 == 0) config_parse_str("underline_grid=0", TRUE);
+                                                  else config_parse_str("underline_grid=1", TRUE); }
+    |    K_UNDERLINE_GRID         {               config_parse_str("underline_grid=1", TRUE);
                                   }
 
-    |    K_NOOVERLAP              {               parse_str(user_conf_d, "overlap=0", TRUE); }
+    |    K_NOOVERLAP              {               config_parse_str("overlap=0", TRUE); }
 
-    |    K_TRUNCATE '=' NUMBER    {  if ($3 == 0) parse_str(user_conf_d, "truncate=0", TRUE);
-                                     else         parse_str(user_conf_d, "truncate=1", TRUE); }
-    |    K_TRUNCATE               {               parse_str(user_conf_d, "truncate=1", TRUE); }
-    |    K_NOTRUNCATE             {               parse_str(user_conf_d, "truncate=0", TRUE); }
+    |    K_TRUNCATE '=' NUMBER    {  if ($3 == 0) config_parse_str("truncate=0", TRUE);
+                                     else         config_parse_str("truncate=1", TRUE); }
+    |    K_TRUNCATE               {               config_parse_str("truncate=1", TRUE); }
+    |    K_NOTRUNCATE             {               config_parse_str("truncate=0", TRUE); }
 
-    |    K_AUTOWRAP '=' NUMBER    {  if ($3 == 0) parse_str(user_conf_d, "autowrap=0", TRUE);
-                                     else         parse_str(user_conf_d, "autowrap=1", TRUE); }
-    |    K_AUTOWRAP               {               parse_str(user_conf_d, "autowrap=1", TRUE); }
-    |    K_NOAUTOWRAP             {               parse_str(user_conf_d, "autowrap=0", TRUE); }
+    |    K_AUTOWRAP '=' NUMBER    {  if ($3 == 0) config_parse_str("autowrap=0", TRUE);
+                                     else         config_parse_str("autowrap=1", TRUE); }
+    |    K_AUTOWRAP               {               config_parse_str("autowrap=1", TRUE); }
+    |    K_NOAUTOWRAP             {               config_parse_str("autowrap=0", TRUE); }
 
     |    K_AUTOBACKUP '=' NUMBER  {
                                                   char cmd[MAXCMD];
                                                   sprintf(cmd, "autobackup=%d", $3);
-                                                  parse_str(user_conf_d, cmd, TRUE); }
-    |    K_NOAUTOBACKUP           {               parse_str(user_conf_d, "autobackup=0", TRUE); }
-    |    K_AUTOCALC               {               parse_str(user_conf_d, "autocalc=1", TRUE); }
-    |    K_AUTOCALC '=' NUMBER    {  if ($3 == 0) parse_str(user_conf_d, "autocalc=0", TRUE);
-                                     else         parse_str(user_conf_d, "autocalc=1", TRUE); }
-    |    K_NOAUTOCALC             {               parse_str(user_conf_d, "autocalc=0", TRUE); }
-    |    K_DEBUG                  {               parse_str(user_conf_d, "debug=1", TRUE); }
-    |    K_DEBUG '=' NUMBER       {  if ($3 == 0) parse_str(user_conf_d, "debug=0", TRUE);
-                                     else         parse_str(user_conf_d, "debug=1", TRUE); }
-    |    K_NODEBUG                {               parse_str(user_conf_d, "debug=0", TRUE); }
-    |    K_TRG                    {               parse_str(user_conf_d, "trigger=1", TRUE); }
-    |    K_TRG '=' NUMBER         {  if ($3 == 0) parse_str(user_conf_d, "trigger=0", TRUE);
-                                     else         parse_str(user_conf_d, "trigger=1", TRUE); }
-    |    K_NOTRG                  {               parse_str(user_conf_d, "trigger=0", TRUE); }
-    |    K_EXTERNAL_FUNCTIONS     {               parse_str(user_conf_d, "external_functions=1", TRUE); }
+                                                  config_parse_str(cmd, TRUE); }
+    |    K_NOAUTOBACKUP           {               config_parse_str("autobackup=0", TRUE); }
+    |    K_AUTOCALC               {               config_parse_str("autocalc=1", TRUE); }
+    |    K_AUTOCALC '=' NUMBER    {  if ($3 == 0) config_parse_str("autocalc=0", TRUE);
+                                     else         config_parse_str("autocalc=1", TRUE); }
+    |    K_NOAUTOCALC             {               config_parse_str("autocalc=0", TRUE); }
+    |    K_DEBUG                  {               config_parse_str("debug=1", TRUE); }
+    |    K_DEBUG '=' NUMBER       {  if ($3 == 0) config_parse_str("debug=0", TRUE);
+                                     else         config_parse_str("debug=1", TRUE); }
+    |    K_NODEBUG                {               config_parse_str("debug=0", TRUE); }
+    |    K_TRG                    {               config_parse_str("trigger=1", TRUE); }
+    |    K_TRG '=' NUMBER         {  if ($3 == 0) config_parse_str("trigger=0", TRUE);
+                                     else         config_parse_str("trigger=1", TRUE); }
+    |    K_NOTRG                  {               config_parse_str("trigger=0", TRUE); }
+    |    K_EXTERNAL_FUNCTIONS     {               config_parse_str("external_functions=1", TRUE); }
     |    K_EXTERNAL_FUNCTIONS '=' NUMBER {
-                                     if ($3 == 0) parse_str(user_conf_d, "external_functions=0", TRUE);
-                                     else         parse_str(user_conf_d, "external_functions=1", TRUE); }
-    |    K_NOEXTERNAL_FUNCTIONS   {               parse_str(user_conf_d, "external_functions=0", TRUE); }
-    |    K_EXEC_LUA               {               parse_str(user_conf_d, "exec_lua=1", TRUE); }
+                                     if ($3 == 0) config_parse_str("external_functions=0", TRUE);
+                                     else         config_parse_str("external_functions=1", TRUE); }
+    |    K_NOEXTERNAL_FUNCTIONS   {               config_parse_str("external_functions=0", TRUE); }
+    |    K_EXEC_LUA               {               config_parse_str("exec_lua=1", TRUE); }
     |    K_EXEC_LUA '=' NUMBER    {
-                                     if ($3 == 0) parse_str(user_conf_d, "exec_lua=0", TRUE);
-                                     else         parse_str(user_conf_d, "exec_lua=1", TRUE); }
-    |    K_NOEXEC_LUA             {               parse_str(user_conf_d, "exec_lua=0", TRUE); }
-    |    K_HALF_PAGE_SCROLL       {               parse_str(user_conf_d, "half_page_scroll=1", TRUE); }
+                                     if ($3 == 0) config_parse_str("exec_lua=0", TRUE);
+                                     else         config_parse_str("exec_lua=1", TRUE); }
+    |    K_NOEXEC_LUA             {               config_parse_str("exec_lua=0", TRUE); }
+    |    K_HALF_PAGE_SCROLL       {               config_parse_str("half_page_scroll=1", TRUE); }
     |    K_HALF_PAGE_SCROLL '=' NUMBER
-                                  {  if ($3 == 0) parse_str(user_conf_d, "half_page_scroll=0", TRUE);
-                                     else         parse_str(user_conf_d, "half_page_scroll=1", TRUE); }
-    |    K_NOHALF_PAGE_SCROLL     {               parse_str(user_conf_d, "half_page_scroll=0", TRUE); }
+                                  {  if ($3 == 0) config_parse_str("half_page_scroll=0", TRUE);
+                                     else         config_parse_str("half_page_scroll=1", TRUE); }
+    |    K_NOHALF_PAGE_SCROLL     {               config_parse_str("half_page_scroll=0", TRUE); }
 
-    |    K_IGNORE_HIDDEN          {               parse_str(user_conf_d, "ignore_hidden=1", TRUE); }
+    |    K_IGNORE_HIDDEN          {               config_parse_str("ignore_hidden=1", TRUE); }
     |    K_IGNORE_HIDDEN    '=' NUMBER
-                                  {  if ($3 == 0) parse_str(user_conf_d, "ignore_hidden=0", TRUE);
-                                     else         parse_str(user_conf_d, "ignore_hidden=1", TRUE); }
-    |    K_NOIGNORE_HIDDEN        {               parse_str(user_conf_d, "ignore_hidden=0", TRUE); }
+                                  {  if ($3 == 0) config_parse_str("ignore_hidden=0", TRUE);
+                                     else         config_parse_str("ignore_hidden=1", TRUE); }
+    |    K_NOIGNORE_HIDDEN        {               config_parse_str("ignore_hidden=0", TRUE); }
 
     |    K_QUIET '=' NUMBER       {
-                                     if ($3 == 0) parse_str(user_conf_d, "quiet=0", TRUE);
-                                     else         parse_str(user_conf_d, "quiet=1", TRUE); }
-    |    K_QUIET                  {               parse_str(user_conf_d, "quiet=1", TRUE); }
-    |    K_NOQUIET                {               parse_str(user_conf_d, "quiet=0", TRUE); }
-    |    K_QUIT_AFTERLOAD         {               parse_str(user_conf_d, "quit_afterload=1", TRUE); }
+                                     if ($3 == 0) config_parse_str("quiet=0", TRUE);
+                                     else         config_parse_str("quiet=1", TRUE); }
+    |    K_QUIET                  {               config_parse_str("quiet=1", TRUE); }
+    |    K_NOQUIET                {               config_parse_str("quiet=0", TRUE); }
+    |    K_QUIT_AFTERLOAD         {               config_parse_str("quit_afterload=1", TRUE); }
     |    K_QUIT_AFTERLOAD '=' NUMBER
-                                  {  if ($3 == 0) parse_str(user_conf_d, "quit_afterload=0", TRUE);
-                                     else         parse_str(user_conf_d, "quit_afterload=1", TRUE); }
-    |    K_NOQUIT_AFTERLOAD       {               parse_str(user_conf_d, "quit_afterload=0", TRUE); }
-    |    K_XLSX_READFORMULAS      {               parse_str(user_conf_d, "xlsx_readformulas=1", TRUE); }
+                                  {  if ($3 == 0) config_parse_str("quit_afterload=0", TRUE);
+                                     else         config_parse_str("quit_afterload=1", TRUE); }
+    |    K_NOQUIT_AFTERLOAD       {               config_parse_str("quit_afterload=0", TRUE); }
+    |    K_XLSX_READFORMULAS      {               config_parse_str("xlsx_readformulas=1", TRUE); }
     |    K_XLSX_READFORMULAS '=' NUMBER
-                                  {  if ($3 == 0) parse_str(user_conf_d, "xlsx_readformulas=0", TRUE);
-                                     else         parse_str(user_conf_d, "xlsx_readformulas=1", TRUE); }
-    |    K_NOXLSX_READFORMULAS    {               parse_str(user_conf_d, "xlsx_readformulas=0", TRUE); }
-    |    K_NOCURSES               {  if (! session->cur_doc->loading) parse_str(user_conf_d, "nocurses=1", TRUE); }
+                                  {  if ($3 == 0) config_parse_str("xlsx_readformulas=0", TRUE);
+                                     else         config_parse_str("xlsx_readformulas=1", TRUE); }
+    |    K_NOXLSX_READFORMULAS    {               config_parse_str("xlsx_readformulas=0", TRUE); }
+    |    K_NOCURSES               {  if (! session->cur_doc->loading) config_parse_str("nocurses=1", TRUE); }
     |    K_NOCURSES '=' NUMBER    {  if (! session->cur_doc->loading) {
-                                         if ($3 == 0) parse_str(user_conf_d, "nocurses=0", TRUE);
-                                         else         parse_str(user_conf_d, "nocurses=1", TRUE); }
+                                         if ($3 == 0) config_parse_str("nocurses=0", TRUE);
+                                         else         config_parse_str("nocurses=1", TRUE); }
                                      }
-    |    K_CURSES                 {  if (! session->cur_doc->loading) parse_str(user_conf_d, "nocurses=0", TRUE); }
-    |    K_NUMERIC                {               parse_str(user_conf_d, "numeric=1", TRUE); }
-    |    K_NUMERIC '=' NUMBER     {  if ($3 == 0) parse_str(user_conf_d, "numeric=0", TRUE);
-                                     else         parse_str(user_conf_d, "numeric=1", TRUE); }
-    |    K_NONUMERIC              {               parse_str(user_conf_d, "numeric=0", TRUE); }
-    |    K_IGNORECASE             {               parse_str(user_conf_d, "ignorecase=1", TRUE); }
-    |    K_IGNORECASE '=' NUMBER  {  if ($3 == 0) parse_str(user_conf_d, "ignorecase=0", TRUE);
-                                     else         parse_str(user_conf_d, "ignorecase=1", TRUE); }
-    |    K_NOIGNORECASE           {               parse_str(user_conf_d, "ignorecase=0", TRUE); }
-    |    K_NUMERIC_DECIMAL        {               parse_str(user_conf_d, "numeric_decimal=1", TRUE); }
+    |    K_CURSES                 {  if (! session->cur_doc->loading) config_parse_str("nocurses=0", TRUE); }
+    |    K_NUMERIC                {               config_parse_str("numeric=1", TRUE); }
+    |    K_NUMERIC '=' NUMBER     {  if ($3 == 0) config_parse_str("numeric=0", TRUE);
+                                     else         config_parse_str("numeric=1", TRUE); }
+    |    K_NONUMERIC              {               config_parse_str("numeric=0", TRUE); }
+    |    K_IGNORECASE             {               config_parse_str("ignorecase=1", TRUE); }
+    |    K_IGNORECASE '=' NUMBER  {  if ($3 == 0) config_parse_str("ignorecase=0", TRUE);
+                                     else         config_parse_str("ignorecase=1", TRUE); }
+    |    K_NOIGNORECASE           {               config_parse_str("ignorecase=0", TRUE); }
+    |    K_NUMERIC_DECIMAL        {               config_parse_str("numeric_decimal=1", TRUE); }
     |    K_NUMERIC_DECIMAL '=' NUMBER
-                                  {  if ($3 == 0) parse_str(user_conf_d, "numeric_decimal=0", TRUE);
-                                     else         parse_str(user_conf_d, "numeric_decimal=1", TRUE); }
-    |    K_NONUMERIC_DECIMAL      {               parse_str(user_conf_d, "numeric_decimal=0", TRUE); }
-    |    K_NUMERIC_ZERO           {               parse_str(user_conf_d, "numeric_zero=1", TRUE); }
+                                  {  if ($3 == 0) config_parse_str("numeric_decimal=0", TRUE);
+                                     else         config_parse_str("numeric_decimal=1", TRUE); }
+    |    K_NONUMERIC_DECIMAL      {               config_parse_str("numeric_decimal=0", TRUE); }
+    |    K_NUMERIC_ZERO           {               config_parse_str("numeric_zero=1", TRUE); }
     |    K_NUMERIC_ZERO '=' NUMBER
-                                  {  if ($3 == 0) parse_str(user_conf_d, "numeric_zero=0", TRUE);
-                                     else         parse_str(user_conf_d, "numeric_zero=1", TRUE); }
-    |    K_NONUMERIC_ZERO         {               parse_str(user_conf_d, "numeric_zero=0", TRUE); }
-    |    K_NEWLINE_ACTION         {               parse_str(user_conf_d, "newline_action=0", TRUE); }
+                                  {  if ($3 == 0) config_parse_str("numeric_zero=0", TRUE);
+                                     else         config_parse_str("numeric_zero=1", TRUE); }
+    |    K_NONUMERIC_ZERO         {               config_parse_str("numeric_zero=0", TRUE); }
+    |    K_NEWLINE_ACTION         {               config_parse_str("newline_action=0", TRUE); }
     |    K_NEWLINE_ACTION '=' WORD {
                                   char * s = (char *) $3;
-                                  if (s[0] =='j') parse_str(user_conf_d, "newline_action=j", TRUE);
+                                  if (s[0] =='j') config_parse_str("newline_action=j", TRUE);
                                   else if (s[0] =='l')
-                                  parse_str(user_conf_d, "newline_action=l", TRUE);
+                                  config_parse_str("newline_action=l", TRUE);
                                   }
     |    K_DEFAULT_COPY_TO_CLIPBOARD_CMD '=' strarg {
                                   char cmd[MAXCMD];
                                   char * s = (char *) $3;
                                   sprintf(cmd, "default_copy_to_clipboard_cmd=%s", s);
-                                  parse_str(user_conf_d, cmd, FALSE);
+                                  config_parse_str(cmd, FALSE);
                                   scxfree(s);
                                   }
     |    K_DEFAULT_PASTE_FROM_CLIPBOARD_CMD '=' strarg {
                                   char cmd[MAXCMD];
                                   char * s = (char *) $3;
                                   sprintf(cmd, "default_paste_from_clipboard_cmd=%s", s);
-                                  parse_str(user_conf_d, cmd, FALSE);
+                                  config_parse_str(cmd, FALSE);
                                   scxfree(s);
                                   }
 
-    |    K_COPY_TO_CLIPBOARD_DELIMITED_TAB {      parse_str(user_conf_d, "copy_to_clipboard_delimited_tab=1", TRUE); }
+    |    K_COPY_TO_CLIPBOARD_DELIMITED_TAB {      config_parse_str("copy_to_clipboard_delimited_tab=1", TRUE); }
 
     |    K_COPY_TO_CLIPBOARD_DELIMITED_TAB '=' NUMBER
-                                  {  if ($3 == 0) parse_str(user_conf_d, "copy_to_clipboard_delimited_tab=0", TRUE);
-                                     else         parse_str(user_conf_d, "copy_to_clipboard_delimited_tab=1", TRUE); }
-    |    K_NOCOPY_TO_CLIPBOARD_DELIMITED_TAB {    parse_str(user_conf_d, "copy_to_clipboard_delimited_tab=0", TRUE); }
+                                  {  if ($3 == 0) config_parse_str("copy_to_clipboard_delimited_tab=0", TRUE);
+                                     else         config_parse_str("copy_to_clipboard_delimited_tab=1", TRUE); }
+    |    K_NOCOPY_TO_CLIPBOARD_DELIMITED_TAB {    config_parse_str("copy_to_clipboard_delimited_tab=0", TRUE); }
 
     |    K_DEFAULT_OPEN_FILE_UNDER_CURSOR_CMD '=' strarg {
                                   char cmd[MAXCMD];
                                   char * s = (char *) $3;
                                   sprintf(cmd, "default_open_file_under_cursor_cmd=%s", s);
-                                  parse_str(user_conf_d, cmd, FALSE);
+                                  config_parse_str(cmd, FALSE);
                                   scxfree(s);
                                   }
 
     |    K_NEWLINE_ACTION '=' NUMBER {
-                                     if ($3 == 0) parse_str(user_conf_d, "newline_action=0", TRUE); }
-    |    K_COMMAND_TIMEOUT        {               parse_str(user_conf_d, "command_timeout=3000", TRUE); }
+                                     if ($3 == 0) config_parse_str("newline_action=0", TRUE); }
+    |    K_COMMAND_TIMEOUT        {               config_parse_str("command_timeout=3000", TRUE); }
     |    K_COMMAND_TIMEOUT '=' num   {
                                      char * s = scxmalloc((unsigned) BUFFERSIZE);
                                      sprintf(s, "command_timeout=%d", (int) $3);
-                                     parse_str(user_conf_d, s, TRUE);
+                                     config_parse_str(s, TRUE);
                                      scxfree(s);
                                      }
-    |    K_MAPPING_TIMEOUT        {               parse_str(user_conf_d, "mapping_timeout=1500", TRUE); }
+    |    K_MAPPING_TIMEOUT        {               config_parse_str("mapping_timeout=1500", TRUE); }
     |    K_MAPPING_TIMEOUT '=' num   {
                                      char * s = scxmalloc((unsigned) BUFFERSIZE);
                                      sprintf(s, "mapping_timeout=%d", (int) $3);
-                                     parse_str(user_conf_d, s, TRUE);
+                                     config_parse_str(s, TRUE);
                                      scxfree(s);
                                      }
-    |    K_TM_GMTOFF              {               parse_str(user_conf_d, "tm_gmtoff=-10800", TRUE); }
+    |    K_TM_GMTOFF              {               config_parse_str("tm_gmtoff=-10800", TRUE); }
     |    K_TM_GMTOFF '=' num      {
                                      char * s = scxmalloc((unsigned) BUFFERSIZE);
                                      sprintf(s, "tm_gmtoff=%d", (int) $3);
-                                     parse_str(user_conf_d, s, TRUE);
+                                     config_parse_str(s, TRUE);
                                      scxfree(s);
                                   }
-    |    K_SHOW_CURSOR '=' NUMBER {  if ($3 == 0) parse_str(user_conf_d, "show_cursor=0", TRUE);
-                                     else         parse_str(user_conf_d, "show_cursor=1", TRUE); }
-    |    K_SHOW_CURSOR            {               parse_str(user_conf_d, "show_cursor=1", TRUE); }
-    |    K_NOSHOW_CURSOR          {               parse_str(user_conf_d, "show_cursor=0", TRUE); }
+    |    K_SHOW_CURSOR '=' NUMBER {  if ($3 == 0) config_parse_str("show_cursor=0", TRUE);
+                                     else         config_parse_str("show_cursor=1", TRUE); }
+    |    K_SHOW_CURSOR            {               config_parse_str("show_cursor=1", TRUE); }
+    |    K_NOSHOW_CURSOR          {               config_parse_str("show_cursor=0", TRUE); }
 
     ;

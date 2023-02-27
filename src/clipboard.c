@@ -66,7 +66,7 @@ extern struct session * session;
 */
 int paste_from_clipboard() {
     struct roman * roman = session->cur_doc;
-    char *clipboard_cmd = get_conf_value("default_paste_from_clipboard_cmd");
+    char *clipboard_cmd = config_get_string("default_paste_from_clipboard_cmd");
     if (!clipboard_cmd || !*clipboard_cmd) return -1;
 
     // create tmp file
@@ -130,7 +130,7 @@ int paste_from_clipboard() {
         if (r > roman->cur_sh->maxrow) roman->cur_sh->maxrow = r;
         if (r > MAXROWS - GROWAMT - 1 || c > ABSMAXCOLS - 1) break;
     }
-    if (get_conf_int("autocalc")) EvalAll();
+    if (config_get_bool("autocalc")) EvalAll();
     sc_info("Content pasted from clipboard");
 
 out:
@@ -148,7 +148,7 @@ out:
  * \return 0 on success; -1 on error
  */
 int copy_to_clipboard(int r0, int c0, int rn, int cn) {
-    char *clipboard_cmd = get_conf_value("default_copy_to_clipboard_cmd");
+    char *clipboard_cmd = config_get_string("default_copy_to_clipboard_cmd");
     if (!clipboard_cmd || !*clipboard_cmd) return -1;
 
     // create tmp file
@@ -203,7 +203,7 @@ int copy_to_clipboard(int r0, int c0, int rn, int cn) {
 int save_plain(FILE * fout, int r0, int c0, int rn, int cn) {
     if (fout == NULL) return -1;
     struct roman * roman = session->cur_doc;
-    int conf_clipboard_delimited_tab = get_conf_int("copy_to_clipboard_delimited_tab");
+    int conf_clipboard_delimited_tab = config_get_bool("copy_to_clipboard_delimited_tab");
     int row, col;
     register struct ent ** pp;
     wchar_t out[FBUFLEN] = L"";

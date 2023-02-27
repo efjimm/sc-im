@@ -45,6 +45,7 @@
 #include <wchar.h>
 #include <sys/time.h>         // for struct timeval
 #include "buffer.h"
+#include "sc.h"
 
 extern int multiplier;        // Multiplier
 extern int command_pending;   // Command pending
@@ -57,7 +58,7 @@ extern struct history * insert_history;
 #endif
 
 void fix_timeout(struct timeval * start_tv);  // Handle timeout of stdin
-void handle_input(Buffer * buffer);
+void handle_input(SC *const sc, Buffer *const buffer);
 void break_waitcmd_loop(Buffer * buffer);
 bool has_cmd (Buffer *const buf, long timeout);
 void handle_mult(int * multiplier, Buffer * buf, long timeout); // Handle multiplier ef.

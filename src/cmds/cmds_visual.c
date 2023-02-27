@@ -223,7 +223,7 @@ void do_visualmode(Buffer * buf) {
         int n, i;
         if (buffer_get(buf, 0) == ctl('b')) {
             n = SC_DISPLAY_ROWS;
-            if (get_conf_value("half_page_scroll")) n = n / 2;
+            if (config_get_string("half_page_scroll")) n = n / 2;
         } else n = 1;
 
         for (i=0; i < n; i++)
@@ -243,7 +243,7 @@ void do_visualmode(Buffer * buf) {
         int n, i;
         if (buffer_get(buf, 0) == ctl('f')) {
             n = SC_DISPLAY_ROWS;
-            if (get_conf_value("half_page_scroll")) n = n / 2;
+            if (config_get_string("half_page_scroll")) n = n / 2;
         } else n = 1;
 
         for (i=0; i < n; i++)

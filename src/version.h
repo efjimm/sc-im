@@ -41,9 +41,4 @@
  * \date 2021-05-13
  * \brief Header file containing the sc-im version number
  */
-
-/*
- * CODE REVISION NUMBER:
- * the definition is on last line of help.c
- */
-extern char * rev;
+static const char *rev = "version 0.8.4";

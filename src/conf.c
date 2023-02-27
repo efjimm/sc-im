@@ -20,8 +20,8 @@
  *    This product includes software developed by Andrés Martinelli            *
  *    <andmarti@gmail.com>.                                                    *
  * 4. Neither the name of the Andrés Martinelli nor the                        *
- *   names of other contributors may be used to endorse or promote products    *
- *   derived from this software without specific prior written permission.     *
+ *    names of other contributors may be used to endorse or promote products   *
+ *    derived from this software without specific prior written permission.    *
  *                                                                             *
  * THIS SOFTWARE IS PROVIDED BY ANDRES MARTINELLI ''AS IS'' AND ANY            *
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED   *
@@ -42,162 +42,269 @@
  * \brief Configuration functions
  *
  * \details This file contains functions that operate on  the user's configuration
- * dictionary (user_conf_d).
+ * map.
  */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
+#include <strings.h>
+
 #include "conf.h"
 #include "sc.h"
 #include "utils/dictionary.h"
 
+#ifndef DEFAULT_COPY_TO_CLIPBOARD_CMD
+#define DEFAULT_COPY_TO_CLIPBOARD_CMD ""
+#endif
 
-const char default_config[] =
-    "half_page_scroll=1\n"
-    "autocalc=1\n"
-    "numeric=0\n"
-    "nocurses=0\n"
-    "newline_action=0\n"
-    "external_functions=0\n"
-    "exec_lua=1\n"
-    "xlsx_readformulas=0\n"
-    "import_delimited_as_text=0\n"
-    "ignore_hidden=0\n"
-    "quit_afterload=0\n"
-    "quiet=0\n"
-    "numeric_zero=1\n"
-    "numeric_decimal=1\n"
-    "overlap=0\n"
-    "truncate=0\n"
-    "autowrap=0\n"
-    "debug=0\n"
-    "ignorecase=0\n"
-    "show_cursor=0\n"
-    "trigger=1\n"
-    "version=0\n"
-    "help=0\n"
-    "input_bar_bottom=0\n"
-    "underline_grid=0\n"
+#ifndef DEFAULT_PASTE_FROM_CLIPBOARD_CMD
+#define DEFAULT_PASTE_FROM_CLIPBOARD_CMD ""
+#endif
 
+#ifndef DEFAULT_OPEN_FILE_UNDER_CURSOR_CMD
+#define DEFAULT_OPEN_FILE_UNDER_CURSOR_CMD ""
+#endif
+
+static void config_init_default(void);
+static bool free_entry(const char *key, void *value_, void *data);
+
+typedef struct {
+    const char *key;
+    ConfigValue value;
+} ConfigEntry;
+
+static ConfigEntry default_config[] = {
 #ifdef AUTOBACKUP
-    "autobackup=0\n"  // 0:noautobackup, n>0: backup every n in seconds
+    { "autobackup", { .tag = CONFIGVALUE_INT, .i = 0 } },
 #endif
+    { "autocalc",                        { .tag = CONFIGVALUE_BOOL, .b = 1    } },
+    { "autowrap",                        { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "command_timeout",                 { .tag = CONFIGVALUE_INT,  .i = 3000 } },
+    { "copy_to_clipboard_delimited_tab", { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "debug",                           { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "exec_lua",                        { .tag = CONFIGVALUE_BOOL, .b = 1    } },
+    { "external_functions",              { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "half_page_scroll",                { .tag = CONFIGVALUE_BOOL, .b = 1    } },
+    { "help",                            { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "ignore_hidden",                   { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "ignorecase",                      { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "import_delimited_as_text",        { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "input_bar_bottom",                { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "mapping_timeout",                 { .tag = CONFIGVALUE_INT,  .i = 1500 } },
+    { "nocurses",                        { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "numeric",                         { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "numeric_decimal",                 { .tag = CONFIGVALUE_BOOL, .b = 1    } },
+    { "numeric_zero",                    { .tag = CONFIGVALUE_BOOL, .b = 1    } },
+    { "overlap",                         { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "quiet",                           { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "quit_afterload",                  { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "show_cursor",                     { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "tm_gmtoff",                       { .tag = CONFIGVALUE_INT,  .i = 0    } },
+    { "trigger",                         { .tag = CONFIGVALUE_BOOL, .b = 1    } },
+    { "truncate",                        { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "underline_grid",                  { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "version",                         { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "xlsx_readformulas",               { .tag = CONFIGVALUE_BOOL, .b = 0    } },
 
-#ifdef DEFAULT_COPY_TO_CLIPBOARD_CMD
-    "default_copy_to_clipboard_cmd=" DEFAULT_COPY_TO_CLIPBOARD_CMD "\n"
-#else
-    "default_copy_to_clipboard_cmd=\n"
-#endif
+    { "newline_action", { .tag = CONFIGVALUE_INT,  .i = CONFIG_NEWLINE_ACTION_NONE } },
 
-    "copy_to_clipboard_delimited_tab=0\n"
+    {
+        .key = "default_copy_to_clipboard_cmd",
+        .value = {
+             .tag = CONFIGVALUE_STRING,
+             .s = DEFAULT_COPY_TO_CLIPBOARD_CMD,
+        }
+    },
+    {
+        .key = "default_open_file_under_cursor_cmd",
+        .value = {
+             .tag = CONFIGVALUE_STRING,
+             .s = DEFAULT_OPEN_FILE_UNDER_CURSOR_CMD,
+        }
+    },
+    {
+        .key = "default_paste_from_clipboard_cmd",
+        .value = {
+             .tag = CONFIGVALUE_STRING,
+             .s = DEFAULT_PASTE_FROM_CLIPBOARD_CMD,
+        }
+    },
+};
 
-#ifdef DEFAULT_PASTE_FROM_CLIPBOARD_CMD
-    "default_paste_from_clipboard_cmd=" DEFAULT_PASTE_FROM_CLIPBOARD_CMD "\n"
-#else
-    "default_paste_from_clipboard_cmd=\n"
-#endif
-
-    "command_timeout=3000\n"
-    "mapping_timeout=1500\n"
-
-#ifdef DEFAULT_OPEN_FILE_UNDER_CURSOR_CMD
-    "default_open_file_under_cursor_cmd=" DEFAULT_OPEN_FILE_UNDER_CURSOR_CMD "\n"
-#else
-    "default_open_file_under_cursor_cmd=\n"
-#endif
-
-    "tm_gmtoff=0\n";
+static Map *config_map = NULL;
 
 /**
- * \brief Populates user_conf_d with default values
+ * \brief Initializes a map as the program's configuration map and populates it with default
+ *        values.
  *
- * \details Populates the user's configuration dictionary (user_conf_d) with
- * default values.
- *
+ * \param map An already allocated map which will be filled with the default config values and be
+ *            set as the config map.
  * \return none
  */
-// TODO Make this function take a pointer to a dictionary as an
-// argument rather than using user_conf_d directly.
+void
+config_init(Map *map) {
+    config_map = map;
+    config_init_default();
+}
 
-void store_default_config_values() {
-    parse_str(user_conf_d, default_config, 0);
+/**
+ * \brief Frees all the string values inside the map.
+ * 
+ * \return none
+ */
+void
+config_deinit(void) {
+    map_iterate(config_map, free_entry, NULL);
+}
+
+static bool
+free_entry(const char *key, void *value_, void *data) {
+    ConfigValue *const value = value_;
+    if (value->tag == CONFIGVALUE_STRING)
+        free(value->s);
+    return true;
+}
+
+static void
+config_init_default(void) {
+    for (size_t i = 0; i < sizeof(default_config) / sizeof(default_config[0]); i++) {
+        if (default_config[i].value.tag == CONFIGVALUE_STRING) {
+            default_config[i].value.s = strdup(default_config[i].value.s);
+        }
+        map_put(config_map, default_config[i].key, &default_config[i].value);
+    }
 
     // Calculate GMT offset (not on Solaris, doesn't have tm_gmtoff)
 #if defined(USELOCALE) && !defined(__sun)
     time_t t = time(NULL);
     struct tm * lt = localtime(&t);
-    char strgmtoff[7];
-    sprintf(strgmtoff, "%ld", lt->tm_gmtoff);
-    put(user_conf_d, "tm_gmtoff", strgmtoff);
+    map_put(config_map, "tm_gmtoff", &(ConfigValue){
+        .tag = CONFIGVALUE_INT,
+        .i = lt->tm_gmtoff,
+    });
 #endif
 }
 
-/**
- * \brief TODO Document get_conf_values()
- *
- * \param[in] salida TODO Document this parameter
- *
- * \return NULL if user_conf_d is NULL; otherwise, salida is returned unchanged
- */
-
-// TODO Change 'salida' to a more descriptive variable name.
-// TODO Make this function take a pointer to a dictionary as an
-// argument rather than using user_conf_d directly.
-
-char * get_conf_values(char * salida) {
-   if (user_conf_d == NULL) return NULL;
-   struct nlist * nl;
-
-   salida[0]='\0';
-
-   char *buf = salida;
-   for (nl = user_conf_d->list; nl != NULL; nl = nl->next) {
-       // ignore version conf variable here so that its not shown in :set command
-       if (! strcmp(nl->key, "version")) continue;
-
-       buf += sprintf(buf, "%s=%s\n", nl->key, nl->val);
-   }
-   return salida;
+ConfigValue *
+config_get(const char *key) {
+    return map_get(config_map, key);
 }
 
-/**
- * \brief Retreive the string value of a given key in user_conf_d
- *
- * \details This function will look for a given key in the user_conf_d
- * dictionary. If the key is found it will return the value of that
- * dictionary entry.
- *
- * \param[in] key The key to search for in user_conf_d
- *
- * \return key value
- */
-// TODO Make this function take a pointer to a dictionary as an
-// argument rather than using user_conf_d directly.
+typedef struct {
+    char *buffer;
+    size_t len;
+    size_t capacity;
+    bool resizable;
+} StringBuffer;
 
-char * get_conf_value(const char * key) {
-   return get(user_conf_d, key);
+static bool
+stringbuffer_append(const char *key, void *value, void *data) {
+    ConfigValue *const cv = value;
+    StringBuffer *const str = data;
+
+    int size;
+    switch (cv->tag) {
+        case CONFIGVALUE_BOOL:
+            size = snprintf(NULL, 0, "%s = %s\n", key, cv->b ? "true" : "false");
+            break;
+        case CONFIGVALUE_STRING:
+            size = snprintf(NULL, 0, "%s = %s\n", key, cv->s);
+            break;
+        case CONFIGVALUE_INT:
+            size = snprintf(NULL, 0, "%s = %ld\n", key, cv->i);
+            break;
+        case CONFIGVALUE_DOUBLE:
+            size = snprintf(NULL, 0, "%s = %f\n", key, cv->d);
+            break;
+    }
+
+    if (str->len + size >= str->capacity) {
+        if (str->capacity > 0)
+            str->capacity *= 2;
+        else
+            str->capacity += 32;
+
+        str->buffer = realloc(str->buffer, str->capacity);
+        if (!str->buffer)
+            return false;
+    }
+
+    switch (cv->tag) {
+        case CONFIGVALUE_BOOL:
+            str->len += sprintf(str->buffer + str->len, "%s = %s\n", key, cv->b ? "true" : "false");
+            break;
+        case CONFIGVALUE_STRING:
+            str->len += sprintf(str->buffer + str->len, "%s = %s\n", key, cv->s);
+            break;
+        case CONFIGVALUE_INT:
+            str->len += sprintf(str->buffer + str->len, "%s = %ld\n", key, cv->i);
+            break;
+        case CONFIGVALUE_DOUBLE:
+            str->len += sprintf(str->buffer + str->len, "%s = %f\n", key, cv->d);
+            break;
+    }
+    return true;
 }
 
-/**
- * \brief Retreive the integer value of a given key in user_conf_d
- *
- * \details This function will look for a given key in the user_conf_d
- * dictionary. If the key is found it will return the value of that
- * dictionary entry, or 0 otherwise.
- *
- * \param[in] key The key to search for in user_conf_d
- *
- * \return key value
- */
-// TODO Make this function take a pointer to a dictionary as an
-// argument rather than using user_conf_d directly.
+char *
+config_get_strings(char *buffer, size_t size) {
+    StringBuffer str;
+    if (buffer != NULL) {
+        str = (StringBuffer){
+            .buffer = buffer,
+            .len = 0,
+            .capacity = size,
+            .resizable = false,
+        };
+    } else {
+        str = (StringBuffer){
+            .buffer = NULL,
+            .len = 0,
+            .capacity = 0,
+            .resizable = true,
+        };
+    }
 
-int get_conf_int(const char * key) {
-   return get_int(user_conf_d, key);
+    map_iterate(config_map, stringbuffer_append, &str);
+    return str.buffer;
 }
 
+char *
+config_get_string(const char *key) {
+    ConfigValue *const value = map_get(config_map, key);
+    if (value && value->tag == CONFIGVALUE_STRING)
+       return value->s;
+    return NULL;
+    //return get(user_conf_d, key);
+}
+
+int64_t
+config_get_int(const char *key) {
+    ConfigValue *const value = map_get(config_map, key);
+    if (value && value->tag == CONFIGVALUE_INT)
+       return value->i;
+    return 0;
+    //return get_int(user_conf_d, key);
+}
+
+bool
+config_get_bool(const char *key) {
+    ConfigValue *const value = map_get(config_map, key);
+    if (value && value->tag == CONFIGVALUE_BOOL)
+       return value->b;
+    return false;
+}
+
+double
+config_get_double(const char *key) {
+    ConfigValue *const value = map_get(config_map, key);
+    if (value && value->tag == CONFIGVALUE_DOUBLE)
+       return value->d;
+    return 0;
+}
 
 /* \brief change_config_parameter
  * parameter[in] char * cmd
@@ -212,7 +319,8 @@ int get_conf_int(const char * key) {
 #include "cmds/cmds.h"
 #include "utils/string.h"
 #include "tui.h"
-int change_config_parameter(wchar_t * inputline) {
+int
+change_config_parameter(wchar_t *inputline) {
     extern wchar_t interp_line[BUFFERSIZE];
 
     // remove "set "
@@ -241,13 +349,13 @@ int change_config_parameter(wchar_t * inputline) {
     value_aft[0] = '\0';
 
     strcpy(key, oper);
-    char * s_aux = get_conf_value(key);
-    if (s_aux != NULL) strcpy(value_bef, get_conf_value(key));
+    char * s_aux = config_get_string(key);
+    if (s_aux != NULL) strcpy(value_bef, config_get_string(key));
     if ((! value_bef || ! strlen(value_bef)) && strlen(oper) > 2 && ! wcsncmp(inputline, L"set no", 6)) {
-        s_aux = get_conf_value(&oper[2]);
+        s_aux = config_get_string(&oper[2]);
         if (s_aux != NULL) {
-            strcpy(value_bef, s_aux);
-            strcpy(key, &oper[2]);
+             strcpy(value_bef, s_aux);
+             strcpy(key, &oper[2]);
         }
     }
 
@@ -262,7 +370,7 @@ int change_config_parameter(wchar_t * inputline) {
     // we try to change config value
     wcscpy(interp_line, inputline);
     send_to_interp(interp_line);
-    s_aux = get_conf_value(key);
+    s_aux = config_get_string(key);
     if (s_aux != NULL) strcpy(value_aft, s_aux);
     // check it was changed
     if (! strcmp(value_bef, value_aft)) { sc_info("Config variable \'%s\' unchanged. Current value is \'%s\'", key, value_aft);
@@ -277,4 +385,209 @@ int change_config_parameter(wchar_t * inputline) {
     free(value_bef);
     free(key);
     return 0;
+}
+
+int8_t
+config_set_int(const char *key, int64_t value) {
+    ConfigValue *const prev_value = map_get(config_map, key);
+    if (!prev_value || prev_value->tag != CONFIGVALUE_INT)
+       return -1;
+
+    if (prev_value->i == value)
+       return 1;
+
+    *prev_value = (ConfigValue){
+       .tag = CONFIGVALUE_INT,
+       .i = value,
+    };
+    return 0;
+}
+
+int8_t
+config_set_string(const char *key, const char *value) {
+    ConfigValue *const prev_value = map_get(config_map, key);
+    if (!prev_value || prev_value->tag != CONFIGVALUE_STRING)
+       return -1;
+
+    if (!strcmp(prev_value->s, value))
+       return 1;
+
+    free(prev_value->s);
+    *prev_value = (ConfigValue){
+       .tag = CONFIGVALUE_STRING,
+       .s = strdup(value),
+    };
+
+    return 0;
+}
+
+int8_t
+config_set_bool(const char *key, bool value) {
+    ConfigValue *const prev_value = map_get(config_map, key);
+    if (!prev_value || prev_value->tag != CONFIGVALUE_BOOL)
+        return -1;
+
+    if (prev_value->b == value)
+        return 1;
+
+    prev_value->b = value;
+    return 0;
+}
+
+int8_t
+config_set_double(const char *key, double value) {
+    ConfigValue *const prev_value = map_get(config_map, key);
+    if (!prev_value || prev_value->tag != CONFIGVALUE_DOUBLE)
+        return -1;
+
+    if (prev_value->d == value)
+        return 1;
+
+    prev_value->d = value;
+    return 0;
+}
+
+int8_t
+config_set_value(const char *key, ConfigValue value) {
+    const ConfigValue *const prev_value = map_get(config_map, key);
+
+    if (prev_value == NULL)
+        return -1;
+
+    switch (prev_value->tag) {
+        case CONFIGVALUE_INT:
+            return config_set_int(key, value.i);
+            break;
+        case CONFIGVALUE_STRING:
+            return config_set_string(key, value.s);
+            break;
+        case CONFIGVALUE_BOOL:
+            config_set_bool(key, value.b);
+            break;
+        case CONFIGVALUE_DOUBLE:
+            return config_set_double(key, value.d);
+            break;
+    }
+    return -1;
+}
+
+void
+config_parse_str(const char *str, bool split_on_blanks) {
+    char key[90];
+    char value[90];
+    int i;
+
+    while (*str != 0) {
+        /* remove leading field separators */
+        if (*str == ' ' || *str == '\n') {
+            str++;
+            continue;
+        }
+
+        /* collect the key */
+        i = 0;
+        for (;;) {
+            if (*str == '=') {
+                /* we are done with the key */
+                key[i] = 0;
+                break;
+            }
+            if (*str == 0 || *str == '\n' || (split_on_blanks && *str == ' ')) {
+                /* got only a key: pretend the value is 1 */
+                key[i] = 0;
+                config_set_bool(key, true);
+                //put(d, key, "1");
+                break;
+            }
+            if (*str == ' ') {
+                /* spaces in the key are invalid */
+                return;
+            }
+
+            key[i++] = *str++;
+
+            if (i >= sizeof(key)) {
+                /* won't have room for final '\0' */
+                return;
+            }
+        }
+
+        if (*str != '=') {
+            /* no value to collect */
+            continue;
+        }
+	str++;
+
+        /* collect the value */
+        i = 0;
+        for (;;) {
+            if (*str == 0 || *str == '\n' || (split_on_blanks && *str == ' ')) {
+                /* we are done with the value */
+                value[i] = '\0';
+
+                const ConfigValue *const old = config_get(key);
+                switch (old->tag) {
+                    case CONFIGVALUE_BOOL: {
+                        errno = 0;
+                        const long n = strtol(value, NULL, 10);
+                        if (errno) {
+                            if(!strcasecmp(value, "true"))
+                                config_set_bool(key, true);
+                            else
+                                config_set_bool(key, false);
+                        } else {
+                            config_set_bool(key, (bool) n);
+                        }
+                        break;
+                    }
+                    case CONFIGVALUE_INT: {
+                        const long n = strtol(value, NULL, 10);
+                        config_set_int(key, n);
+                        break;
+                    }
+                    case CONFIGVALUE_STRING: {
+                        config_set_string(key, value);
+                        break;
+                    }
+                    case CONFIGVALUE_DOUBLE: {
+                        const double d = strtod(value, NULL);
+                        config_set_bool(key, d);
+                        break;
+                    }
+                }
+
+//                if (!strcasecmp(value, "true")) {
+//                    config_set_bool(key, true);
+//                } else if (!strcasecmp(value, "false")) {
+//                    config_set_bool(key, false);
+//                } else if (strchr(value, '.')) {
+//                    errno = 0;
+//                    const double d = strtod(value, NULL);
+//                    if (errno) {
+//                        config_set_string(key, value);
+//                    } else {
+//                        config_set_double(key, d);
+//                    }
+//                } else {
+//                    errno = 0;
+//                    const int64_t n = strtol(value. &value[i], 10);
+//                    if (errno) {
+//                        config_set_string(key, value);
+//                    } else {
+//                        config_set_int(key, n);
+//                    }
+//                }
+
+                //put(d, key, value);
+                break;
+            }
+
+            value[i++] = *str++;
+
+            if (i >= sizeof(value)) {
+                /* won't have room for final '\0' */
+                return;
+            }
+        }
+    }
 }

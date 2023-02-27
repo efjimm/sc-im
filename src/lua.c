@@ -383,7 +383,7 @@ void doLuaclose() {
  */
 
 char * doLUA(struct sheet * sh, struct enode * se, int type) {
-    if ( ! get_conf_int("exec_lua")) return 0;
+    if ( ! config_get_bool("exec_lua")) return 0;
     char * cmd;
     char buffer[PATHLEN];
     char buffer1[PATHLEN];
@@ -411,7 +411,7 @@ char * doLUA(struct sheet * sh, struct enode * se, int type) {
  */
 
 void doLuaTriger() {
-    if ( ! get_conf_int("exec_lua")) return;
+    if ( ! config_get_bool("exec_lua")) return;
     if (luaL_loadfile(L, "trigger.lua"))         /* Load but don't run the Lua script */
         return;
     //ui_bail(L, "luaL_loadfile() failed");      /* Error out if file can't be read */
@@ -440,7 +440,7 @@ void doLuaTriger() {
  */
 
 void doLuaTriger2(int row, int col, int flags) {
-    if ( ! get_conf_int("exec_lua")) return;
+    if ( ! config_get_bool("exec_lua")) return;
     if (luaL_loadfile(L, "trigger.lua"))         /* Load but don't run the Lua script */
         return;
     //ui_bail(L, "luaL_loadfile() failed");      /* Error out if file can't be read */
@@ -474,7 +474,7 @@ void doLuaTriger2(int row, int col, int flags) {
  */
 
 void doLuaTrigger_cell(struct ent *p, int flags) {
-    if ( ! get_conf_int("exec_lua")) return;
+    if ( ! config_get_bool("exec_lua")) return;
     int row,col;
     struct trigger *trigger = p->trigger;
     char buffer[PATHLEN];

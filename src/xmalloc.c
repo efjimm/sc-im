@@ -52,7 +52,6 @@
 #include "color.h"
 #include "conf.h"
 
-extern void free();
 extern int shall_quit;
 
 /**

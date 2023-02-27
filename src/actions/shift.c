@@ -108,7 +108,7 @@ void shift(struct sheet * sh, int r, int c, int rf, int cf, wchar_t type) {
             save_undo_range_shift(-cmd_multiplier, 0, r, c, rf + (rf-r+1) * (cmd_multiplier - 1), cf);
 #endif
             while (ic--) shift_range(sh, -ic, 0, r, c, rf, cf);
-            if (get_conf_int("autocalc") && ! roman->loading) EvalAll();
+            if (config_get_bool("autocalc") && ! roman->loading) EvalAll();
 #ifdef UNDO
             copy_to_undostruct(sh, 0, 0, -1, -1, UNDO_ADD, HANDLE_DEPS, NULL);
 #endif
@@ -125,7 +125,7 @@ void shift(struct sheet * sh, int r, int c, int rf, int cf, wchar_t type) {
 #endif
             while (ic--) shift_range(sh, 0, -ic, r, c, rf, cf);
 
-            if (get_conf_int("autocalc") && ! roman->loading) EvalAll();
+            if (config_get_bool("autocalc") && ! roman->loading) EvalAll();
             //update(TRUE); // this is used just to make debugging easier
 #ifdef UNDO
             copy_to_undostruct(sh, 0, 0, -1, -1, UNDO_ADD, HANDLE_DEPS, NULL);

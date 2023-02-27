@@ -233,13 +233,15 @@ void do_insertmode(Buffer * sb) {
         chg_mode('.');
         //ui_clr_header(1);
 
-        char * opt = get_conf_value("newline_action");
-        switch (opt[0]) {
-            case 'j':
+        const enum ConfigNewlineAction action = config_get_int("newline_action");
+        switch (action) {
+            case CONFIG_NEWLINE_ACTION_DOWN:
                 sh->currow = forw_row(sh, 1)->row;
                 break;
-            case 'l':
+            case CONFIG_NEWLINE_ACTION_RIGHT:
                 sh->curcol = forw_col(sh, 1)->col;
+                break;
+            case CONFIG_NEWLINE_ACTION_NONE:
                 break;
         }
         ui_update(TRUE);

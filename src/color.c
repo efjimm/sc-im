@@ -287,7 +287,7 @@ void free_colors_param_dict() {
  */
 
 void chg_color(char * str) {
-    if (get_conf_int("nocurses")) return;
+    if (config_get_bool("nocurses")) return;
 
     // Create key-value dictionary for the content of the string
     struct dictionary * d = create_dictionary();
@@ -582,7 +582,7 @@ int redefine_color(char * color, int r, int g, int b) {
     #if defined(NCURSES) && defined(USECOLORS)
     extern void sig_winchg();
     if (
-        ! get_conf_int("nocurses")
+        ! config_get_bool("nocurses")
         && has_colors() && can_change_color()
        ) {
            char * s = get(d_colors_param, color);
@@ -620,7 +620,7 @@ int define_color(char * color, int r, int g, int b) {
     struct roman * roman = session->cur_doc;
 
 #if defined(NCURSES) && defined(USECOLORS)
-    if (get_conf_int("nocurses")) {
+    if (config_get_bool("nocurses")) {
         // this should not be alerted.
         //sc_error("Could not define color %s. Not using NCURSES.", color);
         return -1;

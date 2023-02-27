@@ -665,7 +665,7 @@ char * seval(struct sheet * sh, struct ent * ent, struct enode * se) {
              ent->label = scxmalloc(sizeof(char)*4);
              strcpy(ent->label, "LUA");
          }
-         if (! get_conf_int("exec_lua")) {
+         if (! config_get_bool("exec_lua")) {
              sc_info("Execution of LUA scripts disabled");
              return NULL;
          }
@@ -1154,7 +1154,7 @@ void str_search(struct sheet * sh, char * s, int firstrow, int firstcol, int las
     int errcode;
 
     sc_info("");
-    if (get_conf_int("ignorecase"))
+    if (config_get_bool("ignorecase"))
         errcode = regcomp(&preg, s, REG_EXTENDED | REG_ICASE);
     else
         errcode = regcomp(&preg, s, REG_EXTENDED);

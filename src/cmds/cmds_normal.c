@@ -145,7 +145,7 @@ void do_normalmode(Buffer * buf) {
             break;
 
         case L'0':
-            if (get_conf_int("numeric_zero") == 1 && get_conf_int("numeric") == 1) goto numeric;
+            if (config_get_bool("numeric_zero") == 1 && config_get_bool("numeric") == 1) goto numeric;
         case OKEY_HOME:
             sh->lastrow = sh->currow;
             sh->lastcol = sh->curcol;
@@ -257,7 +257,7 @@ void do_normalmode(Buffer * buf) {
         case OKEY_PGDOWN:
             {
             int n = calc_mobile_rows(sh, NULL);
-            if (get_conf_int("half_page_scroll")) n = n / 2;
+            if (config_get_bool("half_page_scroll")) n = n / 2;
             sh->lastcol = sh->curcol;
             sh->lastrow = sh->currow;
             sh->currow = forw_row(sh, n)->row;
@@ -272,7 +272,7 @@ void do_normalmode(Buffer * buf) {
         case OKEY_PGUP:
             {
             int n = calc_mobile_rows(sh, NULL);
-            if (get_conf_int("half_page_scroll")) n = n / 2;
+            if (config_get_bool("half_page_scroll")) n = n / 2;
             sh->lastcol = sh->curcol;
             sh->lastrow = sh->currow;
             sh->currow = back_row(sh, n)->row;
@@ -476,7 +476,7 @@ void do_normalmode(Buffer * buf) {
 
         // repeat last command
         case L'.':
-            if (get_conf_int("numeric_decimal") == 1 && get_conf_int("numeric") == 1) goto numeric;
+            if (config_get_bool("numeric_decimal") == 1 && config_get_bool("numeric") == 1) goto numeric;
             buffer_copy(buf, lastcmd_buffer); // nose graba en lastcmd_buffer!!
             cmd_multiplier = 1;
             exec_mult(buf, COMPLETECMDTIMEOUT);
@@ -992,13 +992,13 @@ void do_normalmode(Buffer * buf) {
 
                 case L'H':
                     scroll = calc_mobile_cols(sh, NULL);
-                    if (get_conf_int("half_page_scroll")) scroll /= 2;
+                    if (config_get_bool("half_page_scroll")) scroll /= 2;
                     scroll_left(sh, scroll);
                     break;
 
                 case L'L':
                     scroll = calc_mobile_cols(sh, NULL);
-                    if (get_conf_int("half_page_scroll")) scroll /= 2;
+                    if (config_get_bool("half_page_scroll")) scroll /= 2;
                     scroll_right(sh, scroll);
                     break;
 
@@ -1140,7 +1140,7 @@ void do_normalmode(Buffer * buf) {
             }
 
         case ctl('l'):
-            sig_winchg();
+            sig_winchg(0);
             break;
 
         case L'@':
@@ -1164,7 +1164,7 @@ void do_normalmode(Buffer * buf) {
                 sc_error("Locked cells encountered. Nothing changed");
                 return;
             }
-            if (get_conf_int("numeric") == 1) goto numeric;
+            if (config_get_bool("numeric") == 1) goto numeric;
             struct ent * p;
 #ifdef UNDO
             create_undo_action();
@@ -1190,7 +1190,7 @@ void do_normalmode(Buffer * buf) {
             copy_to_undostruct(sh, tlrow, tlcol, brrow, brcol, UNDO_ADD, IGNORE_DEPS, NULL);
             end_undo_action();
 #endif
-            if (get_conf_int("autocalc")) EvalRange(sh, tlrow, tlcol, brrow, brcol);
+            if (config_get_bool("autocalc")) EvalRange(sh, tlrow, tlcol, brrow, brcol);
             cmd_multiplier = 0;
             ui_update(TRUE);
             }
@@ -1200,8 +1200,8 @@ void do_normalmode(Buffer * buf) {
         default:
         numeric:
             if ( (isdigit(buffer_get(buf, 0)) || buffer_get(buf, 0) == L'-' || buffer_get(buf, 0) == L'+' ||
-                  ( buffer_get(buf, 0) == L'.' &&  get_conf_int("numeric_decimal") )) &&
-                get_conf_int("numeric") ) {
+                  ( buffer_get(buf, 0) == L'.' &&  config_get_bool("numeric_decimal") )) &&
+                config_get_bool("numeric") ) {
                 if (locked_cell(sh, sh->currow, sh->curcol)) return;
                 insert_edit_submode='=';
                 chg_mode(insert_edit_submode);

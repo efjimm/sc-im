@@ -42,11 +42,65 @@
  * @brief Header file for conf.c
  */
 
+#ifndef CONF_H
+#define CONF_H
+
 #include <wchar.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "utils/map.h"
+
+enum ConfigNewlineAction {
+    CONFIG_NEWLINE_ACTION_NONE,
+    CONFIG_NEWLINE_ACTION_DOWN,
+    CONFIG_NEWLINE_ACTION_RIGHT,
+};
+
+enum ConfigValueType {
+    CONFIGVALUE_BOOL,
+    CONFIGVALUE_STRING,
+    CONFIGVALUE_INT,
+    CONFIGVALUE_DOUBLE,
+};
+
+typedef struct {
+    uint8_t tag;
+    union {
+        char *s;
+        bool b;
+        int64_t i;
+        double d;
+        void *v;
+    };
+} ConfigValue;
+
 extern struct dictionary * user_conf_d;
 
-void store_default_config_values();
-char * get_conf_value(const char * key);
-int get_conf_int(const char * key);
-int change_config_parameter(wchar_t * inputline);
-char * get_conf_values(char * salida);
+#define config_set(key, value) _Generic((value), \
+        const char *: config_set_string, \
+        char *: config_set_string, \
+        int: config_set_int, \
+        int32_t: config_set_int, \
+        int64_t: config_set_int, \
+        float: config_set_double, \
+        double: config_set_double, \
+        default: config_set_void, \
+    )(value)
+
+void config_init(Map *map);
+void config_deinit(void);
+
+char *config_get_string(const char *key);
+int64_t config_get_int(const char *key);
+bool config_get_bool(const char *key);
+int change_config_parameter(wchar_t *inputline);
+char *config_get_strings(char *buffer, size_t size);
+
+int8_t config_set_value(const char *key, ConfigValue value);
+int8_t config_set_int(const char *key, int64_t value);
+int8_t config_set_string(const char *key, const char *value);
+int8_t config_set_double(const char *key, double value);
+int8_t config_set_bool(const char *key, bool value);
+void config_parse_str(const char *str, bool split_on_blanks);
+#endif

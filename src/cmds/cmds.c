@@ -244,7 +244,7 @@ void deletecol(struct sheet * sh, int col, int mult) {
     // do the job
     int_deletecol(sh, col, mult);
 
-    // if (get_conf_int("autocalc")) EvalAll();
+    // if (config_get_bool("autocalc")) EvalAll();
 
     if (! roman->loading) roman->modflg++;
 
@@ -759,7 +759,7 @@ struct enode * copye(
 void
 dorowformat(struct sheet *const sh, int r, unsigned char size) {
     struct roman * roman = session->cur_doc;
-    if (size < 1 || size > UCHAR_MAX || (! get_conf_int("nocurses") && size > SC_DISPLAY_ROWS)) {
+    if (size < 1 || size > UCHAR_MAX || (! config_get_bool("nocurses") && size > SC_DISPLAY_ROWS)) {
         sc_error("Invalid row format");
         return;
     }
@@ -801,7 +801,7 @@ doformat(struct sheet *sh, int c1, int c2, int w, int p, int r) {
         w = 1;
     }
 
-    if (! get_conf_int("nocurses") && w > SC_DISPLAY_COLS - 2) {
+    if (! config_get_bool("nocurses") && w > SC_DISPLAY_COLS - 2) {
         sc_info("Width too large - Maximum = %d", SC_DISPLAY_COLS - 2);
         w = SC_DISPLAY_COLS - 2;
     }
@@ -1338,7 +1338,7 @@ void del_selected_cells(struct sheet * sh) {
 void enter_cell_content(struct sheet * sh, int r, int c, char * submode,  wchar_t * content) {
     (void) swprintf(interp_line, BUFFERSIZE, L"%s %s = %ls", submode, v_name(r, c), content);
     send_to_interp(interp_line);
-    if (get_conf_int("autocalc") && ! session->cur_doc->loading) EvalRange(sh, r, c, r, c);
+    if (config_get_bool("autocalc") && ! session->cur_doc->loading) EvalRange(sh, r, c, r, c);
 }
 
 
@@ -1350,7 +1350,7 @@ void enter_cell_content(struct sheet * sh, int r, int c, char * submode,  wchar_
  * \return none
  */
 void send_to_interp(wchar_t * oper) {
-    if (get_conf_int("nocurses")) {
+    if (config_get_bool("nocurses")) {
         int pos = -1;
         if ((pos = wstr_in_wstr(oper, L"\n")) != -1)
             oper[pos] = L'\0';
@@ -1364,7 +1364,7 @@ void send_to_interp(wchar_t * oper) {
     line[0]='\0';
     // commented on 28/04/2021. EvalAll should be used only on certain ocasions.
     // Use EvalRange instead when possible, and certainly not here everytime sending to interp.
-    //if (get_conf_int("autocalc") && ! roman->loading) EvalAll();
+    //if (config_get_bool("autocalc") && ! roman->loading) EvalAll();
     return;
 }
 
@@ -2831,8 +2831,8 @@ void pad_and_align (char * str_value, char * numeric_value, int col_width, int a
     }
 
     // If content exceedes column width, outputs n number of '*' needed to fill column width
-    if (str_len + num_len + padding > col_width * rowfmt && ! get_conf_int("truncate") &&
-        ! get_conf_int("overlap") && ! get_conf_int("autowrap")) {
+    if (str_len + num_len + padding > col_width * rowfmt && ! config_get_bool("truncate") &&
+        ! config_get_bool("overlap") && ! config_get_bool("autowrap")) {
         if (padding) wmemset(str_out + wcslen(str_out), L' ', padding);
         wmemset(str_out + wcslen(str_out), L'*', col_width - padding);
         free(str_in);
@@ -2874,7 +2874,7 @@ void pad_and_align (char * str_value, char * numeric_value, int col_width, int a
     }
 
     // Similar condition to max width '*' condition above, but just trims instead
-    if (str_len + num_len + padding > col_width * rowfmt && get_conf_int("truncate")) {
+    if (str_len + num_len + padding > col_width * rowfmt && config_get_bool("truncate")) {
         str_out[col_width] = '\0';
     }
 
@@ -2981,7 +2981,7 @@ int is_single_command (Buffer *buf, long timeout) {
         if (bs == 1) {
             if (table[first] != NO_CMD)
                 return table[first];
-            if (isdigit(first) && get_conf_int("numeric"))
+            if (isdigit(first) && config_get_bool("numeric"))
                 return MOVEMENT_CMD; // repeat last command
             if (first == 'y' && is_range_selected() != -1)
                 return EDITION_CMD; // yank range

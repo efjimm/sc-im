@@ -50,7 +50,7 @@
 #define MAXMAPITEM       (MAXSC * 20) // max length of mapping part (in / out)
 
 #define TIMEOUT_CURSES   300   // ms  curses input timeout
-#define COMPLETECMDTIMEOUT     (get_conf_int("command_timeout")/4)     // used for goto cell
+#define COMPLETECMDTIMEOUT     (config_get_int("command_timeout")/4)     // used for goto cell
 #define ESC_DELAY        25    // Escape timeout
 
 #define RESROW           2     // rows reserved for prompt, error, and column numbers
