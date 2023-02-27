@@ -132,7 +132,6 @@ unsigned int lastmode;
 
 Buffer * buffer;
 Buffer * lastcmd_buffer;
-struct dictionary * user_conf_d; /* User's configuration dictionary */
 struct history * commandline_history;
 struct history * insert_history;
 char stderr_buffer[1024] = "";
@@ -186,14 +185,12 @@ main(int argc, char **argv) {
         .user_config = map_new(),
     };
 
-    // start configuration dictionaries
-    user_conf_d = create_dictionary();
     config_init(sc.user_config);
-    //config_init_default(); // Stores default values in user_conf_d
 
-    // Read the main() parameters and replace values in user_conf_d as necessary
+    // Read the main() parameters and set config values as necessary
     read_argv(argc, argv);
 
+    // TODO: fix cli args without using config
     // check if help is in argv. if so, show usage and quit
 //    if (config_get_int("help"))
 //        show_usage_and_quit();
@@ -247,7 +244,7 @@ main(int argc, char **argv) {
             ui_stop_screen();
 
             // if output is set, nocurses should always be 1 !
-            put(user_conf_d, "nocurses", "1");
+            config_set_bool("nocurses", true);
         }
     }
 
@@ -539,9 +536,6 @@ exit_app(int status) {
         fclose(fdoutput);
     }
 
-    // delete user config dictionaries
-    destroy_dictionary(user_conf_d);
-
     return status;
 }
 
@@ -565,6 +559,7 @@ read_argv(int argc, char ** argv) {
     int i;
     for (i = 1; i < argc; i++) {
         if ( !strncmp(argv[i], "--", 2) ) {       // it was passed a parameter
+            // TODO: handle options without using config
             config_parse_str(argv[i] + 2, 0);
         } else {                                   // it was passed a file
             //printf("%s-\n", argv[i]);

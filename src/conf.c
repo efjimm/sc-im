@@ -278,7 +278,6 @@ config_get_string(const char *key) {
     if (value && value->tag == CONFIGVALUE_STRING)
        return value->s;
     return NULL;
-    //return get(user_conf_d, key);
 }
 
 int64_t
@@ -287,7 +286,6 @@ config_get_int(const char *key) {
     if (value && value->tag == CONFIGVALUE_INT)
        return value->i;
     return 0;
-    //return get_int(user_conf_d, key);
 }
 
 bool
@@ -496,7 +494,6 @@ config_parse_str(const char *str, bool split_on_blanks) {
                 /* got only a key: pretend the value is 1 */
                 key[i] = 0;
                 config_set_bool(key, true);
-                //put(d, key, "1");
                 break;
             }
             if (*str == ' ') {
@@ -555,30 +552,6 @@ config_parse_str(const char *str, bool split_on_blanks) {
                         break;
                     }
                 }
-
-//                if (!strcasecmp(value, "true")) {
-//                    config_set_bool(key, true);
-//                } else if (!strcasecmp(value, "false")) {
-//                    config_set_bool(key, false);
-//                } else if (strchr(value, '.')) {
-//                    errno = 0;
-//                    const double d = strtod(value, NULL);
-//                    if (errno) {
-//                        config_set_string(key, value);
-//                    } else {
-//                        config_set_double(key, d);
-//                    }
-//                } else {
-//                    errno = 0;
-//                    const int64_t n = strtol(value. &value[i], 10);
-//                    if (errno) {
-//                        config_set_string(key, value);
-//                    } else {
-//                        config_set_int(key, n);
-//                    }
-//                }
-
-                //put(d, key, value);
                 break;
             }
 

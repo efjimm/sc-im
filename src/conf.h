@@ -75,8 +75,6 @@ typedef struct {
     };
 } ConfigValue;
 
-extern struct dictionary * user_conf_d;
-
 #define config_set(key, value) _Generic((value), \
         const char *: config_set_string, \
         char *: config_set_string, \
