@@ -87,6 +87,17 @@
 #include "lua.h"
 #endif
 
+typedef enum {
+    EXPORT_TYPE_NONE,
+    EXPORT_TYPE_CSV,
+    EXPORT_TYPE_TAB,
+    EXPORT_TYPE_MARKDOWN,
+    EXPORT_TYPE_PLAINTEXT,
+    EXPORT_TYPE_LEN,
+} ExportType;
+
+static ExportType export_type = EXPORT_TYPE_NONE;
+
 // global variable to store a session
 struct session *session;
 
@@ -100,7 +111,6 @@ char dpoint = '.'; /* Default decimal point character */
 char thsep = ','; /* Default thousands separator character */
 
 // check
-char * exepath;
 int changed;
 int cellassign;
 int arg = 1;
@@ -146,6 +156,11 @@ pthread_t fthread;
 #endif
 #endif
 
+static bool argv_show_usage(const void *);
+static bool argv_show_version(const void *);
+static bool argv_set_export(const void *);
+static void export_to_file(ExportType);
+
 extern graphADT graph;
 
 /**
@@ -190,14 +205,41 @@ main(int argc, char **argv) {
     // Read the main() parameters and set config values as necessary
     read_argv(argc, argv);
 
-    // TODO: fix cli args without using config
-    // check if help is in argv. if so, show usage and quit
-//    if (config_get_int("help"))
-//        show_usage_and_quit();
+    wchar_t stdin_buffer[BUFFERSIZE] = { L'\0' };
 
-    // check if version is in argv. if so, show version and quit
-  //  if (config_get_int("version"))
-  //       show_version_and_quit();
+    // take this out of here -->
+    calc_order = BYROWS;
+    prescale = 1.0;
+    optimize = 0; // <----
+
+    // create basic structures that will depend on the loaded file
+    create_structures();
+
+    // create main session
+    session = calloc(1, sizeof(*session));
+
+    /*
+     * create a new roman struct for each file passed as argv
+     * and attach it to main session
+     * DISABLED BY DESIGN
+     * readfile_argv(argc, argv);
+     */
+
+    /* load file passed as argv to sc-im.
+     * if more than one file is passed, consider the last one.
+     */
+    load_file(strlen(loadingfile) ? loadingfile : NULL);
+
+    /*
+     * check if session->cur_doc is NULL (no file passed as argv).
+     * if so, create an empty doc with just one sheet
+     */
+    if (session->cur_doc == NULL) create_empty_wb();
+
+    if (export_type != EXPORT_TYPE_NONE) {
+        export_to_file(export_type);
+        config_set_bool("quit_afterload", true);
+    }
 
     // if starting tui..
     if (!config_get_bool("nocurses")) {
@@ -252,37 +294,6 @@ main(int argc, char **argv) {
     doLuainit();
 #endif
 
-    wchar_t stdin_buffer[BUFFERSIZE] = { L'\0' };
-
-    // take this out of here -->
-    calc_order = BYROWS;
-    prescale = 1.0;
-    optimize = 0; // <----
-
-    // create basic structures that will depend on the loaded file
-    create_structures();
-
-    // create main session
-    session = calloc(1, sizeof(*session));
-
-    /*
-     * create a new roman struct for each file passed as argv
-     * and attach it to main session
-     * DISABLED BY DESIGN
-     * readfile_argv(argc, argv);
-     */
-
-    /* load file passed as argv to sc-im.
-     * if more than one file is passed, consider the last one.
-     */
-    load_file(strlen(loadingfile) ? loadingfile : NULL);
-
-    /*
-     * check if session->cur_doc is NULL (no file passed as argv).
-     * if so, create an empty doc with just one sheet
-     */
-    if (session->cur_doc == NULL) create_empty_wb();
-
     /*
      * load_rc. Since we are not sure what people put it their scimrc file,
      * other than configuration variables and mappings,
@@ -330,9 +341,6 @@ main(int argc, char **argv) {
     //gettimeofday(&lastbackup_tv, NULL);
     lastbackup_tv = (struct timeval) {0};
     #endif
-
-    // handle --exports passed as argv
-    handle_argv_exports();
 
     while (!shall_quit && !config_get_bool("quit_afterload")) {
         // save current time for runtime timer
@@ -539,7 +547,6 @@ exit_app(int status) {
     return status;
 }
 
-
 /**
  * \brief Read command line parameters and store them in a dictionary
  *
@@ -555,47 +562,87 @@ exit_app(int status) {
  * \return none
  */
 void
-read_argv(int argc, char ** argv) {
-    int i;
-    for (i = 1; i < argc; i++) {
-        if ( !strncmp(argv[i], "--", 2) ) {       // it was passed a parameter
-            // TODO: handle options without using config
-            config_parse_str(argv[i] + 2, 0);
-        } else {                                   // it was passed a file
-            //printf("%s-\n", argv[i]);
+read_argv(int argc, char **argv) {
+    typedef struct {
+        // Takes a void pointer to the arg union, which can be cast to any member type
+        bool (*fn)(const void *);
+        union {
+            const char *s;
+            void *v;
+            double d;
+            int64_t i;
+        } arg;
+    } FnContainer;
+
+    Map *const arg_map = map_new();
+
+    map_put(arg_map, "--help", &(FnContainer){ .fn = argv_show_usage });
+    map_put(arg_map, "--version", &(FnContainer){ .fn = argv_show_version });
+
+    map_put(arg_map, "--export-csv", &(FnContainer){
+        .fn = argv_set_export,
+        .arg.i = EXPORT_TYPE_CSV,
+    });
+    map_put(arg_map, "--export-tab", &(FnContainer){
+        .fn = argv_set_export,
+        .arg.i = EXPORT_TYPE_TAB,
+    });
+    map_put(arg_map, "--export-txt", &(FnContainer){
+        .fn = argv_set_export,
+        .arg.i = EXPORT_TYPE_PLAINTEXT,
+    });
+    map_put(arg_map, "--export-mkd", &(FnContainer){
+        .fn = argv_set_export,
+        .arg.i = EXPORT_TYPE_MARKDOWN,
+    });
+
+    for (int i = 1; i < argc; i++) {
+        if (!strncmp(argv[i], "--", 2)) {
+            const FnContainer *const container = map_get(arg_map, argv[i]);
+            if (container != NULL && container->fn(&container->arg)) {
+                config_set_bool("quit_afterload", true);
+                break;
+            } else {
+                config_parse_str(argv[i] + 2, 0);
+            }
+        } else {
             strncpy(loadingfile, argv[i], PATHLEN-1);
         }
     }
-    exepath = argv[0];
-    return;
+
+    map_free(arg_map);
 }
 
+bool
+argv_set_export(const void *v) {
+    const int64_t *const type = v;
+    export_type = *type;
+    return false;
+}
 
-/**
- * \brief handle_argv_exports()
- * TODO: move to a new offline.c
- * \return none
- */
 void
-handle_argv_exports(void) {
-    if (config_get_string("export_csv") && session->cur_doc != NULL) {
-        export_delim(NULL, ',', 0, 0, session->cur_doc->cur_sh->maxrow, session->cur_doc->cur_sh->maxcol, 0);
-    }
+export_to_file(ExportType type) {
+    const int max_row = session->cur_doc->cur_sh->maxrow;
+    const int max_col = session->cur_doc->cur_sh->maxcol;
 
-    if (config_get_string("export_tab") && session->cur_doc != NULL) {
-        export_delim(NULL, '\t', 0, 0, session->cur_doc->cur_sh->maxrow, session->cur_doc->cur_sh->maxcol, 0);
+    switch (type) {
+        case EXPORT_TYPE_CSV: {
+            export_delim(NULL, ',', 0, 0, max_row, max_col, 0);
+            break;
+        }
+        case EXPORT_TYPE_TAB:
+            export_delim(NULL, '\t', 0, 0, max_row, max_col, 0);
+            break;
+        case EXPORT_TYPE_MARKDOWN:
+            export_markdown(NULL, 0, 0, max_row, max_col);
+            break;
+        case EXPORT_TYPE_PLAINTEXT:
+            export_plain(NULL, 0, 0, max_row, max_col);
+            break;
+        default:
+            break;
     }
-
-    if (config_get_string("export_mkd") && session->cur_doc != NULL) {
-        export_markdown(NULL, 0, 0, session->cur_doc->cur_sh->maxrow, session->cur_doc->cur_sh->maxcol);
-    }
-
-    if ((config_get_string("export") || config_get_string("export_txt")) && session->cur_doc != NULL) {
-        export_plain(NULL, 0, 0, session->cur_doc->cur_sh->maxrow, session->cur_doc->cur_sh->maxcol);
-    }
-    return;
 }
-
 
 /**
  * \brief Set up signals catched by sc-im
@@ -704,4 +751,154 @@ sig_term(int sig) {
     sc_error("Got SIGTERM signal. Quitting sc-im.");
     shall_quit = 2;
     return;
+}
+
+#include "version.h"
+
+/**
+ * \brief Send the version number to standard output.
+ * \return none
+ * TODO Split this into two commands. One prints the version number
+ * the other prints the version number along with the other information.
+ */
+bool
+argv_show_version(const void *v) {
+    config_set_bool("nocurses", true);
+    sc_info("sc-im - %s", rev);
+#ifdef NCURSES
+    sc_info("-DNCURSES");
+#endif
+#ifdef MAXROWS
+    sc_info("-DMAXROWS %d", MAXROWS);
+#endif
+#ifdef UNDO
+    sc_info("-DUNDO");
+#endif
+#ifdef XLS
+    sc_info("-DXLS");
+#endif
+#ifdef XLSX
+    sc_info("-DXLSX");
+#endif
+#ifdef XLSX_EXPORT
+    sc_info("-DXLSX_EXPORT");
+#endif
+#ifdef XLUA
+    sc_info("-DXLUA");
+#endif
+#ifdef DEFAULT_COPY_TO_CLIPBOARD_CMD
+    sc_info("-DDEFAULT_COPY_TO_CLIPBOARD_CMD=\"%s\"", DEFAULT_COPY_TO_CLIPBOARD_CMD);
+#endif
+#ifdef DEFAULT_PASTE_FROM_CLIPBOARD_CMD
+    sc_info("-DDEFAULT_PASTE_FROM_CLIPBOARD_CMD=\"%s\"", DEFAULT_PASTE_FROM_CLIPBOARD_CMD);
+#endif
+#ifdef DEFAULT_OPEN_FILE_UNDER_CURSOR_CMD
+    sc_info("-DDEFAULT_OPEN_FILE_UNDER_CURSOR_CMD=\"%s\"", DEFAULT_OPEN_FILE_UNDER_CURSOR_CMD);
+#endif
+#ifdef USELOCALE
+    sc_info("-DUSELOCALE");
+#endif
+#ifdef MOUSE
+    sc_info("-DMOUSE");
+#endif
+#ifdef USECOLORS
+    sc_info("-DUSECOLORS");
+#endif
+#ifdef _XOPEN_SOURCE_EXTENDED
+    sc_info("-D_XOPEN_SOURCE_EXTENDED");
+#endif
+#ifdef _GNU_SOURCE
+    sc_info("-D_GNU_SOURCE");
+#endif
+#ifdef SNAME
+    sc_info("-DSNAME=\"%s\"", SNAME);
+#endif
+#ifdef HELP_PATH
+    sc_info("-DHELP_PATH=\"%s\"", HELP_PATH);
+#endif
+#ifdef LIBDIR
+    sc_info("-DLIBDIR=\"%s\"", LIBDIR);
+#endif
+#ifdef DFLT_PAGER
+    sc_info("-DDFLT_PAGER=\"%s\"", DFLT_PAGER);
+#endif
+#ifdef DFLT_EDITOR
+    sc_info("-DDFLT_EDITOR=\"%s\"", DFLT_EDITOR);
+#endif
+#ifdef CONFIG_DIR
+    sc_info("-DCONFIG_DIR=\"%s\"", CONFIG_DIR);
+#endif
+#ifdef CONFIG_FILE
+    sc_info("-DCONFIG_FILE=\"%s\"", CONFIG_FILE);
+#endif
+#ifdef HISTORY_DIR
+    sc_info("-DHISTORY_DIR=\"%s\"", HISTORY_DIR);
+#endif
+#ifdef HISTORY_FILE
+    sc_info("-DHISTORY_FILE=\"%s\"", HISTORY_FILE);
+#endif
+#ifdef INS_HISTORY_FILE
+    sc_info("-DINS_HISTORY_FILE=\"%s\"", INS_HISTORY_FILE);
+#endif
+#ifdef HAVE_PTHREAD
+    sc_info("-DHAVE_PTHREAD");
+#endif
+#ifdef AUTOBACKUP
+    sc_info("-DAUTOBACKUP");
+#endif
+    config_set_bool("quit_afterload", true);
+    return true;
+}
+
+
+/**
+ * \brief Print usage message to stdout text and quit
+ * \return none
+ */
+ // NOTE this is a quick and dirty command to search for arguments used in the sources (macOS 10.14)
+ // grep "get_conf_value(\"" -r ./src/*.c | grep get_conf_value |sed 's/"//g' |sed 's/.*get_conf_value(//g'|cut -d ')' -f1 |sort|uniq|sed 's/^/--/g'
+bool
+argv_show_usage(const void *v) {
+  config_set_bool("nocurses", true);
+  printf("\
+sc-im - sc-improvised\
+\n\
+\nUsage: sc-im [arguments] [file]          specified file\
+\n   or: sc-im [arguments] -               read text from stdin\
+\n\
+\nArguments:\
+\n\
+\n  --autocalc                  Set variable 'autocalc'.\
+\n  --copy_to_clipboard_delimited_tab  Set variable 'copy_to_clipboard_delimited_tab'\
+\n  --debug                     Set variable 'debug'\
+\n  --default_copy_to_clipboard_cmd=COMMAND  set variable 'default_copy_from_clipboard_cmd'\
+\n  --default_paste_from_clipboard_cmd=COMMAND  set variable 'default_paste_from_clipboard_cmd'\
+\n  --default_open_file_under_cursor_cmd=COMMAND  set variable 'default_open_file_under_cursor_cmd'\
+\n  --export-csv                Export to csv without interaction\
+\n  --export-tab                Export to tab without interaction\
+\n  --export-txt                Export to txt without interaction\
+\n  --export-mkd                Export to markdown without interaction\
+\n  --external_functions        Set variable 'external_functions'\
+\n  --half_page_scroll          Set variable 'half_page_scroll'\
+\n  --ignorecase                Set variable 'ignorecase'\
+\n  --import_delimited_as_text Import text as\
+\n  --newline_action={j or l}   Set variable 'newline_action'\
+\n  --nocurses                  Run interactive but without ncurses interface.\
+\n  --numeric                   Set variable 'numeric'\
+\n  --numeric_decimal           Set variable 'numeric_decimal'\
+\n  --output=FILE               Save the results in FILE\
+\n  --overlap                   Set variable 'overlap variable'\
+\n  --quit_afterload            Quit after loading all the files\
+\n  --show_cursor               Make the screen cursor follow the active cell\
+\n  --tm_gmtoff={seconds}       set gmt offset used for converting datetimes to localtime.\
+\n  --txtdelim={\",\" or \";\" or \"\\t\" or \"|\"}  Sets delimiter when opening a .tab of .csv file");
+#ifdef XLSX
+  printf("\n\
+\n  --sheet=SHEET               Open SHEET when loading xlsx file. Default is 1.\
+\n  --xlsx_readformulas         Set variable 'xlsx_readformulas'");
+#endif
+  printf("\n\
+\n  --version                   Print version information and exit\
+\n  --help                      Print Help (this message) and exit\n");
+    return true;
 }

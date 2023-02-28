@@ -1875,7 +1875,8 @@ void unspecial(FILE * f, char * str, int delim) {
  * \param[in] verbose
  * \return none
  */
-void export_delim(char * fname, char coldelim, int r0, int c0, int rn, int cn, int verbose) {
+void
+export_delim(char *fname, char coldelim, int r0, int c0, int rn, int cn, int verbose) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     FILE * f;
@@ -1894,8 +1895,9 @@ void export_delim(char * fname, char coldelim, int r0, int c0, int rn, int cn, i
     if (fname == NULL)
         f = stdout;
     else {
-        if ((f = openfile(fname, &pid, NULL)) == (FILE *)0) {
-            if (verbose) sc_error ("Can't create file \"%s\"", fname);
+        if ((f = openfile(fname, &pid, NULL)) == NULL) {
+            if (verbose)
+                sc_error ("Can't create file \"%s\"", fname);
             return;
         }
     }

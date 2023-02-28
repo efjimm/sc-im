@@ -87,20 +87,8 @@ int load_help () {
     f = fopen(helpfile_path, "r");
 
     // we try to read help file in current dir
-    if (! f ) {
+    if (!f) {
         f = fopen("./doc", "r");
-    }
-
-    // last change to read the help file !
-    if (! f ) {
-        char cwd[PATH_MAX];
-        extern char *exepath;
-        if (realpath(exepath, cwd) == NULL) return -1;
-        char * str_pos = strrchr(cwd, '/');
-        if (str_pos == NULL) return -1;
-        cwd[str_pos - cwd + 1] = '\0';
-        strcat(cwd, "doc");
-        f = fopen(cwd, "r");
     }
 
     if (! f ) return -1;
