@@ -57,10 +57,10 @@ extern struct history * commandline_history;
 extern struct history * insert_history;
 #endif
 
-void fix_timeout(struct timeval * start_tv);  // Handle timeout of stdin
+void fix_timeout(struct timeval *start_tv);  // Handle timeout of stdin
 void handle_input(SC *const sc, Buffer *const buffer);
-void break_waitcmd_loop(Buffer * buffer);
+void break_waitcmd_loop(SC *const sc, Buffer *buffer);
 bool has_cmd (Buffer *const buf, long timeout);
-void handle_mult(int * multiplier, Buffer * buf, long timeout); // Handle multiplier ef.
-void exec_mult (Buffer * buf, long timeout);
-void exec_single_cmd (Buffer * sb);
+void handle_mult(SC *const sc, int *multiplier, Buffer * buf, long timeout); // Handle multiplier ef.
+void exec_mult(SC *const sc, Buffer *buf, long timeout);
+void exec_single_cmd(SC *const sc, Buffer * sb);

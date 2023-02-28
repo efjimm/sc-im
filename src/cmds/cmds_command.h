@@ -46,9 +46,10 @@
 #include "../history.h"
 #endif
 #include "../buffer.h"
+#include "../sc.h"
 
 extern int shall_quit;
 extern struct history * commandline_history;
 
-void do_commandmode(Buffer * sb);
+void do_commandmode(SC *const sc, Buffer * sb);
 void ins_in_line(wint_t d);

@@ -238,18 +238,19 @@ struct range_s {
 struct enode {
     int op;
     union {
-
+        // This expression is a binary operator
         struct {                 /* other cells use to eval() / seval() */
             struct enode *left;
             struct enode *right;
             char *last_func_str; /* previous value of @ext function in case */
         };                       /* external functions are turned off */
 
-        double number;           /* constant # */
-        char *str;               /* string part of a cell */
-
         struct range_s range;    /* op is on a range */
         struct ent_ptr ref;      /* ref. another cell on which this enode depends */
+
+        // Terminal values ie. leaves in the tree
+        double number;           /* constant # */
+        char *str;               /* string part of a cell */
     };
 };
 
@@ -441,7 +442,9 @@ struct go_save {
 #define GROWBOTH      4       /* grow both */
 
 typedef struct {
+    struct session *session;
     Map *user_config;
+    bool nocurses;
 } SC;
 
 extern int arg;

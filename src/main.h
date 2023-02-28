@@ -43,12 +43,14 @@
  *
  */
 
+#include "sc.h"
+
 int main(int argc, char ** argv);
 int exit_app(int status);
 void create_structures();
 void delete_structures();
 
-void read_argv(int argc, char ** argv);
+void read_argv(SC *const sc, int argc, char **argv);
 void read_stdin();
 void handle_argv_exports();
 void show_version_and_quit();

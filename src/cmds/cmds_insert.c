@@ -61,7 +61,6 @@ char ori_insert_edit_submode;
 #endif
 
 extern void ins_in_line(wint_t d);
-extern struct session * session;
 
 /**
  * \brief TODO Document do_insertmode()
@@ -71,14 +70,14 @@ extern struct session * session;
  * returns: none
  */
 
-void do_insertmode(Buffer * sb) {
-    struct roman * roman = session->cur_doc;
-    struct sheet * sh = roman->cur_sh;
+void do_insertmode(SC *const sc, Buffer * sb) {
+    struct roman *const roman = sc->session->cur_doc;
+    struct sheet *const sh = roman->cur_sh;
 
     if (buffer_get(sb, 0) == ctl('v') ) {  // VISUAL SUBMODE
         visual_submode = insert_edit_submode;
         chg_mode('v');
-        start_visualmode(sh->currow, sh->curcol, sh->currow, sh->curcol);
+        start_visualmode(sc, sh->currow, sh->curcol, sh->currow, sh->curcol);
         return;
 
     } else if (buffer_get(sb, 0) == OKEY_LEFT) {   // LEFT

@@ -125,7 +125,7 @@ handle_input(SC *const sc, Buffer *const buffer) {
 #endif
 
         if ( (d == OKEY_ESC || d == ctl('g')) && curmode != EDIT_MODE) {
-            break_waitcmd_loop(buffer);
+            break_waitcmd_loop(sc, buffer);
             ui_clr_header(1);
             ui_show_header();
             return;
@@ -200,7 +200,7 @@ handle_input(SC *const sc, Buffer *const buffer) {
         // to handle map of ESC
         if ((buffer_get(buffer, 0) == OKEY_ESC ||
                 buffer_get(buffer, 0) == ctl('g')) && curmode != EDIT_MODE) {
-            break_waitcmd_loop(buffer);
+            break_waitcmd_loop(sc, buffer);
             ui_print_mult_pend();
             ui_refresh_pad(0);
             return;
@@ -213,7 +213,9 @@ handle_input(SC *const sc, Buffer *const buffer) {
     } else {                  // Execute command or mapping
         cmd_pending = 0;
         ui_clr_header(1);     // Clean second line
-        handle_mult( &cmd_multiplier, buffer, msec ); // Handle command and repeat as many times as the multiplier dictates
+
+        // Handle command and repeat as many times as the multiplier dictates
+        handle_mult(sc, &cmd_multiplier, buffer, msec);
     }
     ui_print_mult_pend();
     buffer_reset(buffer);        // Flush the buffer
@@ -226,7 +228,7 @@ handle_input(SC *const sc, Buffer *const buffer) {
  * \return none
  */
 void
-break_waitcmd_loop(Buffer *const buffer) {
+break_waitcmd_loop(SC *const sc, Buffer *const buffer) {
     if (curmode == COMMAND_MODE) {
 #ifdef HISTORY_FILE
         del_item_from_history(commandline_history, 0);
@@ -239,7 +241,7 @@ break_waitcmd_loop(Buffer *const buffer) {
         insert_history->pos = 0;
 #endif
     } else if (curmode == VISUAL_MODE) {
-        exit_visualmode();
+        exit_visualmode(sc);
     }
     if (curmode == INSERT_MODE && lastmode == EDIT_MODE)     {
         if (inputline_pos && wcslen(inputline) >= inputline_pos) {
@@ -324,11 +326,11 @@ has_cmd(Buffer *const buf, long timeout) {
     return found;
 }
 
-void do_commandmode(Buffer *const sb);
-void do_normalmode (Buffer *const buf);
-void do_insertmode(Buffer *const sb);
-void do_editmode(Buffer *const sb);
-void do_visualmode(Buffer *const sb);
+void do_commandmode(SC *const sc, Buffer *const sb);
+void do_normalmode(SC *const sc, Buffer *const buf);
+void do_insertmode(SC *const sc, Buffer *const sb);
+void do_editmode(SC *const sc, Buffer *const sb);
+void do_visualmode(SC *const sc, Buffer *const sb);
 
 /**
  * \brief Use specific functions for every command on each mode
@@ -339,22 +341,22 @@ void do_visualmode(Buffer *const sb);
  */
 
 void
-exec_single_cmd(Buffer *const sb) {
+exec_single_cmd(SC *const sc, Buffer *const sb) {
     switch (curmode) {
         case NORMAL_MODE:
-            do_normalmode(sb);
+            do_normalmode(sc, sb);
             break;
         case INSERT_MODE:
-            do_insertmode(sb);
+            do_insertmode(sc, sb);
             break;
         case COMMAND_MODE:
-            do_commandmode(sb);
+            do_commandmode(sc, sb);
             break;
         case EDIT_MODE:
-            do_editmode(sb);
+            do_editmode(sc, sb);
             break;
         case VISUAL_MODE:
-            do_visualmode(sb);
+            do_visualmode(sc, sb);
             break;
     }
     return;
@@ -371,7 +373,7 @@ exec_single_cmd(Buffer *const sb) {
  */
 
 void
-handle_mult(int *cmd_multiplier, Buffer *buf, long timeout) {
+handle_mult(SC *const sc, int *cmd_multiplier, Buffer *buf, long timeout) {
     if (*cmd_multiplier == 0)
         *cmd_multiplier = 1;
 
@@ -383,7 +385,7 @@ handle_mult(int *cmd_multiplier, Buffer *buf, long timeout) {
     for (int i = 1; i < *cmd_multiplier; i++)
         buffer_append_buffer(buf, temp_buf);
 
-    exec_mult(buf, timeout);
+    exec_mult(sc, buf, timeout);
     if (*cmd_multiplier > 1) {
         *cmd_multiplier = 1;
         if (curmode != EDIT_MODE) ui_update(TRUE);
@@ -400,7 +402,7 @@ handle_mult(int *cmd_multiplier, Buffer *buf, long timeout) {
  * \return none
  */
 void
-exec_mult(Buffer *buf, long timeout) {
+exec_mult(SC *const sc, Buffer *buf, long timeout) {
     int k, res;
     const size_t buf_len = buffer_size(buf);
 
@@ -411,7 +413,7 @@ exec_mult(Buffer *buf, long timeout) {
     if ((res = is_single_command(buf, timeout))) {
         if (res == EDITION_CMD)
         	buffer_copy(lastcmd_buffer, buf); // save stdin buffer content in lastcmd buffer
-        exec_single_cmd(buf);
+        exec_single_cmd(sc, buf);
 
     // If not possible, traverse blockwise
     } else {
@@ -422,14 +424,14 @@ exec_mult(Buffer *buf, long timeout) {
             if ((res = is_single_command(auxb, timeout))) {
                 if (res == EDITION_CMD)
                 	buffer_copy(lastcmd_buffer, buf); // save stdin buffer content in lastcmd buffer
-                exec_single_cmd(auxb);
+                exec_single_cmd(sc, auxb);
                 buffer_reset(auxb);
                 k++; // Take the first K values from 'buf'
                 while (k--)
                     buffer_remove_first(buf);
                 // Execute again
                 if (cmd_multiplier == 0) break;
-                exec_mult (buf, timeout);
+                exec_mult(sc, buf, timeout);
                 break;
             }
         }

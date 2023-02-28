@@ -1137,7 +1137,9 @@ command:
 
                                      Buffer *auxb = buffer_create(1);
                                      buffer_append(auxb, OKEY_ENTER);
-                                     do_commandmode(auxb);
+                                     // TODO: pass this as a parameter
+                                     SC *const sc = (SC *)((uint8_t *)session - offsetof(SC, session));
+                                     do_commandmode(sc, auxb);
                                      buffer_reset(auxb);
                                      buffer_destroy(auxb);
                                      auxb = NULL;

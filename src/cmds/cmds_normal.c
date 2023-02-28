@@ -67,12 +67,11 @@
 extern graphADT graph;
 extern char valores;
 extern int cmd_multiplier;
-extern void start_visualmode(int tlrow, int tlcol, int brrow, int brcol);
+extern void start_visualmode(SC *const sc, int tlrow, int tlcol, int brrow, int brcol);
 extern void ins_in_line(wint_t d);
 extern void openfile_under_cursor(int r, int c);
 
 extern wchar_t interp_line[BUFFERSIZE];
-extern struct session * session;
 
 #ifdef HISTORY_FILE
 extern struct history * commandline_history;
@@ -88,8 +87,8 @@ extern char ori_insert_edit_submode;
  * \param[in] buf
  * \return none
  */
-void do_normalmode(Buffer * buf) {
-    struct roman * roman = session->cur_doc;
+void do_normalmode(SC *const sc, Buffer *buf) {
+    struct roman * roman = sc->session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     int bs = buffer_size(buf);
     struct ent * e;
@@ -416,7 +415,7 @@ void do_normalmode(Buffer * buf) {
         // repeat last goto command - backwards
         case L'N':
             {
-            struct roman * roman = session->cur_doc;
+            struct roman * roman = sc->session->cur_doc;
             struct sheet * sh = roman->cur_sh;
             extern struct go_save gs;
             if (gs.g_sheet == sh) {
@@ -434,7 +433,7 @@ void do_normalmode(Buffer * buf) {
         // repeat last goto command
         case L'n':
             {
-            struct roman * roman = session->cur_doc;
+            struct roman * roman = sc->session->cur_doc;
             struct sheet * sh = roman->cur_sh;
             extern struct go_save gs;
             if (gs.g_sheet == sh) {
@@ -457,7 +456,7 @@ void do_normalmode(Buffer * buf) {
             for (i=0; i<strlen(cadena); i++) {
                 buffer_reset(buf);
                 buffer_append(buf, cadena[i]);
-                exec_single_cmd(buf);
+                exec_single_cmd(sc, buf);
             }
             break;
             }
@@ -469,7 +468,7 @@ void do_normalmode(Buffer * buf) {
             for (i=0; i<strlen(cadena); i++) {
                 buffer_reset(buf);
                 buffer_append(buf, cadena[i]);
-                exec_single_cmd(buf);
+                exec_single_cmd(sc, buf);
             }
             break;
             }
@@ -479,7 +478,7 @@ void do_normalmode(Buffer * buf) {
             if (config_get_bool("numeric_decimal") == 1 && config_get_bool("numeric") == 1) goto numeric;
             buffer_copy(buf, lastcmd_buffer); // nose graba en lastcmd_buffer!!
             cmd_multiplier = 1;
-            exec_mult(buf, COMPLETECMDTIMEOUT);
+            exec_mult(sc, buf, COMPLETECMDTIMEOUT);
             break;
 
         // enter command mode
@@ -499,7 +498,7 @@ void do_normalmode(Buffer * buf) {
             chg_mode('v');
             ui_show_header();
             ui_handle_cursor();
-            start_visualmode(sh->currow, sh->curcol, sh->currow, sh->curcol);
+            start_visualmode(sc, sh->currow, sh->curcol, sh->currow, sh->curcol);
             break;
 
         // INPUT COMMANDS
@@ -525,7 +524,7 @@ void do_normalmode(Buffer * buf) {
             if (locked_cell(sh, sh->currow, sh->curcol)) return;
             inputline_pos = 0;
             real_inputline_pos = 0;
-            if (start_edit_mode(buf, 'v')) ui_show_header();
+            if (start_edit_mode(sc, buf, 'v')) ui_show_header();
             break;
 
         // edit cell (s)
@@ -533,7 +532,7 @@ void do_normalmode(Buffer * buf) {
             if (locked_cell(sh, sh->currow, sh->curcol)) return;
             inputline_pos = 0;
             real_inputline_pos = 0;
-            if (start_edit_mode(buf, 's')) ui_show_header();
+            if (start_edit_mode(sc, buf, 's')) ui_show_header();
             else {
                 sc_info("No string value to edit");
                 chg_mode('.');
@@ -947,7 +946,7 @@ void do_normalmode(Buffer * buf) {
                 int * tlc = &tlcol;
                 int * brc = &brcol;
                 select_inner_range(sh, tlr, tlc, brr, brc);
-                start_visualmode(*tlr, *tlc, *brr, *brc);
+                start_visualmode(sc, *tlr, *tlc, *brr, *brc);
             }
             break;
 
@@ -1009,7 +1008,7 @@ void do_normalmode(Buffer * buf) {
                     for (i = 0; i < sh->curcol; i++) {
                         for (c = i; c < sh->curcol; c++) {
                             if (! sh->col_hidden[c]) ancho += sh->fwidth[c];
-                            if (ancho >= SC_DISPLAY_COLS/2) {
+                            if (ancho >= sc->session->cur_doc->cur_sh->rescol/2) {
                                 ancho = sh->rescol;
                                 break;
                             }

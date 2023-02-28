@@ -65,7 +65,6 @@ extern char ori_insert_edit_submode;
 #endif
 
 static wint_t wi; /**< char read from stdin */
-extern struct session * session;
 
 /**
  * \brief TODO Document do_editmode()
@@ -75,8 +74,8 @@ extern struct session * session;
  * \return none
  */
 
-void do_editmode(Buffer * sb) {
-    struct roman * roman = session->cur_doc;
+void do_editmode(SC *const sc, Buffer * sb) {
+    struct roman * roman = sc->session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     int pos;
     int initial_position;
@@ -667,8 +666,8 @@ void del_for_char() {       // X    BS
  * \brief start_edit_mode()
  * \returns: 1 on success; 0 on error
  */
-int start_edit_mode(Buffer * buf, char type) {
-    struct roman * roman = session->cur_doc;
+int start_edit_mode(SC *const sc, Buffer * buf, char type) {
+    struct roman * roman = sc->session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     chg_mode(buffer_get(buf, 0));
 

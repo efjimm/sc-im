@@ -65,7 +65,6 @@ extern int offscr_sc_rows, offscr_sc_cols;
 extern unsigned int curmode;
 extern int cmd_multiplier;
 extern struct history * commandline_history;
-extern struct session * session;
 
 char visual_submode = '0';
 srange * r;                       // SELECTED RANGE!
@@ -82,9 +81,9 @@ int moving = FALSE;
  * \return none
  */
 
-void start_visualmode(int tlrow, int tlcol, int brrow, int brcol) {
+void start_visualmode(SC *const sc, int tlrow, int tlcol, int brrow, int brcol) {
     unselect_ranges();
-    struct roman * roman = session->cur_doc;
+    struct roman * roman = sc->session->cur_doc;
     struct sheet * sh = roman->cur_sh;
 
     struct srange * sr = get_range_by_marks('\t', '\t'); // visual mode selected range
@@ -127,8 +126,8 @@ void start_visualmode(int tlrow, int tlcol, int brrow, int brcol) {
  * \return none
  */
 
-void exit_visualmode() {
-    struct roman * roman = session->cur_doc;
+void exit_visualmode(SC *const sc) {
+    struct roman * roman = sc->session->cur_doc;
     moving = FALSE;
     visual_submode = '0';
     r->selected = 0;
@@ -146,8 +145,9 @@ void exit_visualmode() {
  * \return none
  */
 
-void do_visualmode(Buffer * buf) {
-    struct roman * roman = session->cur_doc;
+void
+do_visualmode(SC *const sc, Buffer *buf) {
+    struct roman * roman = sc->session->cur_doc;
     struct sheet * sh = roman->cur_sh;
 
     // we are moving (previous to a 'C-o' keypress)
@@ -207,7 +207,7 @@ void do_visualmode(Buffer * buf) {
         inputline_pos = wcswidth(inputline, real_inputline_pos);
 
         char c = visual_submode;
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode(c);
 
         ui_show_header();
@@ -412,14 +412,14 @@ void do_visualmode(Buffer * buf) {
         del_ranges_by_mark(buffer_get(buf, 1));
         srange * rn = create_range('\0', '\0', lookat(sh, r->tlrow, r->tlcol), lookat(sh, r->brrow, r->brcol));
         set_range_mark(buffer_get(buf, 1), sh, rn);
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
 
     // auto_fit
     } else if (buffer_get(buf, 0) == ctl('j')) {
         auto_fit(sh, r->tlcol, r->brcol, DEFWIDTH);  // auto justify columns
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
 
@@ -441,7 +441,7 @@ void do_visualmode(Buffer * buf) {
                 return;
             }
             dateformat(sh, lookat(sh, r->tlrow, r->tlcol), lookat(sh, r->brrow, r->brcol), f);
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
         #else
@@ -453,7 +453,7 @@ void do_visualmode(Buffer * buf) {
     } else if (buffer_get(buf, 0) == 'y') {
         yank_area(sh, r->tlrow, r->tlcol, r->brrow, r->brcol, 'a', 1);
 
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
 
@@ -480,7 +480,7 @@ void do_visualmode(Buffer * buf) {
                     paste_yanked_ents(sh, 0, type_paste);
                 }
             }
-            exit_visualmode();
+            exit_visualmode(sc);
             chg_mode('.');
             ui_show_header();
 #ifdef DEBUG
@@ -491,7 +491,7 @@ void do_visualmode(Buffer * buf) {
 #endif
         }
         else{
-            exit_visualmode();
+            exit_visualmode(sc);
             chg_mode('.');
             ui_show_header();
             sc_info("Nothing to Paste");
@@ -519,7 +519,7 @@ void do_visualmode(Buffer * buf) {
 #endif
         cmd_multiplier = 0;
 
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
 
@@ -529,7 +529,7 @@ void do_visualmode(Buffer * buf) {
         handle_freeze(sh, lookat(sh, r->tlrow, r->tlcol), lookat(sh, r->brrow, r->brcol), 1, 'c');
 
         cmd_multiplier = 0;
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
         sc_info("Area frozen");
@@ -546,7 +546,7 @@ void do_visualmode(Buffer * buf) {
         }
         cmd_multiplier = 0;
 
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
 
@@ -564,21 +564,21 @@ void do_visualmode(Buffer * buf) {
         }
         cmd_multiplier = 0;
 
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
 
     // delete selected range
     } else if (buffer_get(buf, 0) == L'x' || (buffer_get(buf, 0) == L'd' && buffer_get(buf, 1) == L'd') ) {
         del_selected_cells(sh);
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
 
     // shift range
     } else if (buffer_get(buf, 0) == L's') {
         shift(sh, r->tlrow, r->tlcol, r->brrow, r->brcol, buffer_get(buf, 1));
-        exit_visualmode();
+        exit_visualmode(sc);
         chg_mode('.');
         ui_show_header();
 

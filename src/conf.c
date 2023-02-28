@@ -51,6 +51,8 @@
 #include <time.h>
 #include <errno.h>
 #include <strings.h>
+#include <assert.h>
+#include <ctype.h>
 
 #include "conf.h"
 #include "sc.h"
@@ -80,34 +82,34 @@ static ConfigEntry default_config[] = {
 #ifdef AUTOBACKUP
     { "autobackup", { .tag = CONFIGVALUE_INT, .i = 0 } },
 #endif
-    { "autocalc",                        { .tag = CONFIGVALUE_BOOL, .b = 1    } },
-    { "autowrap",                        { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "command_timeout",                 { .tag = CONFIGVALUE_INT,  .i = 3000 } },
-    { "copy_to_clipboard_delimited_tab", { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "debug",                           { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "exec_lua",                        { .tag = CONFIGVALUE_BOOL, .b = 1    } },
-    { "external_functions",              { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "half_page_scroll",                { .tag = CONFIGVALUE_BOOL, .b = 1    } },
-    { "help",                            { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "ignore_hidden",                   { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "ignorecase",                      { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "import_delimited_as_text",        { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "input_bar_bottom",                { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "mapping_timeout",                 { .tag = CONFIGVALUE_INT,  .i = 1500 } },
-    { "nocurses",                        { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "numeric",                         { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "numeric_decimal",                 { .tag = CONFIGVALUE_BOOL, .b = 1    } },
-    { "numeric_zero",                    { .tag = CONFIGVALUE_BOOL, .b = 1    } },
-    { "overlap",                         { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "quiet",                           { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "quit_afterload",                  { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "show_cursor",                     { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "tm_gmtoff",                       { .tag = CONFIGVALUE_INT,  .i = 0    } },
-    { "trigger",                         { .tag = CONFIGVALUE_BOOL, .b = 1    } },
-    { "truncate",                        { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "underline_grid",                  { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "version",                         { .tag = CONFIGVALUE_BOOL, .b = 0    } },
-    { "xlsx_readformulas",               { .tag = CONFIGVALUE_BOOL, .b = 0    } },
+    { "autocalc",                        { .tag = CONFIGVALUE_BOOL, .b = true  } },
+    { "autowrap",                        { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "command_timeout",                 { .tag = CONFIGVALUE_INT,  .i = 3000  } },
+    { "copy_to_clipboard_delimited_tab", { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "debug",                           { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "exec_lua",                        { .tag = CONFIGVALUE_BOOL, .b = true  } },
+    { "external_functions",              { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "half_page_scroll",                { .tag = CONFIGVALUE_BOOL, .b = true  } },
+    { "help",                            { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "ignore_hidden",                   { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "ignorecase",                      { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "import_delimited_as_text",        { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "input_bar_bottom",                { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "mapping_timeout",                 { .tag = CONFIGVALUE_INT,  .i = 1500  } },
+    { "nocurses",                        { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "numeric",                         { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "numeric_decimal",                 { .tag = CONFIGVALUE_BOOL, .b = true  } },
+    { "numeric_zero",                    { .tag = CONFIGVALUE_BOOL, .b = true  } },
+    { "overlap",                         { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "quiet",                           { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "quit_afterload",                  { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "show_cursor",                     { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "tm_gmtoff",                       { .tag = CONFIGVALUE_INT,  .i = 0     } },
+    { "trigger",                         { .tag = CONFIGVALUE_BOOL, .b = true  } },
+    { "truncate",                        { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "underline_grid",                  { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "version",                         { .tag = CONFIGVALUE_BOOL, .b = false } },
+    { "xlsx_readformulas",               { .tag = CONFIGVALUE_BOOL, .b = false } },
 
     { "newline_action", { .tag = CONFIGVALUE_INT,  .i = CONFIG_NEWLINE_ACTION_NONE } },
 
@@ -189,7 +191,7 @@ config_init_default(void) {
 }
 
 ConfigValue *
-config_get(const char *key) {
+config_get_value(const char *key) {
     return map_get(config_map, key);
 }
 
@@ -301,87 +303,6 @@ config_get_double(const char *key) {
     ConfigValue *const value = map_get(config_map, key);
     if (value && value->tag == CONFIGVALUE_DOUBLE)
        return value->d;
-    return 0;
-}
-
-/* \brief change_config_parameter
- * parameter[in] char * cmd
- * return int:
- * 0 if config parameter changed
- * 1 if config parameter was valid but previous and new values are the same
- * -1 on error
- */
-#include <wchar.h>
-#include <string.h>
-#include "macros.h"
-#include "cmds/cmds.h"
-#include "utils/string.h"
-#include "tui.h"
-int
-change_config_parameter(wchar_t *inputline) {
-    extern wchar_t interp_line[BUFFERSIZE];
-
-    // remove "set "
-    wchar_t line [BUFFERSIZE];
-    wcscpy(line, inputline);
-    del_range_wchars(line, 0, 3);
-
-    // parse value
-    wchar_t * l;
-    if ((l = wcschr(line, L' ')) != NULL) l[0] = L'\0';
-    if ((l = wcschr(line, L'=')) != NULL) l[0] = L'\0';
-
-    // check a proper config parameter exists
-    char oper[BUFFERSIZE];
-    wcstombs(oper, line, BUFFERSIZE);
-    // sent garbage after "set "..
-    if (! strlen(oper)) {
-        sc_error("Invalid command: \'%ls\'", inputline);
-        return -1;
-    }
-    char * value_bef = malloc(sizeof(char)*90);
-    value_bef[0] = '\0';
-    char * key = malloc(sizeof(char)*90);
-    key[0] = '\0';
-    char * value_aft = malloc(sizeof(char)*90);
-    value_aft[0] = '\0';
-
-    strcpy(key, oper);
-    char * s_aux = config_get_string(key);
-    if (s_aux != NULL) strcpy(value_bef, config_get_string(key));
-    if ((! value_bef || ! strlen(value_bef)) && strlen(oper) > 2 && ! wcsncmp(inputline, L"set no", 6)) {
-        s_aux = config_get_string(&oper[2]);
-        if (s_aux != NULL) {
-             strcpy(value_bef, s_aux);
-             strcpy(key, &oper[2]);
-        }
-    }
-
-    if (! value_bef || ! strlen(value_bef)) {
-        sc_error("Invalid config variable: \'%s\'", oper);
-        free(value_aft);
-        free(value_bef);
-        free(key);
-        return -1;
-    }
-
-    // we try to change config value
-    wcscpy(interp_line, inputline);
-    send_to_interp(interp_line);
-    s_aux = config_get_string(key);
-    if (s_aux != NULL) strcpy(value_aft, s_aux);
-    // check it was changed
-    if (! strcmp(value_bef, value_aft)) { sc_info("Config variable \'%s\' unchanged. Current value is \'%s\'", key, value_aft);
-        free(value_aft);
-        free(value_bef);
-        free(key);
-        return 1;
-    }
-    // inform so
-    sc_info("Config variable \'%s\' changed. Value \'%s\' to \'%s\'", key, value_bef, value_aft);
-    free(value_aft);
-    free(value_bef);
-    free(key);
     return 0;
 }
 
@@ -522,7 +443,7 @@ config_parse_str(const char *str, bool split_on_blanks) {
                 /* we are done with the value */
                 value[i] = '\0';
 
-                const ConfigValue *const old = config_get(key);
+                const ConfigValue *const old = config_get_value(key);
                 switch (old->tag) {
                     case CONFIGVALUE_BOOL: {
                         errno = 0;
@@ -563,4 +484,129 @@ config_parse_str(const char *str, bool split_on_blanks) {
             }
         }
     }
+}
+
+// TODO: change input to char *
+/* \brief Parses a string in the format "set key = value" and sets the config specified config
+ * value appropriately.
+ * parameter[in] char * cmd
+ * return int:
+ * 0 if config parameter changed
+ * 1 if config parameter was valid but previous and new values are the same
+ * -1 on error
+ */
+#include <wchar.h>
+#include "utils/string.h"
+#include "tui.h"
+int
+change_config_parameter(wchar_t *inputline) {
+    static char line[BUFFERSIZE];
+    const size_t len = wcstombs(line, inputline, BUFFERSIZE);
+
+    if (len == (size_t)-1)
+        return -1;
+
+    size_t i = 0;
+
+    // Skip leading spaces
+    for (; i < len && isspace(line[i]); i++);
+
+    // Make sure "set" is the first word
+    if (i >= len || strncmp(&line[i], "set ", 4)) {
+        sc_error("Invalid command: '%s'", line);
+        return -1;
+    }
+
+    // Skip spaces after "set"
+    for (i += 4; i < len && isspace(line[i]); i++);
+
+    // Get key string, stopping at '=' or whitespace
+    char *const key = line + i;
+    for (; i < len && line[i] != '=' && !isspace(line[i]); i++);
+
+    const size_t key_len = line + i - key;
+
+    if (i >= len || key_len == 0) {
+        sc_error("Invalid command: '%s'", line);
+        return -1;
+    }
+
+    // Skip spaces between key name and '='
+    for (; i < len && isspace(line[i]); i++);
+    if (i >= len || line[i] != '=') {
+        sc_error("Badly formed set command expected '='");
+        return -1;
+    }
+
+    // Skip spaces between '=' and value
+    for (i += 1; i < len && isspace(line[i]); i++);
+
+    // Get value string, stopping at whitespace or the end of the string
+    char *const value = line + i;
+    for (; i < len && !isspace(line[i]); i++);
+
+    const size_t value_len = line + i - value;
+
+    if (value_len == 0) {
+        sc_error("Expected value after '='");
+        return -1;
+    }
+
+    key[key_len] = '\0';
+    value[value_len] = '\0';
+
+    ConfigValue *const old_value = config_get_value(key);
+
+    if (!old_value) {
+        sc_error("Invalid key config variable: '%s'", key);
+        return -1;
+    }
+
+    int ret;
+    switch (old_value->tag) {
+        case CONFIGVALUE_STRING:
+            ret = config_set_string(key, value);
+            break;
+        case CONFIGVALUE_BOOL:
+            if (!strcmp(value, "1") || !strcmp(value, "true") || !strcmp(value, "on")) {
+                ret = config_set_bool(key, true);
+            } else if (!strcmp(value, "0") || !strcmp(value, "false") || !strcmp(value, "off")) {
+                ret = config_set_bool(key, false);
+            } else {
+                ret = -1;
+            }
+            break;
+        case CONFIGVALUE_INT:
+            errno = 0;
+            long long l = strtoll(key, NULL, 10);
+            if (errno)
+                ret = -1;
+            else
+                ret = config_set_int(key, l);
+            break;
+        case CONFIGVALUE_DOUBLE:
+            errno = 0;
+            double d = strtod(key, NULL);
+            if (errno)
+                ret = -1;
+            else
+                ret = config_set_double(key, d);
+            break;
+    }
+
+    switch (ret) {
+        case 1:
+            sc_error("Could not set config variable '%s' to value '%s'", key, value);
+            break;
+        case -1:
+            sc_info("Config variable '%s' unchanged. Current value is '%s'", key, value);
+            break;
+        case 0:
+            sc_info("Config variable '%s' changed to '%s'", key, value);
+            break;
+        default:
+            assert(false);
+    }
+
+    return ret;
 }

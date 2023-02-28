@@ -42,7 +42,9 @@
  * \brief Header file for cmds_visual.c
  */
 
-void start_visualmode(int tlrow, int tlcol, int brrow, int brcol);
-void exit_visualmode();
-void do_visualmode(Buffer * sb);
+#include "../sc.h"
+
+void start_visualmode(SC *const sc, int tlrow, int tlcol, int brrow, int brcol);
+void exit_visualmode(SC *const sc);
+void do_visualmode(SC *const sc, Buffer * sb);
 extern char visual_submode;

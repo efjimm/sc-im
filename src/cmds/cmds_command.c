@@ -189,8 +189,8 @@ L"x",
  * \return none
  */
 
-void do_commandmode(Buffer * sb) {
-    struct roman * roman = session->cur_doc;
+void do_commandmode(SC *const sc, Buffer * sb) {
+    struct roman * roman = sc->session->cur_doc;
     struct sheet * sh = roman->cur_sh;
 
     // If a visual selected range exists
@@ -292,7 +292,7 @@ void do_commandmode(Buffer * sb) {
     } else if (buffer_get(sb, 0) == ctl('v') ) {  // VISUAL SUBMODE
         visual_submode = ':';
         chg_mode('v');
-        start_visualmode(sh->currow, sh->curcol, sh->currow, sh->curcol);
+        start_visualmode(sc, sh->currow, sh->curcol, sh->currow, sh->curcol);
         return;
 
     } else if (buffer_get(sb, 0) == ctl('r') && buffer_size(sb) == 2 &&        // C-r      // FIXME ???
@@ -483,7 +483,8 @@ void do_commandmode(Buffer * sb) {
                     delete_structures();
                     create_structures();
                     // create main session
-                    session = (struct session *) calloc(1, sizeof(struct session));
+                    sc->session = calloc(1, sizeof(struct session));
+                    session = sc->session;
                     load_file(name);
 
                     if (! config_get_bool("nocurses")) {
@@ -1001,7 +1002,7 @@ void do_commandmode(Buffer * sb) {
           savefile();
 
         } else if ( ! wcsncmp(inputline, L"file ", 5) ) {
-            char * curfile = session->cur_doc->name;
+            char * curfile = sc->session->cur_doc->name;
             char name [BUFFERSIZE];
             int name_ok = 0;
             #ifndef NO_WORDEXP
@@ -1040,7 +1041,7 @@ void do_commandmode(Buffer * sb) {
             }
 
         } else if ( ! wcscmp(inputline, L"file") ) {
-            char * curfile = session->cur_doc->name;
+            char * curfile = sc->session->cur_doc->name;
             if (curfile == NULL || ! curfile) {
                 sc_info("Current file has no name");
             } else {
@@ -1081,7 +1082,7 @@ void do_commandmode(Buffer * sb) {
         } else if (
             ! wcsncmp(inputline, L"e xlsx"  , 6) ||
             ! wcsncmp(inputline, L"e! xlsx" , 7)) {
-                char * curfile = session->cur_doc->name;
+                char * curfile = sc->session->cur_doc->name;
                 #ifndef XLSX_EXPORT
                 sc_error("XLSX export support not compiled in");
                 #else

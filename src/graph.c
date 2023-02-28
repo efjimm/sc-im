@@ -104,7 +104,7 @@ extern struct session * session;
  * \return An empty graph
  */
 graphADT GraphCreate() {
-   graphADT emptyGraph = (graphCDT *) malloc(sizeof(graphCDT));
+   graphADT emptyGraph = malloc(sizeof(graphCDT));
    emptyGraph->vertices = NULL;
    return emptyGraph;
 }

@@ -163,6 +163,8 @@ static void export_to_file(ExportType);
 
 extern graphADT graph;
 
+static SC sc;
+
 /**
  * \brief The main() function
  *
@@ -196,14 +198,16 @@ main(int argc, char **argv) {
     setlocale(LC_CTYPE, "");
 #endif
 
-    SC sc = {
+    sc = (SC){
+        .session = calloc(1, sizeof(struct session)),
         .user_config = map_new(),
     };
+    session = sc.session;
 
     config_init(sc.user_config);
 
     // Read the main() parameters and set config values as necessary
-    read_argv(argc, argv);
+    read_argv(&sc, argc, argv);
 
     wchar_t stdin_buffer[BUFFERSIZE] = { L'\0' };
 
@@ -214,9 +218,6 @@ main(int argc, char **argv) {
 
     // create basic structures that will depend on the loaded file
     create_structures();
-
-    // create main session
-    session = calloc(1, sizeof(*session));
 
     /*
      * create a new roman struct for each file passed as argv
@@ -234,7 +235,7 @@ main(int argc, char **argv) {
      * check if session->cur_doc is NULL (no file passed as argv).
      * if so, create an empty doc with just one sheet
      */
-    if (session->cur_doc == NULL) create_empty_wb();
+    if (sc.session->cur_doc == NULL) create_empty_wb();
 
     if (export_type != EXPORT_TYPE_NONE) {
         export_to_file(export_type);
@@ -313,7 +314,7 @@ main(int argc, char **argv) {
     if (!config_get_bool("nocurses")) {
         // we show welcome screen if no spreadsheet was passed to sc-im
         // and no input was sent throw pipeline
-        if (!session->cur_doc->name && !wcslen(stdin_buffer)) {
+        if (!sc.session->cur_doc->name && !wcslen(stdin_buffer)) {
             ui_do_welcome();
             // show mode and cell's details in status bar
             ui_print_mode();
@@ -522,7 +523,7 @@ exit_app(int status) {
 
     // remove backup file
 #ifdef AUTOBACKUP
-    char * filename = session->cur_doc->name;
+    char * filename = sc.session->cur_doc->name;
     if (filename != NULL && strlen(filename) && backup_exists(filename)) remove_backup(filename);
 #endif
 
@@ -562,7 +563,7 @@ exit_app(int status) {
  * \return none
  */
 void
-read_argv(int argc, char **argv) {
+read_argv(SC *const sc, int argc, char **argv) {
     typedef struct {
         // Takes a void pointer to the arg union, which can be cast to any member type
         bool (*fn)(const void *);
@@ -622,8 +623,8 @@ argv_set_export(const void *v) {
 
 void
 export_to_file(ExportType type) {
-    const int max_row = session->cur_doc->cur_sh->maxrow;
-    const int max_col = session->cur_doc->cur_sh->maxcol;
+    const int max_row = sc.session->cur_doc->cur_sh->maxrow;
+    const int max_col = sc.session->cur_doc->cur_sh->maxcol;
 
     switch (type) {
         case EXPORT_TYPE_CSV: {
@@ -722,7 +723,7 @@ sig_int(int sig) {
     if ( !config_get_bool("debug")) {
         sc_error("Got SIGINT. Press «:q<Enter>» to quit sc-im");
     } else if (buffer_size(buffer)) {
-        break_waitcmd_loop(buffer);
+        break_waitcmd_loop(&sc, buffer);
     } else {
         shall_quit = 2;
     }

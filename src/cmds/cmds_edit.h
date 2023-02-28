@@ -44,8 +44,8 @@
 
 #include "../input.h"
 
-void do_editmode(Buffer * sb);
-int start_edit_mode(Buffer * buf, char type);
+void do_editmode(SC *const sc, Buffer * sb);
+int start_edit_mode(SC *const sc, Buffer * buf, char type);
 
 int for_word(int end_of_word, int delt, int big_word);
 int look_for(wchar_t cb);
