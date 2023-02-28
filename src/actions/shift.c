@@ -126,7 +126,7 @@ void shift(struct sheet * sh, int r, int c, int rf, int cf, wchar_t type) {
             while (ic--) shift_range(sh, 0, -ic, r, c, rf, cf);
 
             if (config_get_bool("autocalc") && ! roman->loading) EvalAll();
-            //update(TRUE); // this is used just to make debugging easier
+            //update(true); // this is used just to make debugging easier
 #ifdef UNDO
             copy_to_undostruct(sh, 0, 0, -1, -1, UNDO_ADD, HANDLE_DEPS, NULL);
 #endif
@@ -280,7 +280,7 @@ void shift_cells_up(struct sheet * sh, int deltarows, int deltacols) {
                 if (v != NULL && v->back_edges == NULL ) destroy_vertex(sh, *pp);
 
                 if (*pp) {
-                   mark_ent_as_deleted(*pp, TRUE); //important: this mark the ents as deleted
+                   mark_ent_as_deleted(*pp, true); //important: this mark the ents as deleted
                    //clearent(*pp);
                    //free(*pp);
                    *pp = NULL;
@@ -326,7 +326,7 @@ void shift_cells_left(struct sheet * sh, int deltarows, int deltacols) {
                 if (v != NULL && v->back_edges == NULL ) destroy_vertex(sh, *pp);
 
                 if (*pp) {
-                   mark_ent_as_deleted(*pp, TRUE); //important: this mark the ents as deleted
+                   mark_ent_as_deleted(*pp, true); //important: this mark the ents as deleted
                    //clearent(*pp);
                    //free(*pp);
                    *pp = NULL;

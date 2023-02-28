@@ -1058,7 +1058,7 @@ void closefile(FILE *f, int pid, int rfd) {
     }
     if (brokenpipe) {
         sc_error("Broken pipe");
-        brokenpipe = FALSE;
+        brokenpipe = false;
     }
 }
 

@@ -102,7 +102,7 @@ void checkbounds(struct sheet * sh, int * rowp, int * colp) {
         (unsigned)(nelem * sizeof(type))); \
     if (newptr == (type *)NULL) { \
     sc_error(msg); \
-    return (FALSE); \
+    return (false); \
     } \
     oldptr = newptr /* wait incase we can't alloc */
 
@@ -117,13 +117,13 @@ static char nowider[] = "The table can't be any wider";
  *
  * \details Grow the main && auxillary tables (reset maxrows/mascols
  * as needed). toprow &&/|| topcol tells us a better guess of how big
- * to become. We return TRUE if we could grow, FALSE if not.
+ * to become. We return true if we could grow, false if not.
  * \param[in] rowcol
  * \param[in] toprow
  * \param[in] topcol
  *
- * \return TRUE if we could grow
- * \return FALSE if we cannot grow
+ * \return true if we could grow
+ * \return false if we cannot grow
  */
 
 int growtbl(struct sheet * sh, int rowcol, int toprow, int topcol) {
@@ -167,7 +167,7 @@ int growtbl(struct sheet * sh, int rowcol, int toprow, int topcol) {
     if ((rowcol == GROWROW) || (rowcol == GROWBOTH)) {
         if ((sh->maxcols == MAXROWS) || (toprow >= MAXROWS)) {
             sc_error(nolonger);
-            return (FALSE);
+            return (false);
         }
 
         if (toprow > sh->maxrows)
@@ -183,7 +183,7 @@ int growtbl(struct sheet * sh, int rowcol, int toprow, int topcol) {
     if ((rowcol == GROWCOL) || (rowcol == GROWBOTH)) {
         if ((sh->maxcols == ABSMAXCOLS) || (topcol >= ABSMAXCOLS)) {
             sc_error(nowider);
-            return (FALSE);
+            return (false);
         }
 
         if (topcol > sh->maxcols)
@@ -245,7 +245,7 @@ int growtbl(struct sheet * sh, int rowcol, int toprow, int topcol) {
         for (i = 0; i < sh->maxrows; i++) {
             if ((sh->tbl[i] = (struct ent **) scxrealloc((char *)sh->tbl[i], (unsigned) (newcols * sizeof(struct ent **)))) == (struct ent **)0) {
                 sc_error(nowider);
-                return(FALSE);
+                return(false);
             }
             for (nullit = ATBL_P(sh->tbl, i, sh->maxcols), cnt = 0; cnt < newcols - sh->maxcols; cnt++, nullit++)
                 *nullit = (struct ent *)NULL;
@@ -259,7 +259,7 @@ int growtbl(struct sheet * sh, int rowcol, int toprow, int topcol) {
     for (; i < newrows; i++) {
         if ((sh->tbl[i] = (struct ent **) scxmalloc((unsigned)(newcols * sizeof(struct ent **)))) == (struct ent **) 0) {
             sc_error(nowider);
-            return(FALSE);
+            return(false);
         }
         for (nullit = sh->tbl[i], cnt = 0; cnt < newcols; cnt++, nullit++)
             *nullit = (struct ent *)NULL;
@@ -278,7 +278,7 @@ int growtbl(struct sheet * sh, int rowcol, int toprow, int topcol) {
     if (sh->maxrows > 1000000) sh->rescol = 8;
 
     sh->maxcols = newcols;
-    return (TRUE);
+    return (true);
 }
 
 /**

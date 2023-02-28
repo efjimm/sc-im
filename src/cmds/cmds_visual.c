@@ -68,7 +68,7 @@ extern struct history * commandline_history;
 
 char visual_submode = '0';
 srange * r;                       // SELECTED RANGE!
-int moving = FALSE;
+int moving = false;
 
 /**
  * \brief TODO Document start_visualmode()
@@ -111,11 +111,11 @@ void start_visualmode(SC *const sc, int tlrow, int tlcol, int brrow, int brcol) 
     }
 
     if (visual_submode == '0') {  // Started visual mode with 'v' command
-        ui_update(TRUE);
-        moving = FALSE;
+        ui_update(true);
+        moving = false;
     } else {                      // Started visual mode with 'C-v' command
-        ui_update(TRUE);
-        moving = TRUE;
+        ui_update(true);
+        moving = true;
     }
     return;
 }
@@ -128,7 +128,7 @@ void start_visualmode(SC *const sc, int tlrow, int tlcol, int brrow, int brcol) 
 
 void exit_visualmode(SC *const sc) {
     struct roman * roman = sc->session->cur_doc;
-    moving = FALSE;
+    moving = false;
     visual_submode = '0';
     r->selected = 0;
     roman->cur_sh->currow = r->startup_row;
@@ -151,7 +151,7 @@ do_visualmode(SC *const sc, Buffer *buf) {
     struct sheet * sh = roman->cur_sh;
 
     // we are moving (previous to a 'C-o' keypress)
-    if (moving == TRUE) {
+    if (moving == true) {
         switch (buffer_get(buf, 0)) {
             case L'j':
             case OKEY_DOWN:
@@ -174,7 +174,7 @@ do_visualmode(SC *const sc, Buffer *buf) {
                 break;
 
             case ctl('o'):
-                moving = FALSE;
+                moving = false;
                 r->orig_row = sh->currow;
                 r->orig_col = sh->curcol;
                 break;
@@ -189,7 +189,7 @@ do_visualmode(SC *const sc, Buffer *buf) {
         r->brrow = sh->currow;
         r->brcol = sh->curcol;
 
-        ui_update(FALSE);
+        ui_update(false);
         return;
     }
 
@@ -213,9 +213,9 @@ do_visualmode(SC *const sc, Buffer *buf) {
         ui_show_header();
         return;
 
-    // moving to TRUE
+    // moving to true
     //} else if (buffer_get(buf, 0) == ctl('m')) {
-    //    moving = TRUE;
+    //    moving = true;
 
     // MOVEMENT COMMANDS
     // UP - ctl(b)
@@ -595,8 +595,8 @@ do_visualmode(SC *const sc, Buffer *buf) {
     }
 
     if (visual_submode == '0')
-        ui_update(TRUE);
+        ui_update(true);
     else {
-        ui_update(FALSE);
+        ui_update(false);
     }
 }

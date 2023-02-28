@@ -817,7 +817,7 @@ int ui_show_content(WINDOW * win, int nb_mobile_rows, int nb_mobile_cols) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     int row, col;
-    int redraw_needed = FALSE;
+    int redraw_needed = false;
 
     srange * s = get_selected_range();
     int conf_underline_grid = config_get_bool("underline_grid");
@@ -1024,7 +1024,7 @@ int ui_show_content(WINDOW * win, int nb_mobile_rows, int nb_mobile_cols) {
                     if (sh->row_format[row] < newheight) {
                         sh->row_format[row] = newheight;
                         /* calc_mobile_rows() didn't know about this */
-                        redraw_needed = TRUE;
+                        redraw_needed = true;
                     }
                 }
 
@@ -1306,7 +1306,7 @@ void ui_show_text(const char * val) {
     getchar();
     reset_prog_mode();
     refresh();
-    ui_update(TRUE);
+    ui_update(true);
     wmove(input_pad, 0, 0);
     wclrtoeol(input_pad);
     ui_refresh_pad(0);
@@ -1328,7 +1328,7 @@ void sig_winchg(int sig) {
     wresize(main_win, LINES - RESROW, COLS);
     wresize(input_win, RESROW, COLS);
     ui_mv_bottom_bar();
-    ui_update(TRUE);
+    ui_update(true);
     flushinp();
 
     return;
@@ -1354,17 +1354,17 @@ void ui_bail(lua_State *L, char * msg) {
     move(0, 0);
     clrtobot();
     status_line_empty = 1;
-    clearok(stdscr, TRUE);
+    clearok(stdscr, true);
     mvprintw(0, 0, "%s", stderr_buffer);
     stderr_buffer[0]='\0';
     fseek(stderr, 0, SEEK_END);
     refresh();
     getch();
     set_term(sstdout);
-    clearok(stdscr, TRUE);
+    clearok(stdscr, true);
     ui_show_header();
     refresh();
-    ui_update(TRUE);
+    ui_update(true);
 }
 #endif
 
@@ -1433,7 +1433,7 @@ char * ui_query(char * initial_msg) {
 
     // ask for input
     wtimeout(input_pad, -1);
-    notimeout(input_pad, TRUE);
+    notimeout(input_pad, true);
     //wmove(input_pad, 0, 0);
     wmove(input_pad, 0, strlen(initial_msg));
     //wclrtoeol(input_pad);
@@ -1568,7 +1568,7 @@ void ui_pause() {
 void ui_resume() {
     set_term(sstdout);
     reset_prog_mode();
-    clearok(stdscr, TRUE);
+    clearok(stdscr, true);
     sig_winchg(0);
 
     return;
@@ -1624,7 +1624,7 @@ void ui_handle_mouse(MEVENT event) {
             if (event.bstate & BUTTON5_PRESSED) scroll_down(sh, n);
             else scroll_up(sh, n);
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
         return;
     }
 #else
@@ -1696,6 +1696,6 @@ void ui_handle_mouse(MEVENT event) {
         return;
     }
 
-    ui_update(TRUE);
+    ui_update(true);
 }
 #endif

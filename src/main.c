@@ -114,7 +114,7 @@ char thsep = ','; /* Default thousands separator character */
 int changed;
 int cellassign;
 int arg = 1;
-int brokenpipe = FALSE; /* Set to true if SIGPIPE is received */
+int brokenpipe = false; /* Set to true if SIGPIPE is received */
 int optimize  = 0; /* Causes numeric expressions to be optimizedv */
 int rndtoeven = 0;
 int rowsinrange = 1;
@@ -321,7 +321,7 @@ main(int argc, char **argv) {
             ui_show_celldetails();
         } else {
             ui_show_header();
-            ui_update(TRUE);
+            ui_update(true);
         }
     } else {
         f = fopen("/dev/tty", "rw");
@@ -680,7 +680,7 @@ signals(void) {
 void
 sig_nopipe(int sig) {
     sc_error("brokenpipe!");
-    brokenpipe = TRUE;
+    brokenpipe = true;
     return;
 }
 
@@ -709,7 +709,7 @@ sig_cont(int sig) {
     sig_winchg(SIGWINCH);
     reset_prog_mode();
     refresh();
-    ui_update(TRUE);
+    ui_update(true);
     //sc_info("Got SIGCONT.");
 }
 

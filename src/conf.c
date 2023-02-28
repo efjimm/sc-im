@@ -525,6 +525,7 @@ change_config_parameter(wchar_t *inputline) {
     for (; i < len && line[i] != '=' && !isspace(line[i]); i++);
 
     const size_t key_len = line + i - key;
+    key[key_len] = '\0';
 
     if (i >= len || key_len == 0) {
         sc_error("Invalid command: '%s'", line);
@@ -546,14 +547,12 @@ change_config_parameter(wchar_t *inputline) {
     for (; i < len && !isspace(line[i]); i++);
 
     const size_t value_len = line + i - value;
+    value[value_len] = '\0';
 
     if (value_len == 0) {
         sc_error("Expected value after '='");
         return -1;
     }
-
-    key[key_len] = '\0';
-    value[value_len] = '\0';
 
     ConfigValue *const old_value = config_get_value(key);
 

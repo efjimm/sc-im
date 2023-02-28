@@ -104,7 +104,7 @@ void set_trigger(struct sheet * sh, int r, int c, int rf, int cf, char * str) {
     if (str[0] == '"') del_char(str, 0);
     if (str[strlen(str)-1] == '"') del_char(str, strlen(str)-1);
 
-    parse_str(d, str, TRUE);
+    parse_str(d, str, true);
 
     if (
         (get(d,"mode") == NULL) ||

@@ -113,7 +113,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->lastrow = sh->currow;
             sh->currow = forw_row(sh, 1)->row;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'k':
@@ -122,7 +122,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->lastrow = sh->currow;
             sh->currow = back_row(sh, 1)->row;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'h':
@@ -131,7 +131,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->lastcol = sh->curcol;
             sh->curcol = back_col(sh, 1)->col;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'l':
@@ -140,7 +140,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->lastcol = sh->curcol;
             sh->curcol = forw_col(sh, 1)->col;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'0':
@@ -150,7 +150,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->lastcol = sh->curcol;
             sh->curcol = left_limit(sh)->col;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'$':
@@ -159,7 +159,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->lastcol = sh->curcol;
             sh->curcol = right_limit(sh, sh->currow)->col;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'^':
@@ -167,7 +167,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->lastrow = sh->currow;
             sh->currow = goto_top(sh)->row;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'#':
@@ -176,7 +176,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->currow = goto_bottom(sh)->row;
             if (sh->currow == sh->lastrow && sh->curcol == sh->lastcol) sh->currow = go_end(sh)->row;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // Tick
@@ -200,7 +200,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             roman->cur_sh->currow = ep->vp->row;
             roman->cur_sh->curcol = ep->vp->col;
             if (ep != NULL) free(ep);
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // CTRL j
@@ -213,7 +213,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 cf = sr->brcol;
             }
             auto_fit(sh, c, cf, DEFWIDTH);  // auto justify columns
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -244,7 +244,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 return;
             }
             dateformat(sh, lookat(sh, r, c), lookat(sh, rf, cf), f);
-            ui_update(TRUE);
+            ui_update(true);
             break;
         #else
             sc_info("Build made without USELOCALE enabled");
@@ -262,7 +262,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->currow = forw_row(sh, n)->row;
             unselect_ranges();
             scroll_down(sh, n);
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -277,7 +277,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->currow = back_row(sh, n)->row;
             unselect_ranges();
             scroll_up(sh, n);
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -288,7 +288,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->currow = e->row;
             sh->curcol = e->col;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'b':
@@ -298,7 +298,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->currow = e->row;
             sh->curcol = e->col;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'H':
@@ -306,21 +306,21 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             int currow_h = vert_top(sh)->row;
             sh->currow = currow_h;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'M':
             sh->lastrow = sh->currow;
             sh->currow = vert_middle(sh)->row;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'L':
             sh->lastrow = sh->currow;
             sh->currow = vert_bottom(sh)->row;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'G': // goto end
@@ -330,7 +330,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             sh->currow = e->row;
             sh->curcol = e->col;
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // GOTO goto
@@ -343,7 +343,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             unselect_ranges();
             sh->offscr_sc_rows = 0;
             sh->offscr_sc_cols = 0;
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'g':
@@ -359,7 +359,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
 
             } else if (buffer_get(buf, 1) == L'f') {                        // gf
                 unselect_ranges();
-                ui_update(TRUE);
+                ui_update(true);
                 ui_stop_screen();
                 openfile_under_cursor(sh->currow, sh->curcol);
                 ui_start_screen();
@@ -409,7 +409,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 send_to_interp(interp_line);
             }
             unselect_ranges();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // repeat last goto command - backwards
@@ -426,7 +426,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 gs.g_type = G_NONE;    /* Don't free the string */
                 str_search(sh, gs.g_s, 0, 0, sh->maxrow, sh->maxcol, 0, gs.g_flow);
             }
-            ui_update(TRUE);
+            ui_update(true);
             }
             break;
 
@@ -444,7 +444,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 gs.g_type = G_NONE;    /* Don't free the string */
                 str_search(sh, gs.g_s, 0, 0, sh->maxrow, sh->maxcol, 0, gs.g_flow);
             }
-            ui_update(TRUE);
+            ui_update(true);
             }
             break;
 
@@ -544,7 +544,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
         // del current cell or range
         case L'x':
             del_selected_cells(sh);
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // format col or freeze range
@@ -574,7 +574,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                     handle_freeze(sh, lookat(sh, r, c), lookat(sh, rf, cf), 1, 'c');
                     sc_info("Area frozen");
                 }
-                ui_update(FALSE);
+                ui_update(false);
                 break;
 
             // decrease row height
@@ -593,7 +593,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                     end_undo_action();
                 } else dismiss_undo_item(NULL);
 #endif
-                ui_update(TRUE);
+                ui_update(true);
                 break;
 
             // increase row height
@@ -612,7 +612,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                     end_undo_action();
                 } else dismiss_undo_item(NULL);
 #endif
-                ui_update(TRUE);
+                ui_update(true);
                 break;
 
             // change in format
@@ -705,7 +705,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
 #endif
             }
 
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -727,7 +727,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             } else if (buffer_get(buf, 1) == L'v') {
                 valueize_area(sh, r, c, rf, cf);
             }
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -735,7 +735,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
         case L'R':
             if (bs == 3) {
                 create_range(buffer_get(buf, 1), buffer_get(buf, 2), NULL, NULL);
-                ui_update(TRUE);
+                ui_update(true);
             }
             break;
 
@@ -762,7 +762,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 show_col(c, arg);
             }
             cmd_multiplier = 0;
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -780,7 +780,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             shift(sh, r, c, rf, cf, buffer_get(buf, 1));
             unselect_ranges();
             rebuild_graph();
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -805,7 +805,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             }
 
             rebuild_graph();
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -841,7 +841,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             end_undo_action();
 #endif
             rebuild_graph();
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -876,7 +876,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             end_undo_action();
 #endif
             rebuild_graph();
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -908,7 +908,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 sc_error("Locked cells encountered. Nothing changed");
                 break;
             }
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         case L'P':
@@ -920,7 +920,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                     sc_error("Locked cells encountered. Nothing changed");
                     break;
                 }
-                ui_update(TRUE);
+                ui_update(true);
             }
             break;
 
@@ -930,7 +930,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 sc_error("Locked cells encountered. Nothing changed");
                 break;
             }
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // select inner range - Vir
@@ -971,7 +971,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 swprintf(cline, BUFFERSIZE, L"autofit %s:", coltoa(c));
                 swprintf(cline + wcslen(cline), BUFFERSIZE, L"%s", coltoa(cf));
                 send_to_interp(cline);
-                ui_update(TRUE);
+                ui_update(true);
             }
             break;
 
@@ -1067,26 +1067,26 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                     break;
                     }
             }
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // scroll up a line
         case ctl('y'):
             scroll_up(sh, 1);
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // scroll down a line
         case ctl('e'):
             scroll_down(sh, 1);
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // undo
         case L'u':
             #ifdef UNDO
             do_undo();
-            ui_update(TRUE);
+            ui_update(true);
             #else
             sc_error("Build was done without UNDO support");
             #endif
@@ -1096,7 +1096,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
         case ctl('r'):
             #ifdef UNDO
             do_redo();
-            ui_update(TRUE);
+            ui_update(true);
             #else
             sc_error("Build was done without UNDO support");
             #endif
@@ -1134,7 +1134,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
             copy_to_undostruct(sh, r, c, rf, cf, UNDO_ADD, IGNORE_DEPS, NULL);
             end_undo_action();
 #endif
-            ui_update(TRUE);
+            ui_update(true);
             break;
             }
 
@@ -1144,7 +1144,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
 
         case L'@':
             EvalAll();
-            ui_update(TRUE);
+            ui_update(true);
             break;
 
         // increase or decrease numeric value of cell or range
@@ -1191,7 +1191,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
 #endif
             if (config_get_bool("autocalc")) EvalRange(sh, tlrow, tlcol, brrow, brcol);
             cmd_multiplier = 0;
-            ui_update(TRUE);
+            ui_update(true);
             }
             break;
 

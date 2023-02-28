@@ -95,7 +95,7 @@ void hide_row(int from_row, int arg) {
         #endif
     }
     while ( from_row <= r2)
-        sh->row_hidden[ from_row++ ] = TRUE;
+        sh->row_hidden[ from_row++ ] = true;
     return;
 }
 
@@ -136,7 +136,7 @@ void hide_col(int from_col, int arg) {
         #endif
     }
     while (from_col <= c2)
-        sh->col_hidden[ from_col++ ] = TRUE;
+        sh->col_hidden[ from_col++ ] = true;
     return;
 }
 
@@ -169,7 +169,7 @@ void show_row(int from_row, int arg) {
         #ifdef UNDO
         if (sh->row_hidden[from_row] ) undo_hide_show(from_row, -1, 's', 1);
         #endif
-        sh->row_hidden[ from_row++ ] = FALSE;
+        sh->row_hidden[ from_row++ ] = false;
     }
     #ifdef UNDO
     end_undo_action();
@@ -206,7 +206,7 @@ void show_col(int from_col, int arg) {
         #ifdef UNDO
         if (sh->col_hidden[from_col] ) undo_hide_show(-1, from_col, 's', 1);
         #endif
-         sh->col_hidden[ from_col++ ] = FALSE;
+         sh->col_hidden[ from_col++ ] = false;
     }
     #ifdef UNDO
     end_undo_action();

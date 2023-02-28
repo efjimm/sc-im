@@ -73,7 +73,7 @@ int exec_cmd (char * line) {
         sc_error("Error creating pipe");
         getchar();
         ui_resume();
-        ui_update(TRUE);
+        ui_update(true);
         return -1;
     }
 
@@ -82,7 +82,7 @@ int exec_cmd (char * line) {
         sc_error("Fork error");
         getchar();
         ui_resume();
-        ui_update(TRUE);
+        ui_update(true);
         return -1;
     }
 
@@ -125,7 +125,7 @@ int exec_cmd (char * line) {
 
         getchar();
         ui_resume();
-        ui_update(TRUE);
+        ui_update(true);
     }
 #endif
     return 0;

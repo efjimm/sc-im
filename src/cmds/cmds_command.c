@@ -1150,7 +1150,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
         inputline[0]=L'\0';
         inputline_pos = 0; //ADDED 08/10/2018
         set_comp(0); // unmark tab completion
-        ui_update(TRUE);
+        ui_update(true);
     }
     return;
 }

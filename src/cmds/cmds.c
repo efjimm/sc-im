@@ -283,7 +283,7 @@ void int_deletecol(struct sheet * sh, int col, int mult) {
         for (r = 0; r <= sh->maxrow; r++) {
             pp = ATBL(sh, sh->tbl, r, col);
             if ( *pp != NULL ) {
-                mark_ent_as_deleted(*pp, TRUE);
+                mark_ent_as_deleted(*pp, true);
                 //clearent(*pp);
                 //free(*pp);
                 *pp = NULL;
@@ -322,8 +322,8 @@ void int_deletecol(struct sheet * sh, int col, int mult) {
             sh->fwidth[i] = DEFWIDTH;
             sh->precision[i] = DEFPREC;
             sh->realfmt[i] = DEFREFMT;
-            sh->col_hidden[i] = FALSE;
-            sh->col_frozen[i] = FALSE;
+            sh->col_hidden[i] = false;
+            sh->col_frozen[i] = false;
         }
 
         if (sh->maxcol) sh->maxcol--;
@@ -536,11 +536,11 @@ void erase_area(struct sheet * sh, int sr, int sc, int er, int ec, int ignoreloc
                     destroy_vertex(sh, *pp);
 
                 if (mark_as_deleted) {
-                    mark_ent_as_deleted(*pp, TRUE);
+                    mark_ent_as_deleted(*pp, true);
                 } else {
                     clearent(*pp); // free memory
                     cleanent(*pp); // fill ent with empty values
-                    mark_ent_as_deleted(*pp, FALSE);
+                    mark_ent_as_deleted(*pp, false);
                 }
                 *pp = NULL;
             }
@@ -877,7 +877,7 @@ void formatcol(struct sheet * sh, int c) {
             break;
     }
     sc_info("Current format is %d %d %d", sh->fwidth[sh->curcol], sh->precision[sh->curcol], sh->realfmt[sh->curcol]);
-    ui_update(TRUE);
+    ui_update(true);
     return;
 }
 
@@ -967,8 +967,8 @@ void insert_col(struct sheet * sh, int after) {
         sh->fwidth[c] = DEFWIDTH;
         sh->precision[c] =  DEFPREC;
         sh->realfmt[c] = DEFREFMT;
-        sh->col_hidden[c] = FALSE;
-        sh->col_frozen[c] = FALSE;
+        sh->col_hidden[c] = false;
+        sh->col_frozen[c] = false;
     }
 
     for (r=0; r <= sh->maxrow; r++) {

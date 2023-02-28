@@ -993,28 +993,28 @@ void do_undo() {
         int * pd = ul->col_hidded;
         int left = *(pd++);
         while (left--) {
-            sh->col_hidden[*(pd++)] = FALSE;
+            sh->col_hidden[*(pd++)] = false;
         }
     }
     else if (ul->col_showed  != NULL) {
         int * pd = ul->col_showed;
         int left = *(pd++);
         while (left--) {
-            sh->col_hidden[*(pd++)] = TRUE;
+            sh->col_hidden[*(pd++)] = true;
         }
     }
     else if (ul->row_hidded  != NULL) {
         int * pd = ul->row_hidded;
         int left = *(pd++);
         while (left--) {
-            sh->row_hidden[*(pd++)] = FALSE;
+            sh->row_hidden[*(pd++)] = false;
         }
     }
     else if (ul->row_showed  != NULL) {
         int * pd = ul->row_showed;
         int left = *(pd++);
         while (left--) {
-            sh->row_hidden[*(pd++)] = TRUE;
+            sh->row_hidden[*(pd++)] = true;
         }
     }
 
@@ -1024,28 +1024,28 @@ void do_undo() {
         int * pd = ul->col_unfrozed;
         int left = *(pd++);
         while (left--) {
-            sh->col_frozen[*(pd++)] = TRUE;
+            sh->col_frozen[*(pd++)] = true;
         }
     }
     if (ul->col_frozed != NULL) {
         int * pd = ul->col_frozed;
         int left = *(pd++);
         while (left--) {
-            sh->col_frozen[*(pd++)] = FALSE;
+            sh->col_frozen[*(pd++)] = false;
         }
     }
     if (ul->row_unfrozed  != NULL) {
         int * pd = ul->row_unfrozed;
         int left = *(pd++);
         while (left--) {
-            sh->row_frozen[*(pd++)] = TRUE;
+            sh->row_frozen[*(pd++)] = true;
         }
     }
     if (ul->row_frozed  != NULL) {
         int * pd = ul->row_frozed;
         int left = *(pd++);
         while (left--) {
-            sh->row_frozen[*(pd++)] = FALSE;
+            sh->row_frozen[*(pd++)] = false;
         }
     }
 
@@ -1232,28 +1232,28 @@ void do_redo() {
         int * pd = ul->col_hidded;
         int left = *(pd++);
         while (left--) {
-            sh->col_hidden[*(pd++)] = TRUE;
+            sh->col_hidden[*(pd++)] = true;
         }
     }
     else if (ul->col_showed  != NULL) {
         int * pd = ul->col_showed;
         int left = *(pd++);
         while (left--) {
-            sh->col_hidden[*(pd++)] = FALSE;
+            sh->col_hidden[*(pd++)] = false;
         }
     }
     else if (ul->row_hidded  != NULL) {
         int * pd = ul->row_hidded;
         int left = *(pd++);
         while (left--) {
-            sh->row_hidden[*(pd++)] = TRUE;
+            sh->row_hidden[*(pd++)] = true;
         }
     }
     else if (ul->row_showed  != NULL) {
         int * pd = ul->row_showed;
         int left = *(pd++);
         while (left--) {
-            sh->row_hidden[*(pd++)] = FALSE;
+            sh->row_hidden[*(pd++)] = false;
         }
     }
 
@@ -1263,28 +1263,28 @@ void do_redo() {
         int * pd = ul->col_unfrozed;
         int left = *(pd++);
         while (left--) {
-            sh->col_frozen[*(pd++)] = FALSE;
+            sh->col_frozen[*(pd++)] = false;
         }
     }
     if (ul->col_frozed  != NULL) {
         int * pd = ul->col_frozed;
         int left = *(pd++);
         while (left--) {
-            sh->col_frozen[*(pd++)] = TRUE;
+            sh->col_frozen[*(pd++)] = true;
         }
     }
     if (ul->row_unfrozed  != NULL) {
         int * pd = ul->row_unfrozed;
         int left = *(pd++);
         while (left--) {
-            sh->row_frozen[*(pd++)] = FALSE;
+            sh->row_frozen[*(pd++)] = false;
         }
     }
     if (ul->row_frozed  != NULL) {
         int * pd = ul->row_frozed;
         int left = *(pd++);
         while (left--) {
-            sh->row_frozen[*(pd++)] = TRUE;
+            sh->row_frozen[*(pd++)] = true;
         }
     }
 

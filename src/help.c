@@ -252,7 +252,7 @@ void help() {
                 d = wgetch(input_win);
             }
             if (d == OKEY_ENTER && ( ! strcmp(hline, "q") || ! strcmp(hline, "quit") || ! strcmp(hline, "q!") )) {
-                quit_help_now = TRUE;
+                quit_help_now = true;
             } else if (d == OKEY_ESC) {
                 wmove(input_win, 0, 0);
                 wclrtoeol(input_win);
@@ -291,7 +291,7 @@ void help() {
             break;
 
         case 'q':
-            quit_help_now = TRUE;
+            quit_help_now = true;
             curs_set(0);
             break;
 

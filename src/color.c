@@ -296,7 +296,7 @@ void chg_color(char * str) {
     if (str[0]=='"') del_char(str, 0);
     if (str[strlen(str)-1]=='"') del_char(str, strlen(str)-1);
 
-    parse_str(d, str, TRUE);
+    parse_str(d, str, true);
     char * cl;
 
     // Validate we got enough keys to change a color
@@ -394,7 +394,7 @@ void color_cell(struct sheet * sh, int r, int c, int rf, int cf, char * str) {
     if (str[0]=='"') del_char(str, 0);
     if (str[strlen(str)-1]=='"') del_char(str, strlen(str)-1);
 
-    parse_str(d, str, TRUE);
+    parse_str(d, str, true);
     char * cl;
 
     // Validations
@@ -479,7 +479,7 @@ void color_cell(struct sheet * sh, int r, int c, int rf, int cf, char * str) {
     }
 
     destroy_dictionary(d);
-    if (! roman->loading) ui_update(TRUE);
+    if (! roman->loading) ui_update(true);
     return;
 }
 
@@ -530,7 +530,7 @@ void unformat(struct sheet * sh, int r, int c, int rf, int cf) {
         copy_to_undostruct(sh, r, c, rf, cf, UNDO_ADD, IGNORE_DEPS, NULL);
         end_undo_action();
         #endif
-        ui_update(TRUE);
+        ui_update(true);
     }
     return;
 }

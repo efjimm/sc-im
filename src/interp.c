@@ -1469,7 +1469,7 @@ void let(struct roman * roman, struct sheet * sh, struct ent * v, struct enode *
         /* prescale input unless it has a decimal */
         if ( ! roman->loading && !decimal && (prescale < (double) 0.9999999))
             val *= prescale;
-        decimal = FALSE;
+        decimal = false;
 
         v->v = val;
 

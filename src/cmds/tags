@@ -81,7 +81,7 @@ lookat	cmds.c	/^struct ent * lookat(struct sheet * sh, int row, int col) {$/;"	f
 look_back	cmds_edit.c	/^int look_back(wchar_t cb) {$/;"	f	typeref:typename:int
 look_for	cmds_edit.c	/^int look_for(wchar_t cb) {$/;"	f	typeref:typename:int
 mark_ent_as_deleted	cmds.c	/^void mark_ent_as_deleted(struct ent * p, int delete) {$/;"	f	typeref:typename:void
-moving	cmds_visual.c	/^int moving = FALSE;$/;"	v	typeref:typename:int
+moving	cmds_visual.c	/^int moving = false;$/;"	v	typeref:typename:int
 ori_insert_edit_submode	cmds_insert.c	/^char ori_insert_edit_submode;$/;"	v	typeref:typename:char
 pad	cmds.c	/^int pad(struct sheet * sh, int n, int r1, int c1, int r2, int c2) {$/;"	f	typeref:typename:int
 pad_and_align	cmds.c	/^void pad_and_align (char * str_value, char * numeric_value, int col_width, int align, int paddin/;"	f	typeref:typename:void

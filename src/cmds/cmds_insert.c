@@ -243,7 +243,7 @@ void do_insertmode(SC *const sc, Buffer * sb) {
             case CONFIG_NEWLINE_ACTION_NONE:
                 break;
         }
-        ui_update(TRUE);
+        ui_update(true);
         return;
 
 

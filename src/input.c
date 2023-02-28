@@ -261,7 +261,7 @@ break_waitcmd_loop(SC *const sc, Buffer *const buffer) {
         lastmode=NORMAL_MODE;
         inputline[0] = L'\0';  // clean inputline
         buffer_reset(buffer);
-        ui_update(TRUE);
+        ui_update(true);
     }
     cmd_pending = 0;       // No longer wait for command. Set flag.
     cmd_multiplier = 0;    // Reset the multiplier
@@ -388,7 +388,7 @@ handle_mult(SC *const sc, int *cmd_multiplier, Buffer *buf, long timeout) {
     exec_mult(sc, buf, timeout);
     if (*cmd_multiplier > 1) {
         *cmd_multiplier = 1;
-        if (curmode != EDIT_MODE) ui_update(TRUE);
+        if (curmode != EDIT_MODE) ui_update(true);
     }
 
     *cmd_multiplier = 0;
