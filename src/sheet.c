@@ -58,41 +58,33 @@ int id_sheet = 0;
  * \param[name] sheet name
  * \return sutrct sheet *
  */
-struct sheet * new_sheet(struct roman * doc, char * name) {
-      struct sheet * sh;
-      if ((sh = search_sheet(doc, name)) != 0 ) return sh;
+struct sheet *
+new_sheet(struct roman * doc, char * name) {
+    struct sheet * sh;
 
-      sh = (struct sheet *) calloc(1, sizeof(struct sheet));
-      INSERT(sh, (doc->first_sh), (doc->last_sh), next, prev);
-      sh->name = strdup(name);
+    if ((sh = search_sheet(doc, name)) != NULL)
+        return sh;
 
-      sh->tbl = NULL;
+    sh = malloc(sizeof(*sh));
+    INSERT(sh, (doc->first_sh), (doc->last_sh), next, prev);
 
-      sh->currow = 0;     /* current row of the selected cell. */
-      sh->curcol = 0;     /* current column of the selected cell. */
-      sh->lastrow = 0;    /* row of last selected cell */
-      sh->lastcol = 0;    /* col of last selected cell */
+    *sh = (struct sheet){ 
+        .name = strdup(name),
+        .id = id_sheet,
+    };
 
-      sh->offscr_sc_cols = 0; // off screen spreadsheet rows and columns
-      sh->offscr_sc_rows = 0;
-      sh->nb_frozen_rows = 0;
-      sh->nb_frozen_cols = 0; // total number of frozen rows/cols
-      sh->nb_frozen_screenrows = 0; // screen rows occupied by those frozen rows
-      sh->nb_frozen_screencols = 0; // screen cols occupied by those frozen columns
+    id_sheet++;
 
-      sh->maxcol = 0;
-      sh->maxrow = 0;
-      sh->id = id_sheet++; /* an id of sheet must be kept so that we can insert vertex's ordered
-                              (and look them up) in the dependency graph. */
-      /*
-      sh->hash= (void *) calloc(HASH_NR,sizeof(void *));
-      sh->nr_hash=HASH_NR;
-      sh->ccol = 16;
-      sh->crow = 32768;
-      objs_cache_init(&sh->cache_ent, sizeof(struct Ent), NULL);
-      */
-      return sh;
-  }
+    /*
+    sh->hash= (void *) calloc(HASH_NR,sizeof(void *));
+    sh->nr_hash=HASH_NR;
+    sh->ccol = 16;
+    sh->crow = 32768;
+    objs_cache_init(&sh->cache_ent, sizeof(struct Ent), NULL);
+    */
+
+    return sh;
+}
 
 /**
  * \brief search_sheet()
@@ -100,15 +92,19 @@ struct sheet * new_sheet(struct roman * doc, char * name) {
  * \param[name] sheet name
  * \return struct sheet *
  */
-struct sheet * search_sheet(struct roman * doc, char * name) {
-      if (doc == NULL || name == NULL || ! strlen(name)) return NULL;
-      struct sheet * sh;
+struct sheet *
+search_sheet(struct roman *const doc, const char *const name) {
+    if (doc == NULL || name == NULL || name[0] == '\0')
+        return NULL;
 
-      for(sh = doc->first_sh; sh != 0; sh = sh->next) {
-          if (sh->name == NULL) continue;
-          if (! strcmp(name, sh->name)) return sh;
-      }
-      return NULL;
+    for(struct sheet *sh = doc->first_sh; sh != NULL; sh = sh->next) {
+        if (sh->name == NULL)
+            continue;
+
+        if (!strcmp(name, sh->name))
+            return sh;
+    }
+    return NULL;
 }
 
 
@@ -117,14 +113,17 @@ struct sheet * search_sheet(struct roman * doc, char * name) {
  * \param[doc] roman struct
  * \return [int] number of sheets
  */
-int get_num_sheets(struct roman * doc) {
-      if (doc == NULL) return 0;
-      struct sheet * sh;
-      int cnt = 0;
-      for(sh = doc->first_sh; sh != NULL ; sh = sh->next) {
-          cnt++;
-      }
-      return cnt;
+size_t
+get_num_sheets(const struct roman *const doc) {
+    if (doc == NULL)
+        return 0;
+
+    size_t cnt = 0;
+    for (const struct sheet *sh = doc->first_sh; sh != NULL ; sh = sh->next) {
+        cnt++;
+    }
+
+    return cnt;
 }
 
 /**
@@ -132,19 +131,19 @@ int get_num_sheets(struct roman * doc) {
  * \param[doc] roman struct
  * \return void
  */
-void free_session(struct session * session) {
-    while (session != NULL) {
-        struct roman * r_aux, * r = session->first_doc;
-        // traverse romans
-        while (r != NULL) {
-            r_aux = r->next;
-            delete_doc(session, r);
-            r = r_aux;
-        }
-        // free session
-        free(session);
-        session = NULL;
+void
+free_session(struct session *const session) {
+    if (session == NULL)
+        return;
+
+    for (struct roman *r_aux, *r = session->first_doc; r != NULL; r = r_aux) {
+        r_aux = r->next;
+        delete_doc(session, r);
+        r = r_aux;
     }
+
+    free(session);
+
     return;
 }
 
@@ -183,7 +182,8 @@ void delete_doc(struct session * session, struct roman * doc) {
  * \param[flg_free] int
  * \return void
  */
-void delete_sheet(struct roman * roman, struct sheet * sh, int flg_free) {
+void
+delete_sheet(struct roman *const roman, struct sheet *const sh, int flg_free) {
     REMOVE(sh, (roman->first_sh), (roman->last_sh), next, prev);
 
     // mark '->sheet to NULL' in all ents on yanklist that refers to this sheet
@@ -226,7 +226,6 @@ void delete_sheet(struct roman * roman, struct sheet * sh, int flg_free) {
         sh->name = NULL;
     }
     free(sh);
-    sh = NULL;
     return;
 }
 
