@@ -29,8 +29,12 @@ pub fn build(b: *Build) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer if (gpa.deinit())
             unreachable;
+    const allocator = gpa.allocator();
 
-    const exe = try buildExe(b, gpa.allocator());
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
+    const exe = try buildExe(b, allocator, target, optimize);
     exe.install();
 
     const scopen_step = b.addInstallFile(.{ .path = src_dir ++ "/scopen", }, "bin/scopen");
@@ -47,9 +51,31 @@ pub fn build(b: *Build) !void {
 
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
+
+    const buffer_test = b.addTest(.{
+        .root_source_file = .{ .path = "tests/buffer.zig", },
+    });
+
+    buffer_test.addIncludePath(src_dir);
+    buffer_test.linkLibC();
+
+    buffer_test.addCSourceFiles(&.{
+            src_dir ++ "/buffer.c",
+            src_dir ++ "/utils/string.c",
+        },
+        &.{ "-Wall", },
+    );
+
+    const all_tests_step = b.step("test", "Runs all tests");
+    all_tests_step.dependOn(&buffer_test.step);
 }
 
-fn buildExe(b: *Build, child_allocator: Allocator) !*Build.CompileStep {
+fn buildExe(
+    b: *Build,
+    child_allocator: Allocator,
+    target: std.zig.CrossTarget,
+    optimize: std.builtin.Mode,
+) !*Build.CompileStep {
     var arena = std.heap.ArenaAllocator.init(child_allocator);
     defer arena.deinit();
 
@@ -106,9 +132,6 @@ fn buildExe(b: *Build, child_allocator: Allocator) !*Build.CompileStep {
 
         break :blk try ret.toOwnedSlice();
     };
-
-    const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
 
     const exe = b.addExecutable(.{
         .name = "sc-im",
