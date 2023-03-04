@@ -1,13 +1,12 @@
 // TODO:
-//  find source files programmatically
-//  make sure ncursesw exists and if not link to ncurses (use runPkgConfig)
-//  get static build working
-//  vendor dependencies
+//  vendor dependencies & build statically
+//    - replace ncurses with libtickit?
 
 const std = @import("std");
 const builtin = @import("builtin");
 const Build = std.Build;
 const Step = std.Build.Step;
+const Allocator = std.mem.Allocator;
 
 const exe_name = "sc-im";
 const exe_dir = "/bin";
@@ -21,67 +20,17 @@ const config_file = "scimrc";
 
 const src_dir = thisDir() ++ "/src";
 
-const c_source_files = [_][]const u8{
-    src_dir ++ "/block.c",
-    src_dir ++ "/conf.c",
-    src_dir ++ "/cmds/cmds_edit.c",
-    src_dir ++ "/cmds/cmds_command.c",
-    src_dir ++ "/cmds/cmds_normal.c",
-    src_dir ++ "/cmds/cmds_insert.c",
-    src_dir ++ "/cmds/cmds_visual.c",
-    src_dir ++ "/cmds/cmds.c",
-    src_dir ++ "/actions/filter.c",
-    src_dir ++ "/actions/subtotal.c",
-    src_dir ++ "/actions/sort.c",
-    src_dir ++ "/actions/shift.c",
-    src_dir ++ "/actions/hide_show.c",
-    src_dir ++ "/actions/freeze.c",
-    src_dir ++ "/actions/plot.c",
-    src_dir ++ "/lua.c",
-    src_dir ++ "/trigger.c",
-    src_dir ++ "/xmalloc.c",
-    src_dir ++ "/interp.c",
-    src_dir ++ "/main.c",
-    src_dir ++ "/buffer.c",
-    src_dir ++ "/file.c",
-    src_dir ++ "/pipe.c",
-    src_dir ++ "/digraphs.c",
-    src_dir ++ "/exec.c",
-    src_dir ++ "/undo.c",
-    src_dir ++ "/vmtbl.c",
-    src_dir ++ "/help.c",
-    src_dir ++ "/range.c",
-    src_dir ++ "/yank.c",
-    src_dir ++ "/gram.c",
-    src_dir ++ "/color.c",
-    src_dir ++ "/maps.c",
-    src_dir ++ "/clipboard.c",
-    src_dir ++ "/formats/xlsx.c",
-    src_dir ++ "/formats/ods.c",
-    src_dir ++ "/formats/xls.c",
-    src_dir ++ "/function.c",
-    src_dir ++ "/graph.c",
-    src_dir ++ "/marks.c",
-    src_dir ++ "/input.c",
-    src_dir ++ "/utils/map.c",
-    src_dir ++ "/utils/extra.c",
-    src_dir ++ "/utils/dictionary.c",
-    src_dir ++ "/utils/string.c",
-    src_dir ++ "/sheet.c",
-    src_dir ++ "/lex.c",
-    src_dir ++ "/format.c",
-    src_dir ++ "/history.c",
-    src_dir ++ "/tui.c",
-};
-
 const Macro = struct {
     name: []const u8,
     value: ?[]const u8 = null,
 };
 
-pub fn build(b: *Build) void {
+pub fn build(b: *Build) !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer if (gpa.deinit())
+            unreachable;
 
-    const exe = buildExe(b);
+    const exe = try buildExe(b, gpa.allocator());
     exe.install();
 
     const scopen_step = b.addInstallFile(.{ .path = src_dir ++ "/scopen", }, "bin/scopen");
@@ -100,7 +49,12 @@ pub fn build(b: *Build) void {
     run_step.dependOn(&run_cmd.step);
 }
 
-fn buildExe(b: *Build) *Build.CompileStep {
+fn buildExe(b: *Build, child_allocator: Allocator) !*Build.CompileStep {
+    var arena = std.heap.ArenaAllocator.init(child_allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const macros = comptime blk: {
         var ret: []const Macro = &.{
             .{ .name = "CONFIG_DIR",       .value = qw(config_dir) },
@@ -131,6 +85,26 @@ fn buildExe(b: *Build) *Build.CompileStep {
             ret = ret ++ &.{ .{ .name = "NO_WORDEXP" } };
 
         break :blk ret;
+    };
+
+    const src_files = blk: {
+        var ret = std.ArrayList([]const u8).init(allocator);
+        errdefer ret.deinit();
+
+        var dir = try std.fs.cwd().openIterableDir(src_dir, .{});
+        defer dir.close();
+
+        var iter = try dir.walk(allocator);
+        defer iter.deinit();
+
+        while (try iter.next()) |entry| {
+            if (std.mem.endsWith(u8, entry.path, ".c")) {
+                const str = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ src_dir, entry.path });
+                try ret.append(str);
+            }
+        }
+
+        break :blk try ret.toOwnedSlice();
     };
 
     const target = b.standardTargetOptions(.{});
@@ -183,7 +157,7 @@ fn buildExe(b: *Build) *Build.CompileStep {
         exe.defineCMacro(macro.name, macro.value);
     }
 
-    exe.addCSourceFiles(&c_source_files, &.{ "-Wall", });
+    exe.addCSourceFiles(src_files, &.{ "-Wall", });
 
     exe.linkLibC();
     exe.linkSystemLibrary("m");
