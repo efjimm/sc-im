@@ -1241,12 +1241,7 @@ command:
     |    // nothing
     |    error   {
                      sc_error("syntax error: %s", line);
-                     line[0]='\0';
-                     //linelim = 0;
-                     //yyparse();
-                     linelim = -1;
-                     yyclearin;
-                     yyerrok;
+                     YYABORT;
                  };
 
 term:   var                       {
