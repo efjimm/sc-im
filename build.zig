@@ -9,10 +9,9 @@ const Step = std.Build.Step;
 const Allocator = std.mem.Allocator;
 
 const exe_name = "sc-im";
-const exe_dir = "/bin";
-const help_dir = "/share/" ++ exe_name;
-const lib_dir = "/share/doc/ " ++ exe_name;
-const man_dir = "/share/man/man1";
+const help_dir = "share/" ++ exe_name;
+const lib_dir = "share/doc/ " ++ exe_name;
+const man_dir = "share/man/man1";
 const history_dir = ".cache";
 const history_file = "sc-sciminfo";
 const config_dir = ".config/sc-im";
@@ -26,61 +25,102 @@ const Macro = struct {
 };
 
 pub fn build(b: *Build) !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer if (gpa.deinit())
-            unreachable;
-    const allocator = gpa.allocator();
-
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const exe = try buildExe(b, allocator, target, optimize);
+    const exe = try buildExe(b, target, optimize);
     exe.install();
 
-    const scopen_step = b.addInstallFile(.{ .path = src_dir ++ "/scopen", }, "bin/scopen");
+    {
+        const install_step = b.getInstallStep();
 
-    b.getInstallStep().dependOn(&scopen_step.step);
+        const install_scopen = b.addInstallFile(
+            .{ .path = src_dir ++ "/scopen", },
+            "bin/scopen",
+        );
+        const install_help = b.addInstallFile(
+            .{ .path = src_dir ++ "/doc", },
+            help_dir ++ "/sc-im_help",
+        );
+        const install_man = b.addInstallFile(
+            .{ .path = src_dir ++ "/sc-im.1", },
+            man_dir ++ "/sc-im.1",
+        );
 
-    const run_cmd = exe.run();
+        const plot_files: []const []const u8 = &.{
+            src_dir ++ "/plot_bar",
+            src_dir ++ "/plot_line",
+            src_dir ++ "/plot_pie",
+            src_dir ++ "/plot_scatter",
+        };
+        inline for (plot_files) |path| {
+            const install_plot_file = b.addInstallFile(
+                .{ .path = path },
+                help_dir ++ "/" ++ comptime std.fs.path.basename(path),
+            );
+            install_step.dependOn(&install_plot_file.step);
+        }
 
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
+        install_step.dependOn(&install_scopen.step);
+        install_step.dependOn(&install_help.step);
+        install_step.dependOn(&install_man.step);
     }
 
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
+    {
+        const run_cmd = exe.run();
 
-    const buffer_test = b.addTest(.{
-        .root_source_file = .{ .path = "tests/buffer.zig", },
-    });
+        run_cmd.step.dependOn(b.getInstallStep());
 
-    buffer_test.addIncludePath(src_dir);
-    buffer_test.linkLibC();
+        if (b.args) |args| {
+            run_cmd.addArgs(args);
+        }
 
-    buffer_test.addCSourceFiles(&.{
-            src_dir ++ "/buffer.c",
-            src_dir ++ "/utils/string.c",
-        },
-        &.{ "-Wall", },
-    );
+        const run_step = b.step("run", "Run the app");
+        run_step.dependOn(&run_cmd.step);
+    }
 
-    const all_tests_step = b.step("test", "Runs all tests");
-    all_tests_step.dependOn(&buffer_test.step);
+    {
+        const buffer_test = b.addTest(.{
+            .root_source_file = .{ .path = "tests/buffer.zig", },
+        });
+
+        buffer_test.addIncludePath(src_dir);
+        buffer_test.linkLibC();
+
+        buffer_test.addCSourceFiles(&.{
+                src_dir ++ "/buffer.c",
+                src_dir ++ "/utils/string.c",
+            },
+            &.{ "-Wall", "-g", },
+        );
+
+        const all_tests_step = b.step("test", "Runs all tests");
+        all_tests_step.dependOn(&buffer_test.step);
+    }
+
+    {
+        const clean_step = b.step("clean", "Remove generated files");
+
+        const dirs_to_remove: []const []const u8 = &.{
+            "zig-cache",
+            "zig-out",
+            "docs",
+            "src/experres.h",
+            "src/statres.h",
+        };
+
+        for (dirs_to_remove) |dir| {
+            const remove = b.addRemoveDirTree(dir);
+            clean_step.dependOn(&remove.step);
+        }
+    }
 }
 
 fn buildExe(
     b: *Build,
-    child_allocator: Allocator,
     target: std.zig.CrossTarget,
     optimize: std.builtin.Mode,
 ) !*Build.CompileStep {
-    var arena = std.heap.ArenaAllocator.init(child_allocator);
-    defer arena.deinit();
-
-    const allocator = arena.allocator();
-
     const macros = comptime blk: {
         var ret: []const Macro = &.{
             .{ .name = "CONFIG_DIR",       .value = qw(config_dir) },
@@ -91,7 +131,7 @@ fn buildExe(
             .{ .name = "HISTORY_DIR",      .value = qw(history_dir) },
             .{ .name = "HISTORY_FILE",     .value = qw(history_file) },
             .{ .name = "INS_HISTORY_FILE", .value = qw("sc-iminfo") },
-            .{ .name = "LIBDIR",           .value = qw(lib_dir) },
+            //.{ .name = "LIBDIR",           .value = qw(lib_dir) },
             .{ .name = "MAXROWS",          .value = "65536" },
             .{ .name = "SNAME",            .value = qw("sc-im") },
             .{ .name = "AUTOBACKUP",             },
@@ -111,26 +151,6 @@ fn buildExe(
             ret = ret ++ &.{ .{ .name = "NO_WORDEXP" } };
 
         break :blk ret;
-    };
-
-    const src_files = blk: {
-        var ret = std.ArrayList([]const u8).init(allocator);
-        errdefer ret.deinit();
-
-        var dir = try std.fs.cwd().openIterableDir(src_dir, .{});
-        defer dir.close();
-
-        var iter = try dir.walk(allocator);
-        defer iter.deinit();
-
-        while (try iter.next()) |entry| {
-            if (std.mem.endsWith(u8, entry.path, ".c")) {
-                const str = try std.fmt.allocPrint(allocator, "{s}/{s}", .{ src_dir, entry.path });
-                try ret.append(str);
-            }
-        }
-
-        break :blk try ret.toOwnedSlice();
     };
 
     const exe = b.addExecutable(.{
@@ -158,7 +178,7 @@ fn buildExe(
     const mv_step1 = MoveFileStep.create(
         b,
         thisDir() ++ "/gram.c",
-        src_dir ++ "/gram.c",
+        src_dir ++ "/y.tab.c",
         thisDir() ++ "/y.tab.c",
     );
     const mv_step2 = MoveFileStep.create(
@@ -179,6 +199,59 @@ fn buildExe(
     for (macros) |macro| {
         exe.defineCMacro(macro.name, macro.value);
     }
+
+    const src_files: []const []const u8 = &.{
+        src_dir ++ "/block.c",
+        src_dir ++ "/conf.c",
+        src_dir ++ "/cmds/cmds_edit.c",
+        src_dir ++ "/cmds/cmds_command.c",
+        src_dir ++ "/cmds/cmds_normal.c",
+        src_dir ++ "/cmds/cmds_insert.c",
+        src_dir ++ "/cmds/cmds_visual.c",
+        src_dir ++ "/cmds/cmds.c",
+        src_dir ++ "/actions/filter.c",
+        src_dir ++ "/actions/subtotal.c",
+        src_dir ++ "/actions/sort.c",
+        src_dir ++ "/actions/shift.c",
+        src_dir ++ "/actions/hide_show.c",
+        src_dir ++ "/actions/freeze.c",
+        src_dir ++ "/actions/plot.c",
+        src_dir ++ "/lua.c",
+        src_dir ++ "/trigger.c",
+        src_dir ++ "/xmalloc.c",
+        src_dir ++ "/interp.c",
+        src_dir ++ "/main.c",
+        src_dir ++ "/buffer.c",
+        src_dir ++ "/file.c",
+        src_dir ++ "/pipe.c",
+        src_dir ++ "/digraphs.c",
+        src_dir ++ "/exec.c",
+        src_dir ++ "/undo.c",
+        src_dir ++ "/vmtbl.c",
+        src_dir ++ "/help.c",
+        src_dir ++ "/range.c",
+        src_dir ++ "/yank.c",
+        src_dir ++ "/y.tab.c",
+        src_dir ++ "/color.c",
+        src_dir ++ "/maps.c",
+        src_dir ++ "/clipboard.c",
+        src_dir ++ "/formats/xlsx.c",
+        src_dir ++ "/formats/ods.c",
+        src_dir ++ "/formats/xls.c",
+        src_dir ++ "/function.c",
+        src_dir ++ "/graph.c",
+        src_dir ++ "/marks.c",
+        src_dir ++ "/input.c",
+        src_dir ++ "/utils/map.c",
+        src_dir ++ "/utils/extra.c",
+        src_dir ++ "/utils/dictionary.c",
+        src_dir ++ "/utils/string.c",
+        src_dir ++ "/sheet.c",
+        src_dir ++ "/lex.c",
+        src_dir ++ "/format.c",
+        src_dir ++ "/history.c",
+        src_dir ++ "/tui.c",
+    };
 
     exe.addCSourceFiles(src_files, &.{ "-Wall", });
 
