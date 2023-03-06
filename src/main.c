@@ -202,6 +202,10 @@ main(int argc, char **argv) {
         .session = calloc(1, sizeof(struct session)),
         .user_config = map_new(),
     };
+
+    if (sc.session == NULL || sc.user_config == NULL)
+        return 1;
+
     session = sc.session;
 
     config_init(sc.user_config);
@@ -363,13 +367,16 @@ main(int argc, char **argv) {
          * shall_quit=-1 means ERROR or ABRT signal
          * shall_quit=2 means :q!
          */
-        if (shall_quit == 1 && modcheck()) shall_quit = 0;
+        if (shall_quit == 1 && modcheck())
+            shall_quit = 0;
     }
-    if (config_get_bool("nocurses") && f != NULL) fclose(f);
+    if (config_get_bool("nocurses") && f != NULL)
+        fclose(f);
 
     return shall_quit == -1 ? exit_app(-1) : exit_app(0);
 }
 
+bool lex_init(void);
 
 /**
  * \brief Creates the basic structures used by sc-im
@@ -377,6 +384,7 @@ main(int argc, char **argv) {
  */
 void
 create_structures(void) {
+    lex_init();
 
     // initiate mark array
     create_mark_array();

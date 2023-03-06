@@ -84,19 +84,69 @@ struct key {
     int val;
 };
 
-struct key experres[] = {
-#include "experres.h"
-    { 0, 0 }
+struct key expressions[] = {
+#include "expressions.h"
 };
 
-struct key statres[] = {
-#include "statres.h"
-    { 0, 0 }
+struct key statements[] = {
+#include "statements.h"
 };
 
 #include "macros.h"
 #include "tui.h"
 #include "range.h"
+#include "utils/map.h"
+#include "assert.h"
+
+static Map *expressions_map;
+static Map *statements_map;
+
+bool
+lex_init(void) {
+    expressions_map = map_new();
+    statements_map = map_new();
+
+    if (expressions_map == NULL || statements_map == NULL)
+        return false;
+
+    char buf[256] = { 0 };
+
+    for (size_t i = 0; i < sizeof(expressions) / sizeof(expressions[0]); i++) {
+        size_t j = 0;
+        for (; expressions[i].key[j] != '\0'; j++) {
+            assert(j < sizeof(buf));
+            buf[j] = tolower(expressions[i].key[j]);
+        }
+        buf[j] = '\0';
+        
+        const bool r = map_put(expressions_map, buf, &expressions[i].val);
+        
+        if (r == false) {
+            map_free(expressions_map);
+            map_free(statements_map);
+            return false;
+        }
+    }
+
+    for (size_t i = 0; i < sizeof(statements) / sizeof(statements[0]); i++) {
+        size_t j = 0;
+        for (; statements[i].key[j] != '\0'; j++) {
+            assert(j < sizeof(buf));
+            buf[j] = tolower(statements[i].key[j]);
+        }
+        buf[j] = '\0';
+
+        const bool r = map_put(statements_map, buf, &statements[i].val);
+        
+        if (r == false) {
+            map_free(statements_map);
+            map_free(statements_map);
+            return false;
+        }
+    }
+
+    return true;
+}
 
 /**
  * \brief TODO Document yylex()
@@ -104,7 +154,8 @@ struct key statres[] = {
  * \return none
  */
 
-int yylex() {
+int
+yylex(void) {
     char * p = line + linelim;
     int ret = 0;
     static int isfunc = 0;
@@ -154,23 +205,25 @@ int yylex() {
             ret = WORD;
             if (!linelim || isfunc) {
                 if (isfunc) isfunc--;
-                for (tblp = linelim ? experres : statres; tblp->key; tblp++)
-                    if (((tblp->key[0]^tokenst[0])&0137)==0 // TODO: retarded way to ignore case
-                        && tblp->key[tokenl]==0) {
-                    int i = 1;
-                    while (i<tokenl && ((tokenst[i]^tblp->key[i])&0137)==0)
-                        i++;
-                    if (i >= tokenl) { // Matched
-                        ret = tblp->val;
-                        colstate = (ret <= S_FORMAT);
-                        if (isgoto) {
-                            isfunc = isgoto = 0;
-                            if (ret != K_ERROR && ret != K_INVALID)
-                                ret = WORD;
-                            }
-                            break;
-                        }
+
+                const Map *const map = linelim ? expressions_map : statements_map;
+                static char buf[BUFFERSIZE];
+                size_t i = 0;
+                for (; i < tokenl; i++)
+                    buf[i] = tolower(tokenst[i]);
+                buf[i] = '\0';
+
+                const int *const val = map_get(map, buf);
+
+                if (val != NULL) {
+                    ret = *val;
+                    colstate = (ret <= S_FORMAT);
+                    if (isgoto) {
+                        isfunc = isgoto = 0;
+                        if (ret != K_ERROR && ret != K_INVALID)
+                            ret = WORD;
                     }
+                }
             }
 
             if (ret == WORD) {
@@ -203,15 +256,15 @@ int yylex() {
 
                     ret = MAPWORD;
                 } else {
-                    struct range * r;
-                    if (! find_range(tokenst, tokenl, (struct ent *)0, (struct ent *)0, &r)) {
+                    struct range *r;
+                    if (!find_range(tokenst, tokenl, NULL, NULL, &r)) {
                         yylval.rval.left = r->r_left;
                         yylval.rval.right = r->r_right;
                         if (r->r_is_range)
                             ret = RANGE;
                         else
                             ret = VAR;
-                    } else if ( str_in_str(line, ":") == -1) {
+                    } else if (str_in_str(line, ":") == -1) {
                         yylval.sval = tokenst;
                     } else {
                         linelim = p-line;

@@ -105,8 +105,8 @@ pub fn build(b: *Build) !void {
             "zig-cache",
             "zig-out",
             "docs",
-            "src/experres.h",
-            "src/statres.h",
+            "src/expressions.h",
+            "src/satements.h",
         };
 
         for (dirs_to_remove) |dir| {
@@ -162,15 +162,15 @@ fn buildExe(
     const expressions_step = PipeToFileStep.create(
         b,
         "expressions",
-        &.{ "sed", "-f", src_dir ++ "/eres.sed", src_dir ++ "/gram.y" },
-        src_dir ++ "/experres.h",
+        &.{ "sed", "-f", src_dir ++ "/make_expressions_header.sed", src_dir ++ "/gram.y" },
+        src_dir ++ "/expressions.h",
     );
 
     const statements_step = PipeToFileStep.create(
         b,
         "statements",
-        &.{ "sed", "-f", src_dir ++ "/sres.sed", src_dir ++ "/gram.y" },
-        src_dir ++ "/statres.h",
+        &.{ "sed", "-f", src_dir ++ "/make_statements_header.sed", src_dir ++ "/gram.y" },
+        src_dir ++ "/satements.h",
     );
 
     const bison_run = b.addSystemCommand(&.{ "bison", "-d", "-y", src_dir ++ "/gram.y" });

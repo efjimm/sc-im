@@ -525,7 +525,6 @@ change_config_parameter(wchar_t *inputline) {
     for (; i < len && line[i] != '=' && !isspace(line[i]); i++);
 
     const size_t key_len = line + i - key;
-    key[key_len] = '\0';
 
     if (i >= len || key_len == 0) {
         sc_error("Invalid command: '%s'", line);
@@ -535,7 +534,7 @@ change_config_parameter(wchar_t *inputline) {
     // Skip spaces between key name and '='
     for (; i < len && isspace(line[i]); i++);
     if (i >= len || line[i] != '=') {
-        sc_error("Badly formed set command expected '='");
+        sc_error("Badly formed set command: expected '='");
         return -1;
     }
 
@@ -548,6 +547,7 @@ change_config_parameter(wchar_t *inputline) {
 
     const size_t value_len = line + i - value;
     value[value_len] = '\0';
+    key[key_len] = '\0';
 
     if (value_len == 0) {
         sc_error("Expected value after '='");

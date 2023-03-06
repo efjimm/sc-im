@@ -32,7 +32,7 @@
 #include "cmds/cmds_command.h"
 
 void yyerror(char *err);               // error routine for yacc (gram.y)
-int yylex();
+int yylex(void);
 extern struct session * session;
 
 #ifdef USELOCALE

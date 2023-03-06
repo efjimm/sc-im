@@ -71,20 +71,8 @@ typedef struct {
         bool b;
         int64_t i;
         double d;
-        void *v;
     };
 } ConfigValue;
-
-#define config_set(key, value) _Generic((value), \
-        const char *: config_set_string, \
-        char *: config_set_string, \
-        int: config_set_int, \
-        int32_t: config_set_int, \
-        int64_t: config_set_int, \
-        float: config_set_double, \
-        double: config_set_double, \
-        default: config_set_void, \
-    )(value)
 
 void config_init(Map *map);
 void config_deinit(void);
