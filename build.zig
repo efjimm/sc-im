@@ -107,6 +107,8 @@ pub fn build(b: *Build) !void {
             "docs",
             "src/expressions.h",
             "src/satements.h",
+            "src/y.tab.h",
+            "src/y.tab.c",
         };
 
         for (dirs_to_remove) |dir| {
