@@ -10,7 +10,7 @@ VALGRIND_CMD='valgrind -v --log-file=${NAME}_vallog --tool=memcheck --track-orig
 . assert.sh
 
 CMD='LET A2 = 1\nUNDO\nGETNUM A0\nGETNUM {"dos"}!B3'
-assert "echo -e '${CMD}' | $VALGRIND_CMD ../src/sc-im ${NAME}.sc --nocurses --nodebug --quit_afterload 2>&1 |grep -v '^$\|Interp\|left\|Change'" "2.3\n0"
+assert "echo -e '${CMD}' | $VALGRIND_CMD ../zig-out/bin/sc-im ${NAME}.sc --nocurses --nodebug --quit_afterload 2>&1 |grep -v '^$\|Interp\|left\|Change'" "2.3\n0"
 
 #we check valgrind log
 assert_iffound_notcond ${NAME}_vallog "definitely lost.*bytes" "0 bytes"

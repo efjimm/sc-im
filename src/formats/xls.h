@@ -41,4 +41,6 @@
  * \brief Header file for xls.c
  */
 
-int open_xls(char * fname, char * encoding);
+#include "../sc.h"
+
+int open_xls(SC *const sc, char * fname, char * encoding);

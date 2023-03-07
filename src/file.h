@@ -50,7 +50,7 @@ typedef enum {
     SC_READFILE_SUCCESS = 1,
     SC_READFILE_DOESNTEXIST = 2
 } sc_readfile_result;
-sc_readfile_result readfile(char *fname, int eraseflg);
+sc_readfile_result readfile(SC *const sc, char *fname, int eraseflg);
 
 int file_exists(const char * fname);
 char * findhome(char *path);
@@ -74,14 +74,12 @@ void openfile_nested(char * file);
 void openfile_under_cursor(int r, int c);
 
 // load functions
-void load_file(char * loading_file);
-void load_tbl(char * loading_file);
+void load_file(SC *const sc, char * loading_file);
+void load_tbl(SC *const sc, char * loading_file);
 void erasedb(struct sheet * sheet, int _free);
-void load_rc(void);
+void load_rc(SC *const sc);
 FILE * openfile(char *fname, int *rpid, int *rfd);
-int import_csv(char * fname, char d);
 int next_unquot_delim(char *start, char d);
-int import_markdown(char * fname);
 int create_empty_wb();
 //void readfile_argv(int argc, char ** argv);
 

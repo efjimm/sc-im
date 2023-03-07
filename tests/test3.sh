@@ -8,7 +8,7 @@ NAME=test3
 
 VALGRIND_CMD='valgrind -v --log-file=${NAME}_vallog --tool=memcheck --track-origins=yes --leak-check=full --show-leak-kinds=all --show-reachable=no'
 . assert.sh
-assert "echo GETNUM A0 | $VALGRIND_CMD ../src/sc-im ${NAME}.sc --nocurses --nodebug --quit_afterload 2>&1 |grep -v '^$\|Interp\|left'" "3.3"
+assert "echo GETNUM A0 | $VALGRIND_CMD ../zig-out/bin/sc-im ${NAME}.sc --nocurses --nodebug --quit_afterload 2>&1 |grep -v '^$\|Interp\|left'" "3.3"
 
 #we check valgrind log
 assert_iffound_notcond ${NAME}_vallog "definitely lost.*bytes" "0 bytes"

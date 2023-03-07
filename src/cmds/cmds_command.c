@@ -429,13 +429,13 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 swprintf(cline, BUFFERSIZE, L"autofit %s:", coltoa(c));
                 swprintf(cline + wcslen(cline), BUFFERSIZE, L"%s", coltoa(cf));
             }
-            send_to_interp(cline);
+            send_to_interp(sc, cline);
 
         } else if ( ! wcsncmp(inputline, L"define_color", 12) ) {
-            send_to_interp(inputline);
+            send_to_interp(sc, inputline);
 
         } else if ( ! wcsncmp(inputline, L"redefine_color", 14) ) {
-            send_to_interp(inputline);
+            send_to_interp(sc, inputline);
 
         } else if ( ! wcsncmp(inputline, L"load", 4) ) {
             char name [BUFFERSIZE];
@@ -485,7 +485,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                     // create main session
                     sc->session = calloc(1, sizeof(struct session));
                     session = sc->session;
-                    load_file(name);
+                    load_file(sc, name);
 
                     if (! config_get_bool("nocurses")) {
                       ui_show_header();
@@ -497,7 +497,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                     ! wcsncmp(inputline, L"showcol ", 8) ||
                     ! wcsncmp(inputline, L"hidecol ", 8)
                   ) {
-            send_to_interp(inputline);
+            send_to_interp(sc, inputline);
 
         } else if ( ! wcsncmp(inputline, L"showrows", 8) ) {
             if (p != -1) { // only continue if there is a selected range
@@ -548,7 +548,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 del_range_wchars(cline, 0, found-1);
                 swprintf(interp_line, BUFFERSIZE, L"datefmt %s%d:", coltoa(c), r);
                 swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d %ls", coltoa(cf), rf, cline);
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
             }
 
         } else if ( ! wcsncmp(inputline, L"sort ", 5) ) {
@@ -564,7 +564,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 }
             }
             sc_info("Sorting..");
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
             sc_info("Done.");
 
         } else if ( ! wcsncmp(inputline, L"subtotal ", 9) ) {
@@ -608,7 +608,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                     swprintf(interp_line, BUFFERSIZE, L"subtotal %s%d:", coltoa(c), r);
                     swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d ", coltoa(cf), rf);
                     swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%ls", line);
-                    send_to_interp(interp_line);
+                    send_to_interp(sc, interp_line);
                     unselect_ranges();
                 }
             }
@@ -621,7 +621,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 swprintf(interp_line, BUFFERSIZE, L"freeze %s", coltoa(sh->curcol));
             } else
                 swprintf(interp_line, BUFFERSIZE, L"freeze %ls", &inputline[9]);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"freezerow", 9) ) {
             if (p != -1) {
@@ -630,7 +630,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 swprintf(interp_line, BUFFERSIZE, L"freeze %d", sh->currow);
             } else
                 swprintf(interp_line, BUFFERSIZE, L"freeze %ls", &inputline[9]);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"unfreezecol", 11) ) {
             if (p != -1) {
@@ -640,7 +640,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 swprintf(interp_line, BUFFERSIZE, L"unfreeze %s", coltoa(sh->curcol));
             } else
                 swprintf(interp_line, BUFFERSIZE, L"unfreeze %ls", &inputline[11]);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"unfreezerow", 11) ) {
             if (p != -1) {
@@ -649,7 +649,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 swprintf(interp_line, BUFFERSIZE, L"unfreeze %d", sh->currow);
             } else
                 swprintf(interp_line, BUFFERSIZE, L"unfreeze %ls", &inputline[11]);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"addfilter", 9) ) {
             wchar_t cline [BUFFERSIZE];
@@ -686,9 +686,9 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 wcscpy(cline, interp_line);
                 swprintf(interp_line, BUFFERSIZE, L"filteron %s%d:", coltoa(sr->tlcol), sr->tlrow);
                 swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d", coltoa(sr->brcol), sr->brrow);
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
             } else { // no range selected. range passed in inputline
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
             }
 
         } else if ( ! wcsncmp(inputline, L"filteroff", 9) ) {
@@ -706,7 +706,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
         } else if ( ! wcsncmp(inputline, L"int ", 4) ) { // send cmd to interpreter
             wcscpy(interp_line, inputline);
             del_range_wchars(interp_line, 0, 3);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"fill ", 5) ) {
             interp_line[0]=L'\0';
@@ -728,7 +728,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                     swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%ls", &inputline[5]);
                 else
                     swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%ls", inputline);
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
             }
 
         } else if ( ! wcsncmp(inputline, L"formatrow ", 10) ) {
@@ -747,7 +747,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 add_undo_row_format(i, 'R', sh->row_format[i]);
 #endif
                 swprintf(interp_line, BUFFERSIZE, L"format %d %ls", i, &inputline[10]);
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
 #ifdef UNDO
                 if (fmt_ori != sh->row_format[i]) changed = 1;
                 add_undo_row_format(i, 'A', sh->row_format[i]);
@@ -780,7 +780,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
 #endif
                 swprintf(interp_line, BUFFERSIZE, L"format %s", coltoa(i));
                 swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L" %ls", &inputline[10]);
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
 #ifdef UNDO
                 if (sh->fwidth[i] != fwidth_ori || sh->precision[i] != precision_ori || sh->realfmt[i] != realfmt_ori) changed = 1;
                 add_undo_col_format(i, 'A', sh->fwidth[i], sh->precision[i], sh->realfmt[i]);
@@ -813,7 +813,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 create_undo_action();
                 copy_to_undostruct(sh, r, c, rf, cf, UNDO_DEL, IGNORE_DEPS, NULL);
                 #endif
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
                 #ifdef UNDO
                 copy_to_undostruct(sh, r, c, rf, cf, UNDO_ADD, IGNORE_DEPS, NULL);
                 end_undo_action();
@@ -830,7 +830,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
             }
             swprintf(interp_line, BUFFERSIZE, L"ccopy %s%d:", coltoa(c), r);
             swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d", coltoa(cf), rf);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"strtonum", 8) ) {
             int r = sh->currow, c = sh->curcol, rf = sh->currow, cf = sh->curcol;
@@ -842,11 +842,11 @@ void do_commandmode(SC *const sc, Buffer * sb) {
             }
             swprintf(interp_line, BUFFERSIZE, L"strtonum %s%d:", coltoa(c), r);
             swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d", coltoa(cf), rf);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"cpaste", 6) ) {
             swprintf(interp_line, BUFFERSIZE, L"cpaste");
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"cellcolor ", 10) ) {
             #ifdef USECOLORS
@@ -860,7 +860,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d ", coltoa(sr->brcol), sr->brrow);
             }
             swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%ls", line);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
             #else
             sc_error("Color support not compiled in");
             chg_mode('.');
@@ -879,7 +879,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d ", coltoa(sr->brcol), sr->brrow);
             }
             swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%ls", line);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
             #else
             sc_error("Color support not compiled in");
             chg_mode('.');
@@ -909,11 +909,11 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                 swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d ", coltoa(sr->brcol), sr->brrow);
             }
             swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%ls", line);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         }  else if ( ! wcsncmp(inputline, L"untrigger ", 10) ) {
             wcscpy(interp_line, inputline);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         // Change a config value
         }  else if ( ! wcsncmp(inputline, L"set ", 4) ) {
@@ -928,7 +928,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
             wcscpy(interp_line, inputline); // pad 5
             swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L" %s:", coltoa(c)); // pad 5 A:
             swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s", coltoa(cf));  // B
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"plot ", 5) ) {
             int r = sh->currow, c = sh->curcol, rf = sh->currow, cf = sh->curcol;
@@ -943,7 +943,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
             del_range_wchars(aux, 0, 4);
             swprintf(interp_line, BUFFERSIZE, L"plot \"%ls\" %s%d:", aux, coltoa(c), r);
             swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d", coltoa(cf), rf);
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 
         } else if ( ! wcsncmp(inputline, L"plotedit ", 9) ) {
             wchar_t aux[wcslen(inputline)+1];
@@ -970,7 +970,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                     ! wcsncmp(inputline, L"nextsheet", 9) ||
                     ! wcsncmp(inputline, L"renamesheet", 11) ||
                     ! wcsncmp(inputline, L"prevsheet", 9)) {
-            send_to_interp(inputline);
+            send_to_interp(sc, inputline);
 
         } else if ( ! wcsncmp(inputline, L"nmap", 4) ||
                     ! wcsncmp(inputline, L"imap", 4) ||
@@ -984,7 +984,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
                     ! wcsncmp(inputline, L"vunmap", 6) ||
                     ! wcsncmp(inputline, L"cunmap", 6) ||
                     ! wcsncmp(inputline, L"nunmap", 6) ) {
-            send_to_interp(inputline);
+            send_to_interp(sc, inputline);
 
         } else if ( ! wcsncmp(inputline, L"!", 1) ) {
             char line [BUFFERSIZE];
@@ -1063,7 +1063,7 @@ void do_commandmode(SC *const sc, Buffer * sb) {
             fcopy(sh, action);
 
         } else if ( ! wcscmp(inputline, L"fsum") ) {
-            fsum(sh);
+            fsum(sc, sh);
 
         } else if (
             ! wcsncmp(inputline, L"e csv"  , 5) ||

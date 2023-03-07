@@ -67,7 +67,7 @@
 extern struct session * session;
 extern int shall_quit;
 extern graphADT graph;
-extern int yyparse(void);
+extern int yyparse(SC *const sc);
 
 char insert_edit_submode;
 wchar_t interp_line[BUFFERSIZE];
@@ -211,7 +211,6 @@ void syncref(struct sheet * sh, struct enode * e) {
  * \return none
  */
 void deletecol(struct sheet * sh, int col, int mult) {
-
     struct roman * roman = session->cur_doc;
 
     //if (col - 1 + mult >= sh->maxcols) {
@@ -1335,21 +1334,22 @@ void del_selected_cells(struct sheet * sh) {
  * \param[in] content
  * \return none
  */
-void enter_cell_content(struct sheet * sh, int r, int c, char * submode,  wchar_t * content) {
+void enter_cell_content(
+    SC *const sc,
+    struct sheet * sh,
+    int r,
+    int c,
+    char * submode,
+    wchar_t * content
+) {
     (void) swprintf(interp_line, BUFFERSIZE, L"%s %s = %ls", submode, v_name(r, c), content);
-    send_to_interp(interp_line);
+    send_to_interp(sc, interp_line);
     if (config_get_bool("autocalc") && ! session->cur_doc->loading) EvalRange(sh, r, c, r, c);
 }
 
 
-/**
- * @brief Send command to interpreter
- * \details Send command to interpreter
- * wide_char version
- * \param[in] oper
- * \return none
- */
-void send_to_interp(wchar_t * oper) {
+void
+send_to_interp(SC *const sc, wchar_t *oper) {
     if (config_get_bool("nocurses")) {
         int pos = -1;
         if ((pos = wstr_in_wstr(oper, L"\n")) != -1)
@@ -1359,13 +1359,25 @@ void send_to_interp(wchar_t * oper) {
     wcstombs(line, oper, BUFFERSIZE);
 
     linelim = 0;
-    yyparse();
+    yyparse(sc);
     linelim = -1;
     line[0]='\0';
     // commented on 28/04/2021. EvalAll should be used only on certain ocasions.
     // Use EvalRange instead when possible, and certainly not here everytime sending to interp.
     //if (config_get_bool("autocalc") && ! roman->loading) EvalAll();
-    return;
+}
+
+/**
+ * @brief Send command to interpreter
+ * \details Send command to interpreter
+ * wide_char version
+ * \param[in] oper
+ * \return none
+ */
+void
+send_to_interp_old(wchar_t * oper) {
+    SC *const sc = (SC *)((uint8_t *)session - offsetof(SC, session));
+    send_to_interp(sc, oper);
 }
 
 
@@ -2226,7 +2238,7 @@ int any_locked_cells(struct sheet * sh, int r1, int c1, int r2, int c2) {
  * \param[in] struct sheet * sh
  * \return none
  */
-int fsum(struct sheet * sh) {
+int fsum(SC *const sc, struct sheet * sh) {
     int r = sh->currow, c = sh->curcol;
     struct ent * p;
 
@@ -2255,7 +2267,7 @@ int fsum(struct sheet * sh) {
     }
 
     if ((sh->currow != r || sh->curcol != c) && wcslen(interp_line))
-        send_to_interp(interp_line);
+        send_to_interp(sc, interp_line);
     EvalRange(sh, sh->currow, sh->curcol, sh->currow, sh->curcol);
     return 0;
 }
@@ -2545,7 +2557,7 @@ void fix_col_frozen(struct sheet * sh, int deltac, int ci, int cf) {
 * \details converts string content of range of cells to numeric value
 * \return 0 on success; -1 on error
 */
-int convert_string_to_number(int r0, int c0, int rn, int cn) {
+int convert_string_to_number(SC *const sc, int r0, int c0, int rn, int cn) {
     struct roman * roman = session->cur_doc;
     int row, col;
     register struct ent ** pp;
@@ -2564,7 +2576,7 @@ int convert_string_to_number(int r0, int c0, int rn, int cn) {
                     char * num = str_replace((*pp)->label," ","");
                     (*pp)->label[0] = '\0';
                     swprintf(out, BUFFERSIZE, L"let %s%d=%s", coltoa(col), row, num);
-                    send_to_interp(out);
+                    send_to_interp(sc, out);
                     free(num);
                 }
             }

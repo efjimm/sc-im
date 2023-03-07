@@ -512,7 +512,7 @@ do_visualmode(SC *const sc, Buffer *buf) {
         create_undo_action();
         copy_to_undostruct(sh, r->tlrow, r->tlcol, r->brrow, r->brcol, UNDO_DEL, IGNORE_DEPS, NULL);
 #endif
-        send_to_interp(interp_line);
+        send_to_interp(sc, interp_line);
 #ifdef UNDO
         copy_to_undostruct(sh, r->tlrow, r->tlcol, r->brrow, r->brcol, UNDO_ADD, IGNORE_DEPS, NULL);
         end_undo_action();

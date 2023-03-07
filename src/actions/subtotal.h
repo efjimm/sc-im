@@ -42,4 +42,4 @@
  * \brief Header file for subtotal.c
  */
 
-int subtotal(int r, int c, int rf, int cf, int group_col, char * operation, int ope_col, int replace_subtotals);
+int subtotal(SC *const sc, int r, int c, int rf, int cf, int group_col, char * operation, int ope_col, int replace_subtotals);

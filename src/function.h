@@ -42,18 +42,19 @@
  * \brief Header file for function.c
  */
 
+#include "sc.h"
 
 double finfunc(int fun, double v1, double v2, double v3);
-char * dostindex(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * val);
-double doindex(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * val);
-double dolookup(struct sheet * sh, struct enode * val, int minr, int minc, int maxr, int maxc, int offset, int vflag);
-double docount(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
-double dosum(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
-double doprod(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
-double doavg(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
-double dostddev(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
-double domax(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
-double domin(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
+char * dostindex(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * val);
+double doindex(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * val);
+double dolookup(SC *const sc, struct sheet * sh, struct enode * val, int minr, int minc, int maxr, int maxc, int offset, int vflag);
+double docount(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
+double dosum(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
+double doprod(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
+double doavg(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
+double dostddev(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
+double domax(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
+double domin(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e);
 double dodts(int e1, int e2, int e3);
 double dotts(int hr, int min, int sec);
 double dotime(int which, double when);
@@ -62,19 +63,19 @@ int    doslen(char * s);
 double doeqs(char * s1, char * s2);
 struct ent * dogetent(int r, int c);
 double donval(struct sheet * sh, char * colstr, double rowdoub);
-double dolmax(struct sheet * sh, struct ent * e, struct enode * ep);
-double dolmin(struct sheet * sh, struct ent * e, struct enode * ep);
+double dolmax(SC *const sc, struct sheet * sh, struct ent * e, struct enode * ep);
+double dolmin(SC *const sc, struct sheet * sh, struct ent * e, struct enode * ep);
 char * docat(char * s1, char * s2);
 #include <time.h>
 char * dodate(time_t tloc, char * fmtstr);
 char * dofmt(char * fmtstr, double v);
-char * doext(struct sheet * sh, struct enode * se);
+char * doext(SC *const sc, struct sheet * sh, struct enode * se);
 char * dosval(struct sheet * sh, char * colstr, double rowdoub);
 char * dosubstr(char * s, int v1, int v2);
 char * docase(int acase, char * s);
 char * docapital(char * s);
-double doevaluate(char * s);
-char * dosevaluate(char * s);
+double doevaluate(SC *const sc, char * s);
+char * dosevaluate(SC *const sc, char * s);
 double rint(double d);
 double dorow(struct enode * ep);
 double docol(struct enode * ep);

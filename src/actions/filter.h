@@ -46,9 +46,9 @@ struct filter_item {
     char * eval;
 };
 
-void show_filters();
+void show_filters(void);
 void add_filter(char * criteria);
-void enable_filters(struct ent * left, struct ent * right);
+void enable_filters(SC *const sc, struct ent * left, struct ent * right);
 void disable_filters();
 int free_filters();
 int del_filter(int id);

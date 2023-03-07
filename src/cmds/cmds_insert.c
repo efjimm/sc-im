@@ -209,7 +209,7 @@ void do_insertmode(SC *const sc, Buffer * sb) {
             add_wchar(content, L'\"', wcslen(content));
         }
 
-        enter_cell_content(sh, sh->currow, sh->curcol, ope, content);
+        enter_cell_content(sc, sh, sh->currow, sh->curcol, ope, content);
 
 #ifdef INS_HISTORY_FILE
         /*

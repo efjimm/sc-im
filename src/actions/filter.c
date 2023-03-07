@@ -102,8 +102,8 @@ void add_filter(char * criteria) {
  * \param[in] right
  * \return none
  */
-void enable_filters(struct ent * left, struct ent * right) {
-    struct roman * roman = session->cur_doc;
+void enable_filters(SC *const sc, struct ent * left, struct ent * right) {
+    struct roman * roman = sc->session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     int minr = left->row < right->row ? left->row : right->row;
     int maxr = left->row > right->row ? left->row : right->row;
@@ -139,7 +139,7 @@ void enable_filters(struct ent * left, struct ent * right) {
             }
 
             swprintf(aux, BUFFERSIZE, L"eval %ls", cadena);
-            send_to_interp(aux);
+            send_to_interp(sc, aux);
             if ( (! seval_result && str_in_str(filters[i].eval, "seval") != -1) || ! eval_result) {
                 results[r-minr+2] = 1; // this row does not eval to expression. we hide it. (1 = HIDDEN)!
                 i = howmany;
@@ -183,7 +183,7 @@ void disable_filters() {
  * \brief Show details of each filter
  * \return none
  */
-void show_filters() {
+void show_filters(void) {
     if (filters == NULL) {
         sc_error("There are no filters defined");
         return;

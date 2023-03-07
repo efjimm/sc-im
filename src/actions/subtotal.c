@@ -84,7 +84,7 @@ extern struct session * session;
  * \return none
  */
 
-int subtotal(int r, int c, int rf, int cf, int group_col, char * operation, int ope_col, int replace_subtotals) {
+int subtotal(SC *const sc, int r, int c, int rf, int cf, int group_col, char * operation, int ope_col, int replace_subtotals) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     // check ope_col and group_col are valid
@@ -105,7 +105,7 @@ int subtotal(int r, int c, int rf, int cf, int group_col, char * operation, int 
     extern wchar_t interp_line[BUFFERSIZE];
     swprintf(interp_line, BUFFERSIZE, L"sort %s%d:", coltoa(c), r + headers_in_first_row);
     swprintf(interp_line + wcslen(interp_line), BUFFERSIZE, L"%s%d \"%ls\"", coltoa(cf), rf, cline);
-    send_to_interp(interp_line);
+    send_to_interp(sc, interp_line);
 
     // traverse the range and replace subtotals
     //
@@ -144,11 +144,11 @@ int subtotal(int r, int c, int rf, int cf, int group_col, char * operation, int 
            shift(sh, i, c, i, cf, L'j');
 
            swprintf(cmd, BUFFERSIZE, L"rightstring %s%d = \"+%s(%s)\"", coltoa(group_col), i, operation, p->label);
-           send_to_interp(cmd);
+           send_to_interp(sc, cmd);
 
            swprintf(cmd, BUFFERSIZE, L"let %s%d = %s(%s%d:%s%d)", coltoa(ope_col), i, operation,
            coltoa(ope_col), row_start_range, coltoa(ope_col), i-1);
-           send_to_interp(cmd);
+           send_to_interp(sc, cmd);
            valueize_area(sh, i, ope_col, i, ope_col);
 
            new_rows++;

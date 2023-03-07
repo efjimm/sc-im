@@ -233,7 +233,7 @@ main(int argc, char **argv) {
     /* load file passed as argv to sc-im.
      * if more than one file is passed, consider the last one.
      */
-    load_file(strlen(loadingfile) ? loadingfile : NULL);
+    load_file(&sc, strlen(loadingfile) ? loadingfile : NULL);
 
     /*
      * check if session->cur_doc is NULL (no file passed as argv).
@@ -304,7 +304,7 @@ main(int argc, char **argv) {
      * other than configuration variables and mappings,
      * we call the load_rc() routine after session / roman / sheet are alloc'ed.
      */
-    load_rc();
+    load_rc(&sc);
 
     // check input from stdin (pipeline)
     // and send it to interp
@@ -358,7 +358,7 @@ main(int argc, char **argv) {
             handle_input(&sc, buffer);
         } else if (fgetws(nocurses_buffer, BUFFERSIZE, f) != NULL) {
             sc_debug("Interp will receive: %ls", nocurses_buffer);
-            send_to_interp(nocurses_buffer);
+            send_to_interp(&sc, nocurses_buffer);
         }
 
         /*
@@ -383,7 +383,7 @@ bool lex_init(void);
  * \return none
  */
 void
-create_structures(void) {
+create_structures(SC *const sc) {
     lex_init();
 
     // initiate mark array
@@ -428,7 +428,7 @@ read_stdin(void) {
         //sc_debug("there is data");
         while (f != NULL && fgetws(stdin_buffer, BUFFERSIZE, f) != NULL) {
             sc_debug("Interp will receive: %ls", stdin_buffer);
-            send_to_interp(stdin_buffer);
+            send_to_interp(&sc, stdin_buffer);
         }
         fflush(f);
     } else {

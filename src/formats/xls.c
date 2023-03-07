@@ -62,8 +62,6 @@
 #include <xls.h>
 #endif
 
-extern struct session * session;
-
 /**
  * \brief TODO <brief function description>
  *
@@ -73,9 +71,9 @@ extern struct session * session;
  *
  * \return -1 on error
  */
-int open_xls(char * fname, char * encoding) {
+int open_xls(SC *const sc, char * fname, char * encoding) {
 #ifdef XLS
-    struct roman * roman = session->cur_doc;
+    struct roman * roman = sc->session->cur_doc;
     struct sheet * sh = roman->cur_sh;
 
     // Set date format reading LOCALE
@@ -135,7 +133,7 @@ int open_xls(char * fname, char * encoding) {
                && cell->id != 0x203 ) {
 
                 swprintf(line_interp, FBUFLEN, L"let %s%d=%.15g", coltoa(c), r, (cell->d - 25569) * 86400);
-                send_to_interp(line_interp);
+                send_to_interp(sc, line_interp);
                 n = lookat(sh, r, c);
                 n->format = 0;
                 char * s = scxmalloc((unsigned)(strlen(fmt) + 2));
@@ -169,7 +167,7 @@ int open_xls(char * fname, char * encoding) {
             } else {
                 swprintf(line_interp, FBUFLEN, L"label %s%d=\"%s\"", coltoa(c), r, "");
             }
-            send_to_interp(line_interp);
+            send_to_interp(sc, line_interp);
         }
     }
     xls_close_WS(pWS);

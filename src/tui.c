@@ -1233,7 +1233,7 @@ void ui_show_celldetails() {
  * \return none
  */
 
-void yyerror(char * err) {
+void yyerror(SC *const sc, char * err) {
     mvwprintw(input_pad, 0, 0, "%s: %.*s<=%s", err, linelim, line, line + linelim);
     ui_refresh_pad(0);
     return;

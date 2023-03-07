@@ -194,7 +194,7 @@ void do_editmode(SC *const sc, Buffer * sb) {
             add_wchar(content, L'\"', wcslen(content));
         }
 
-        enter_cell_content(sh, sh->currow, sh->curcol, ope, content);
+        enter_cell_content(sc, sh, sh->currow, sh->curcol, ope, content);
 
         inputline[0] = L'\0';
         inputline_pos = 0;

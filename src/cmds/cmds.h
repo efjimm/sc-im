@@ -54,8 +54,9 @@ extern int real_inputline_pos;
 extern Buffer * lastcmd_buffer;
 
 int is_single_command (Buffer * buf, long timeout);
-void enter_cell_content(struct sheet * sh, int r, int c, char * submode,  wchar_t * content);
-void send_to_interp(wchar_t * oper);   // Send command to interpreter
+void enter_cell_content(SC *const sc, struct sheet * sh, int r, int c, char * submode,  wchar_t * content);
+void send_to_interp(SC *const sc, wchar_t * oper);   // Send command to interpreter
+void send_to_interp_old(wchar_t * oper);   // Send command to interpreter
 void chg_mode(char strcmd);            // Change mode function
 int modcheck();                        // Verify if open file has been modified
 int savefile();                        // Save open file
@@ -111,9 +112,9 @@ void valueize_area(struct sheet * sh, int sr, int sc, int er, int ec);
 void sync_refs(struct sheet * sh);
 void syncref(struct sheet * sh, struct enode * e);
 int fcopy(struct sheet * sh, char * action);
-int fsum(struct sheet * sh);
+int fsum(SC *const sc, struct sheet * sh);
 int pad(struct sheet * sh, int n, int r1, int c1, int r2, int c2);
-int convert_string_to_number(int r0, int c0, int rn, int cn);
+int convert_string_to_number(SC *const sc, int r0, int c0, int rn, int cn);
 
 void fix_row_hidden(struct sheet * sh, int deltar, int ri, int rf);
 void fix_col_hidden(struct sheet * sh, int deltac, int ci, int cf);

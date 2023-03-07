@@ -10,7 +10,7 @@ VALGRIND_CMD='valgrind -v --log-file=${NAME}_vallog --tool=memcheck --track-orig
 . assert.sh
 
 CMD='YANKAREA {"Sheet1"}!G1:G20 "a"\nPASTEYANKED {"Sheet1"} 0 "c"\nGETNUM H20'
-assert "echo -e '${CMD}' | $VALGRIND_CMD ../src/sc-im ${NAME}.sc --nocurses --nodebug --quit_afterload 2>&1 |grep -v '^$\|Interp'" "3404115"
+assert "echo -e '${CMD}' | $VALGRIND_CMD ../zig-out/bin/sc-im ${NAME}.sc --nocurses --nodebug --quit_afterload 2>&1 |grep -v '^$\|Interp'" "3404115"
 
 #we check valgrind log
 assert_iffound_notcond ${NAME}_vallog "definitely lost.*bytes" "0 bytes"

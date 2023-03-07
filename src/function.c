@@ -124,7 +124,7 @@ double finfunc(int fun, double v1, double v2, double v3) {
  * \param[in] val
  * \return char *
  */
-char * dostindex(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * val) {
+char * dostindex(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * val) {
     int r, c;
     struct ent * p;
     char * pr;
@@ -132,13 +132,13 @@ char * dostindex(struct sheet * sh, int minr, int minc, int maxr, int maxc, stru
     p = (struct ent *) 0;
     if (minr == maxr) {            /* look along the row */
         r = minr;
-        c = minc + (int) eval(sh, NULL, val) - 1;
+        c = minc + (int) eval(sc, sh, NULL, val) - 1;
     } else if (minc == maxc) {        /* look down the column */
-        r = minr + (int) eval(sh, NULL, val) - 1;
+        r = minr + (int) eval(sc, sh, NULL, val) - 1;
         c = minc;
     } else {
-        r = minr + (int) eval(sh, NULL, val->left) - 1;
-        c = minc + (int) eval(sh, NULL, val->right) - 1;
+        r = minr + (int) eval(sc, sh, NULL, val->left) - 1;
+        c = minc + (int) eval(sc, sh, NULL, val->right) - 1;
     }
     if (c <= maxc && c >= minc && r <= maxr && r >= minr)
         p = *ATBL(sh, sh->tbl, r, c);
@@ -179,18 +179,18 @@ double doascii(char * s) {
  * \param[in] val
  * \return double
  */
-double doindex(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * val) {
+double doindex(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * val) {
     int r, c;
     struct ent * p;
 
     if (val->op == ',') {        /* index by both row and column */
-        r = minr + (int) eval(sh, NULL, val->left) - 1;
-        c = minc + (int) eval(sh, NULL, val->right) - 1;
+        r = minr + (int) eval(sc, sh, NULL, val->left) - 1;
+        c = minc + (int) eval(sc, sh, NULL, val->right) - 1;
     } else if (minr == maxr) {        /* look along the row */
         r = minr;
-        c = minc + (int) eval(sh, NULL, val) - 1;
+        c = minc + (int) eval(sc, sh, NULL, val) - 1;
     } else if (minc == maxc) {        /* look down the column */
-        r = minr + (int) eval(sh, NULL, val) - 1;
+        r = minr + (int) eval(sc, sh, NULL, val) - 1;
         c = minc;
     } else {
         sc_error("Improper indexing operation");
@@ -218,7 +218,7 @@ double doindex(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct
  * \param[in] vflag
  * \return double
  */
-double dolookup(struct sheet * sh, struct enode * val, int minr, int minc, int maxr, int maxc, int offset, int vflag) {
+double dolookup(SC *const sc, struct sheet * sh, struct enode * val, int minr, int minc, int maxr, int maxc, int offset, int vflag) {
     double v, ret = (double) 0;
     int r, c;
     struct ent * p = (struct ent *) 0;
@@ -228,7 +228,7 @@ double dolookup(struct sheet * sh, struct enode * val, int minr, int minc, int m
     incr = vflag; incc = 1 - vflag;
     if (etype(val) == NUM) {
         cellerror = CELLOK;
-        v = eval(sh, NULL, val);
+        v = eval(sc, sh, NULL, val);
         for (r = minr, c = minc; r <= maxr && c <= maxc; r+=incr, c+=incc) {
             if ((p = *ATBL(sh, sh->tbl, r, c)) && p->flags & is_valid) {
                 if (p->v <= v) {
@@ -253,7 +253,7 @@ double dolookup(struct sheet * sh, struct enode * val, int minr, int minc, int m
         }
     } else {
         cellerror = CELLOK;
-        s = seval(sh, NULL, val);
+        s = seval(sc, sh, NULL, val);
         for (r = minr, c = minc; r <= maxr && c <= maxc; r+=incr, c+=incc) {
             if ((p = *ATBL(sh, sh->tbl, r, c)) && p->label) {
                 if (s && strcmp(p->label,s) == 0) {
@@ -290,7 +290,7 @@ double dolookup(struct sheet * sh, struct enode * val, int minr, int minc, int m
  *
  * \return double
  */
-double docount(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
+double docount(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
     int v;
     int r, c;
     int cellerr = CELLOK;
@@ -303,7 +303,7 @@ double docount(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct
                 rowoffset = r - minr;
                 coloffset = c - minc;
             }
-            if (!e || eval(sh, NULL, e))
+            if (!e || eval(sc, sh, NULL, e))
                 // the following changed for #430. docount should also count cells with strings. not just numbers
                 // TODO: create @counta to count both, and leave @count for just numbers
                 if ((p = *ATBL(sh, sh->tbl, r, c)) && (p->flags & is_valid || p->label) ) {
@@ -326,7 +326,7 @@ double docount(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct
  * \param[in] e
  * \return double
  */
-double dosum(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
+double dosum(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
     double v;
     int r, c;
     int cellerr = CELLOK;
@@ -339,7 +339,7 @@ double dosum(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct e
                 rowoffset = r - minr;
                 coloffset = c - minc;
             }
-            if ( !e || eval(sh, NULL, e))
+            if ( !e || eval(sc, sh, NULL, e))
                 if ((p = *ATBL(sh, sh->tbl, r, c)) && p->flags & is_valid) {
                     if (p->cellerror)
                         cellerr = CELLINVALID;
@@ -360,7 +360,7 @@ double dosum(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct e
  * \param[in] e
  * \return double
  */
-double doprod(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
+double doprod(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
     double v;
     int r, c;
     int cellerr = CELLOK;
@@ -373,7 +373,7 @@ double doprod(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct 
                 rowoffset = r - minr;
                 coloffset = c - minc;
             }
-            if ( !e || eval(sh, NULL, e))
+            if ( !e || eval(sc, sh, NULL, e))
                 if ((p = *ATBL(sh, sh->tbl, r, c)) && p->flags & is_valid) {
                     if (p->cellerror) cellerr = CELLINVALID;
                         v *= p->v;
@@ -394,7 +394,7 @@ double doprod(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct 
  * \param[in] e
  * \return double
  */
-double doavg(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
+double doavg(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
     double v;
     int r, c;
     int count;
@@ -409,7 +409,7 @@ double doavg(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct e
                 rowoffset = r - minr;
                 coloffset = c - minc;
             }
-            if (!e || eval(sh, NULL, e))
+            if (!e || eval(sc, sh, NULL, e))
                 if ((p = *ATBL(sh, sh->tbl, r, c)) && p->flags & is_valid) {
                     if (p->cellerror) cellerr = CELLINVALID;
                     v += p->v;
@@ -434,7 +434,7 @@ double doavg(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct e
  * \param[in] e
  * \return double
  */
-double dostddev(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
+double dostddev(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
     double lp, rp, v, nd;
     int r, c;
     int n;
@@ -450,7 +450,7 @@ double dostddev(struct sheet * sh, int minr, int minc, int maxr, int maxc, struc
                 rowoffset = r - minr;
                 coloffset = c - minc;
             }
-            if (!e || eval(sh, NULL, e))
+            if (!e || eval(sc, sh, NULL, e))
                 if ((p = *ATBL(sh, sh->tbl, r, c)) && p->flags & is_valid) {
                     if (p->cellerror) cellerr = CELLINVALID;
                     v = p->v;
@@ -477,7 +477,7 @@ double dostddev(struct sheet * sh, int minr, int minc, int maxr, int maxc, struc
  * \param[in] e
  * \return double
  */
-double domax(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
+double domax(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
     double v = (double) 0;
     int r, c;
     int count;
@@ -491,7 +491,7 @@ double domax(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct e
                 rowoffset = r - minr;
                 coloffset = c - minc;
             }
-            if (!e || eval(sh, NULL, e))
+            if (!e || eval(sc, sh, NULL, e))
                 if ((p = *ATBL(sh, sh->tbl, r, c)) && p->flags & is_valid) {
                     if (p->cellerror) cellerr = CELLINVALID;
 
@@ -520,7 +520,7 @@ double domax(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct e
  * \param[in] e
  * \return double
  */
-double domin(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
+double domin(SC *const sc, struct sheet * sh, int minr, int minc, int maxr, int maxc, struct enode * e) {
     double v = (double)0;
     int r, c;
     int count;
@@ -534,7 +534,7 @@ double domin(struct sheet * sh, int minr, int minc, int maxr, int maxc, struct e
                 rowoffset = r - minr;
                 coloffset = c - minc;
             }
-            if (!e || eval(sh, NULL, e))
+            if (!e || eval(sc, sh, NULL, e))
                 if ((p = *ATBL(sh, sh->tbl, r, c)) && p->flags & is_valid) {
                     if (p->cellerror) cellerr = CELLINVALID;
                     if (! count) {
@@ -691,14 +691,15 @@ double doston(char * s) {
  * \param[in] s
  * \return double
  */
-double doevaluate(char * s) {
-    if ( !s) return ((double)0);
+double doevaluate(SC *const sc, char * s) {
+    if (!s)
+        return 0;
     wchar_t cline [BUFFERSIZE];
     swprintf(cline, BUFFERSIZE, L"eval %s", s);
-    send_to_interp(cline);
-    double d = eval_result;
+    send_to_interp(sc, cline);
+    const double d = eval_result;
     scxfree(s);
-    return (double) d;
+    return d;
 }
 
 
@@ -772,7 +773,7 @@ double donval(struct sheet * sh, char * colstr, double rowdoub) {
  * \param[in] ep
  * \return double
  */
-double dolmax(struct sheet * sh, struct ent * e, struct enode * ep) {
+double dolmax(SC *const sc, struct sheet * sh, struct ent * e, struct enode * ep) {
     int count = 0;
     double maxval = 0; /* Assignment to shut up lint */
     struct enode * p;
@@ -780,7 +781,7 @@ double dolmax(struct sheet * sh, struct ent * e, struct enode * ep) {
 
     cellerror = CELLOK;
     for (p = ep; p; p = p->left) {
-        v = eval(sh, e, p->right);
+        v = eval(sc, sh, e, p->right);
         if ( !count || v > maxval) {
             maxval = v;
             count++;
@@ -797,7 +798,7 @@ double dolmax(struct sheet * sh, struct ent * e, struct enode * ep) {
  * \param[in] ep
  * \return double
  */
-double dolmin(struct sheet * sh, struct ent * e, struct enode * ep) {
+double dolmin(SC *const sc, struct sheet * sh, struct ent * e, struct enode * ep) {
     int count = 0;
     double minval = 0; /* Assignment to shut up lint */
     struct enode * p;
@@ -805,7 +806,7 @@ double dolmin(struct sheet * sh, struct ent * e, struct enode * ep) {
 
     cellerror = CELLOK;
     for (p = ep; p; p = p->left) {
-        v = eval(sh, e, p->right);
+        v = eval(sc, sh, e, p->right);
         if ( !count || v < minval) {
             minval = v;
             count++;
@@ -922,13 +923,13 @@ char * dofmt(char * fmtstr, double v) {
  * \param[in] se
  * \return char *
  */
-char * doext(struct sheet * sh, struct enode *se) {
+char * doext(SC *const sc, struct sheet * sh, struct enode *se) {
     char buff[FBUFLEN];        /* command line/return, not permanently alloc */
     char * command;
     double value;
 
-    command = seval(sh, NULL, se->left);
-    value = eval(sh, NULL, se->right);
+    command = seval(sc, sh, NULL, se->left);
+    value = eval(sc, sh, NULL, se->right);
     if ( ! config_get_bool("external_functions") ) {
         sc_error("Warning: external functions disabled; using %s value",
         (se->last_func_str && *se->last_func_str) ? "previous" : "null");
@@ -1052,13 +1053,13 @@ char * dosubstr(char * s, int v1, int v2) {
  * \param[in] s
  * \return char *
  */
-char * dosevaluate(char * s) {
+char * dosevaluate(SC *const sc, char * s) {
     if ( !s ) return ((char *) 0);
     char * p;
 
     wchar_t cline [BUFFERSIZE];
     swprintf(cline, BUFFERSIZE, L"seval %s", s);
-    send_to_interp(cline);
+    send_to_interp(sc, cline);
 
     p = scxmalloc(sizeof(char) * strlen(seval_result)+1);
     strcpy(p, seval_result);

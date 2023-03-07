@@ -43,10 +43,10 @@
  */
 
 struct ent * getent(struct sheet * sh, char * colstr, double rowdoub, int alloc);
-double eval(struct sheet * sh, struct ent * ent, struct enode * e);
+double eval(SC *const sc, struct sheet * sh, struct ent * ent, struct enode * e);
 double fn1_eval(double (* fn)(double), double arg);
 double fn2_eval(double (* fn)(double, double), double arg1, double arg2);
-char * seval(struct sheet * sh, struct ent * ent, struct enode * se);
+char * seval(SC *const sc, struct sheet * sh, struct ent * ent, struct enode * se);
 void setiterations(int i);
 void EvalAll();
 struct enode * new(int op, struct enode * a1, struct enode * a2);
@@ -68,8 +68,8 @@ void str_search(struct sheet * sh, char * s, int firstrow, int firstcol, int las
 void fill(struct sheet * sh, struct ent * v1, struct ent * v2, double start, double inc);
 void lock_cells(struct sheet * sh, struct ent * v1, struct ent * v2);
 void unlock_cells(struct sheet * sh, struct ent * v1, struct ent * v2);
-void let(struct roman * roman, struct sheet * sh, struct ent * v, struct enode * e);
-void slet(struct roman * roman, struct sheet * sh, struct ent * v, struct enode * se, int flushdir);
+void let(SC *const sc, struct roman * roman, struct sheet * sh, struct ent * v, struct enode * e);
+void slet(SC *const sc, struct roman * roman, struct sheet * sh, struct ent * v, struct enode * se, int flushdir);
 void format_cell(struct sheet * sh, struct ent * v1, struct ent * v2, char *s);
 bool constant(const struct enode *const e);
 void efree(struct enode * e);

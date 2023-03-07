@@ -188,7 +188,7 @@ char * get_xlsx_number_format_by_id(xmlDocPtr doc_styles, int id) {
  * \return none
  */
 
-void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) {
+void get_sheet_data(SC *const sc, xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) {
     struct roman * roman = session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     xmlNode * cur_node = xmlDocGetRootElement(doc)->xmlChildrenNode;
@@ -244,7 +244,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
                     st = str_replace (strvalue, "\"", "''");
                     clean_carrier(st); // we handle padding
                     swprintf(line_interp, FBUFLEN, L"label %s%d=\"%s\"", coltoa(c), r, st);
-                    send_to_interp(line_interp);
+                    send_to_interp(sc, line_interp);
                     free(st);
                 }
 
@@ -256,7 +256,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
                     st = str_replace (strvalue, "\"", "''");
                     clean_carrier(st); // we handle padding
                     swprintf(line_interp, FBUFLEN, L"label %s%d=\"%s\"", coltoa(c), r, st);
-                    send_to_interp(line_interp);
+                    send_to_interp(sc, line_interp);
                     free(st);
                 }
 
@@ -269,7 +269,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
                     long l = strtol((char *) child_node->xmlChildrenNode->xmlChildrenNode->content, (char **) NULL, 10);
 
                     swprintf(line_interp, FBUFLEN, L"let %s%d=%.15ld", coltoa(c), r, (l - 25568) * 86400 - config_get_int("tm_gmtoff"));
-                    send_to_interp(line_interp);
+                    send_to_interp(sc, line_interp);
                     struct ent * n = lookat(sh, r, c);
                     n->format = 0;
                     char * stringFormat = scxmalloc((unsigned)(strlen("%d/%m/%Y") + 2));
@@ -284,7 +284,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
                 ) {
                     double l = atof((char *) child_node->xmlChildrenNode->xmlChildrenNode->content);
                     swprintf(line_interp, FBUFLEN, L"let %s%d=%.15f", coltoa(c), r, (l - config_get_int("tm_gmtoff") * 1.0 / 60 / 60 / 24) * 86400);
-                    send_to_interp(line_interp);
+                    send_to_interp(sc, line_interp);
                     struct ent * n = lookat(sh, r, c);
                     n->format = 0;
                     char * stringFormat = scxmalloc((unsigned)(strlen("%H:%M:%S") + 2));
@@ -298,7 +298,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
                 ! strcmp((char *) child_node->xmlChildrenNode->name, "v") ){
                     double l = atof((char *) child_node->xmlChildrenNode->xmlChildrenNode->content);
                     swprintf(line_interp, FBUFLEN, L"let %s%d=%.15f", coltoa(c), r, l);
-                    send_to_interp(line_interp);
+                    send_to_interp(sc, line_interp);
 
                 // f - numeric value that is a result from formula
                 } else if (
@@ -348,7 +348,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
                         double l = atof((char *) child_node->last->xmlChildrenNode->content);
                         swprintf(line_interp, FBUFLEN, L"let %s%d=%.15f", coltoa(c), r, l);
                     }
-                    send_to_interp(line_interp);
+                    send_to_interp(sc, line_interp);
                 }
             }
 
@@ -376,7 +376,7 @@ void get_sheet_data(xmlDocPtr doc, xmlDocPtr doc_strings, xmlDocPtr doc_styles) 
  * \return none
  */
 
-int open_xlsx(char * fname, char * encoding) {
+int open_xlsx(SC *const sc, char * fname, char * encoding) {
     //struct roman * roman = session->cur_doc;
     //struct sheet * sh = roman->cur_sh;
     struct zip * za;
@@ -462,7 +462,7 @@ int open_xlsx(char * fname, char * encoding) {
             sheet_name = (char *) xmlGetProp(cur_node, (xmlChar *) "name");
 
             swprintf(cline, BUFFERSIZE, L"newsheet \"%s\"", sheet_name);
-            send_to_interp(cline);
+            send_to_interp(sc, cline);
 
             sheet_id = (char *) xmlGetProp(cur_node, (xmlChar *) "sheetId");
 
@@ -514,7 +514,7 @@ int open_xlsx(char * fname, char * encoding) {
                 return -1;
             }
 
-            get_sheet_data(doc, doc_strings, doc_styles);
+            get_sheet_data(sc, doc, doc_strings, doc_styles);
 
             // free the document
             xmlFreeDoc(doc);

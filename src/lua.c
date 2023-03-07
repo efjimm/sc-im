@@ -210,7 +210,10 @@ static int l_setform (lua_State *L) {
     c = lua_tointeger(L, 1);
     val = (char *) lua_tostring(L,3);
     swprintf(buf, FBUFLEN, L"LET %s%d=%s", coltoa(c), r, val);
-    send_to_interp(buf);
+
+    // TODO pass this as userdata
+    SC *const sc = (SC *)((uint8_t *)session - offsetof(SC, session));
+    send_to_interp(sc, buf);
     return 0;
 }
 
@@ -225,7 +228,10 @@ static int l_sc (lua_State *L) {
     char * val = (char *) lua_tostring(L,1);
     wchar_t buf[BUFFERSIZE];
     swprintf(buf, FBUFLEN, L"%s", val);
-    send_to_interp(buf);
+
+    // TODO pass this as userdata
+    SC *const sc = (SC *)((uint8_t *)session - offsetof(SC, session));
+    send_to_interp(sc, buf);
     return 0;
 }
 
@@ -382,12 +388,12 @@ void doLuaclose() {
  * \return none
  */
 
-char * doLUA(struct sheet * sh, struct enode * se, int type) {
+char * doLUA(SC *const sc, struct sheet * sh, struct enode * se, int type) {
     if ( ! config_get_bool("exec_lua")) return 0;
     char * cmd;
     char buffer[PATHLEN];
     char buffer1[PATHLEN];
-    cmd = seval(sh, NULL, se->left);
+    cmd = seval(sc, sh, NULL, se->left);
 
     sprintf(buffer, "lua/%s", cmd);
     if (plugin_exists(buffer, strlen(buffer), buffer1)) {

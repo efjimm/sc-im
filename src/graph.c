@@ -814,6 +814,9 @@ void EvalJustOneVertex(struct sheet * sh, struct ent * p, int rebuild_graph) {
     int i = p->row;
     int j = p->col;
 
+    //TODO: pass as param
+    SC *const sc = (SC *)((uint8_t *)session - offsetof(SC, session));
+
     gmyrow=i; gmycol=j;
 
     if (p->flags & is_strexpr) {
@@ -824,7 +827,7 @@ void EvalJustOneVertex(struct sheet * sh, struct ent * p, int rebuild_graph) {
             v = "";
         } else {
             cellerror = CELLOK;
-            v = rebuild_graph ? seval(sh, p, p->expr) : seval(sh, NULL, p->expr);
+            v = rebuild_graph ? seval(sc, sh, p, p->expr) : seval(sc, sh, NULL, p->expr);
         }
         p->cellerror = cellerror;
         if ( !v && !p->label) /* Everything's fine */
@@ -843,7 +846,7 @@ void EvalJustOneVertex(struct sheet * sh, struct ent * p, int rebuild_graph) {
             v = (double) 0.0;
         } else {
             cellerror = CELLOK;
-            v = rebuild_graph ? eval(sh, p, p->expr) : eval(sh, NULL, p->expr);
+            v = rebuild_graph ? eval(sc, sh, p, p->expr) : eval(sc, sh, NULL, p->expr);
 
             if (cellerror == CELLOK && ! isfinite(v))
                 cellerror = CELLERROR;

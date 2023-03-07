@@ -31,9 +31,8 @@
 #include "vmtbl.h"
 #include "cmds/cmds_command.h"
 
-void yyerror(char *err);               // error routine for yacc (gram.y)
-int yylex(void);
-extern struct session * session;
+void yyerror(SC *const sc, char *err);               // error routine for yacc (gram.y)
+int yylex(SC *const sc);
 
 #ifdef USELOCALE
 #include <locale.h>
@@ -71,6 +70,8 @@ extern struct session * session;
 %token <sval> WORD
 %token <sval> MAPWORD
 %token <sval> PLUGIN
+
+%param {SC *const sc}
 
 /*
  * When adding new commands, make sure that any commands that may take
@@ -427,16 +428,16 @@ token K_COLORERR
 %%
 command:
          S_LET var_or_range '=' e {
-                                  struct roman * roman = session->cur_doc;
+                                  struct roman * roman = sc->session->cur_doc;
                                   struct sheet * sh = roman->cur_sh;
-                                  let(roman, sh, $2.left.vp, $4);
+                                  let(sc, roman, sh, $2.left.vp, $4);
                                   }
 
     |    S_LET var_or_range '='
                                   {
                                   // TODO get this code out of gram.y - reeval cells that depends on $2
                                   extern graphADT graph;
-                                  struct roman * roman = session->cur_doc;
+                                  struct roman * roman = sc->session->cur_doc;
                                   struct sheet * sh = roman->cur_sh;
 #ifdef UNDO
                                   // here we save in undostruct, all the ents that depends on the deleted one (before change)
@@ -474,49 +475,49 @@ command:
                                   }
 
     |    S_LABEL var_or_range '=' e       {
-                                            struct roman * roman = session->cur_doc;
+                                            struct roman * roman = sc->session->cur_doc;
                                             struct sheet * sh = roman->cur_sh;
-                                            slet(roman, sh, $2.left.vp, $4, 0);
+                                            slet(sc, roman, sh, $2.left.vp, $4, 0);
                                           }
 
     |    S_LEFTSTRING var_or_range '=' e  {
-                                            struct roman * roman = session->cur_doc;
+                                            struct roman * roman = sc->session->cur_doc;
                                             struct sheet * sh = roman->cur_sh;
-                                            slet(roman, sh, $2.left.vp, $4, -1);
+                                            slet(sc, roman, sh, $2.left.vp, $4, -1);
                                           }
     |    S_RIGHTSTRING var_or_range '=' e {
-                                            struct roman * roman = session->cur_doc;
+                                            struct roman * roman = sc->session->cur_doc;
                                             struct sheet * sh = roman->cur_sh;
-                                            slet(roman, sh, $2.left.vp, $4, 1);
+                                            slet(sc, roman, sh, $2.left.vp, $4, 1);
                                           }
     |    S_LEFTJUSTIFY var_or_range  {
-                                            struct roman * roman = session->cur_doc;
+                                            struct roman * roman = sc->session->cur_doc;
                                             struct sheet * sh = roman->cur_sh;
                                             ljustify(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col); }
     |    S_RIGHTJUSTIFY var_or_range {
-                                            struct roman * roman = session->cur_doc;
+                                            struct roman * roman = sc->session->cur_doc;
                                             struct sheet * sh = roman->cur_sh;
                                             rjustify(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col); }
 
     |    S_CENTER var_or_range       {
-                                            struct roman * roman = session->cur_doc;
+                                            struct roman * roman = sc->session->cur_doc;
                                             struct sheet * sh = roman->cur_sh;
                                             center(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col); }
     |    S_FMT var_or_range STRING   {
-                                            struct roman * roman = session->cur_doc;
+                                            struct roman * roman = sc->session->cur_doc;
                                             struct sheet * sh = roman->cur_sh;
                                             format_cell(sh, $2.left.vp, $2.right.vp, $3);
                                             scxfree($3);
                                      }
 
     |    S_DATEFMT var_or_range STRING {
-                                            struct roman * roman = session->cur_doc;
+                                            struct roman * roman = sc->session->cur_doc;
                                             struct sheet * sh = roman->cur_sh;
                                             dateformat(sh, $2.left.vp, $2.right.vp, $3);
                                             scxfree($3);
                                        }
     |    S_DATEFMT STRING            {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        dateformat(sh, lookat(sh, sh->currow, sh->curcol), lookat(sh, sh->currow, sh->curcol), $2);
                                        scxfree($2); }
@@ -528,12 +529,12 @@ command:
 
 /* more scripting commands */
     |    S_DELETECOL COL             {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        deletecol(sh, $2, 1);
                                      }
     |    S_DELETEROW NUMBER          {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        deleterow(sh, $2, 1);
                                      }
@@ -552,7 +553,7 @@ command:
     |    S_SHOWROW NUMBER ':' NUMBER {
                                        show_row($2, $4-$2+1); }  // show de un rango de filas
     |    S_HIDECOL COL ':' COL       {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        int c = sh->curcol, arg;
                                        if ($2 < $4) {
@@ -566,7 +567,7 @@ command:
                                        sh->curcol = c < sh->curcol ? c : c < sh->curcol + arg ? sh->curcol : c - arg;
                                      }
     |    S_HIDEROW NUMBER ':' NUMBER {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        int r = sh->currow, arg;      // hide de un rango de filas
                                        if ($2 < $4) {
@@ -581,12 +582,12 @@ command:
                                      }
 
     |    S_VALUEIZEALL               {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        valueize_area(sh, 0, 0, sh->maxrow, sh->maxcol); }
 
     |    S_SHIFT var_or_range STRING {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        if (strlen($3) != 1 || ($3[0] != 'h' && $3[0] != 'j' && $3[0] != 'k' && $3[0] != 'l')) {
                                            sc_error("wrong parameter for shift command");
@@ -599,13 +600,13 @@ command:
                                      }
 
     |    S_MARK COL var_or_range     {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        set_cell_mark($2 + 97, sh, $3.left.vp->row, $3.left.vp->col);
                                      }
 
     |    S_MARK COL var_or_range var_or_range {
-                                          struct roman * roman = session->cur_doc;
+                                          struct roman * roman = sc->session->cur_doc;
                                           struct sheet * sh = roman->cur_sh;
                                           srange * sr = create_range('\0', '\0', $3.left.vp, $4.left.vp);
                                           unselect_ranges();
@@ -613,7 +614,7 @@ command:
                                      }
 
     |    S_MARK COL STRING var_or_range     {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh;
                                        if ((sh = search_sheet(roman, $3)) != NULL ) {
                                            set_cell_mark($2 + 97, sh, $4.left.vp->row, $4.left.vp->col);
@@ -622,7 +623,7 @@ command:
                                      }
 
     |    S_MARK COL STRING var_or_range var_or_range {
-                                          struct roman * roman = session->cur_doc;
+                                          struct roman * roman = sc->session->cur_doc;
                                           struct sheet * sh;
                                           if ((sh = search_sheet(roman, $3)) != NULL ) {
                                               srange * sr = create_range('\0', '\0', $4.left.vp, $5.left.vp);
@@ -632,7 +633,7 @@ command:
                                           scxfree($3);
                                      }
     |    S_FILL var_or_range num num {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        fill(sh, $2.left.vp, $2.right.vp, $3, $4);
                                      }
@@ -640,49 +641,49 @@ command:
     |    S_FILL num num              { sc_error("Not enough parameters for fill command"); }
 
     |    S_FREEZE NUMBER ':' NUMBER  {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        handle_freeze(sh, lookat(sh, $2, 0), lookat(sh, $4, 0), 1, 'r'); }
     |    S_FREEZE NUMBER             {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        handle_freeze(sh, lookat(sh, $2, 0), lookat(sh, $2, 0), 1, 'r'); }
     |    S_FREEZE COL ':' COL        {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        handle_freeze(sh, lookat(sh, 0, $2), lookat(sh, 0, $4), 1, 'c'); }
     |    S_FREEZE COL                {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        handle_freeze(sh, lookat(sh, 0, $2), lookat(sh, 0, $2), 1, 'c'); }
     |    S_UNFREEZE NUMBER ':' NUMBER{
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        handle_freeze(sh, lookat(sh, $2, 0), lookat(sh, $4, 0), 0, 'r'); }
     |    S_UNFREEZE NUMBER           {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        handle_freeze(sh, lookat(sh, $2, 0), lookat(sh, $2, 0), 0, 'r'); }
     |    S_UNFREEZE COL ':' COL      {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        handle_freeze(sh, lookat(sh, 0, $2), lookat(sh, 0, $4), 0, 'c'); }
     |    S_UNFREEZE COL              {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        handle_freeze(sh, lookat(sh, 0, $2), lookat(sh, 0, $2), 0, 'c'); }
 
-    |    S_SORT range STRING         { sortrange(session->cur_doc->cur_sh, $2.left.vp, $2.right.vp, $3);
+    |    S_SORT range STRING         { sortrange(sc->session->cur_doc->cur_sh, $2.left.vp, $2.right.vp, $3);
                                        //scxfree($3);
                                        //do not free here
                                      }
     |    S_SUBTOTAL range COL STRING COL {
-                                       subtotal($2.left.vp->row, $2.left.vp->col, $2.right.vp->row,
+                                       subtotal(sc, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row,
                                                 $2.right.vp->col, $3, $4, $5, 0);
                                        scxfree($4);
                                      }
     |    S_RSUBTOTAL range COL STRING COL {
-                                       subtotal($2.left.vp->row, $2.left.vp->col, $2.right.vp->row,
+                                       subtotal(sc, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row,
                                                  $2.right.vp->col, $3, $4, $5, 1);
                                        scxfree($4);
                                      }
@@ -691,104 +692,106 @@ command:
 /* This tmp hack is because readfile recurses back through yyparse.
                     char *tmp;
                     tmp = $2;
-                    readfile(tmp, 1);
+                    readfile(sc, tmp, 1);
                     scxfree(tmp);
                 }
 */
-    |    S_AUTOFIT COL ':' COL       { auto_fit(session->cur_doc->cur_sh, $2, $4, DEFWIDTH); }  // auto justificado de columnas
-    |    S_AUTOFIT COL               { auto_fit(session->cur_doc->cur_sh, $2, $2, DEFWIDTH); }  // auto justificado de columna
+    |    S_AUTOFIT COL ':' COL       { auto_fit(sc->session->cur_doc->cur_sh, $2, $4, DEFWIDTH); }  // auto justificado de columnas
+    |    S_AUTOFIT COL               { auto_fit(sc->session->cur_doc->cur_sh, $2, $2, DEFWIDTH); }  // auto justificado de columna
 
     |    S_PAD NUMBER COL ':' COL  {
-                                       pad(session->cur_doc->cur_sh, $2, 0, $3, session->cur_doc->cur_sh->maxrow, $5); }
+                                       pad(sc->session->cur_doc->cur_sh, $2, 0, $3, sc->session->cur_doc->cur_sh->maxrow, $5); }
     |    S_PAD NUMBER COL          {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        pad(sh, $2, 0, $3, sh->maxrow, $3); }
     |    S_PAD NUMBER var_or_range {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        pad(sh, $2, $3.left.vp->row, $3.left.vp->col, $3.right.vp->row, $3.right.vp->col); }
     |    S_GETFORMAT COL           {   getformat($2, fdoutput); }
     |    S_FORMAT COL NUMBER NUMBER NUMBER {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        doformat(sh, $2,$2,$3,$4,$5);
                                        }
     |    S_FORMAT NUMBER NUMBER      {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        dorowformat(sh, $2, $3);
                                      }
 
-    |    S_FILTERON range            { enable_filters($2.left.vp, $2.right.vp);
+    |    S_FILTERON range            {
+                                       struct sheet *const cur_sheet = sc->session->cur_doc->cur_sh;
+                                       enable_filters(cur_sheet, $2.left.vp, $2.right.vp);
                                      }
     |    S_GOTO var_or_range var_or_range {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        moveto(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col, $3.left.vp->row, $3.left.vp->col);
                                      }
     |    S_GOTO var_or_range     {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        moveto(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col, -1, -1);
                                  }
     |    S_GOTO num              {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        num_search(sh, $2, 0, 0, roman->cur_sh->maxrow, roman->cur_sh->maxcol, 0, 1); }
     |    S_GOTO STRING           {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        str_search(sh, $2, 0, 0, roman->cur_sh->maxrow, roman->cur_sh->maxcol, 0, 1); }
                                    //scxfree($2); shall not free here
     |    S_GOTO '#' STRING       {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        str_search(sh, $3, 0, 0, roman->cur_sh->maxrow, roman->cur_sh->maxcol, 1, 1); }
                                    //scxfree($3); shall not free here
     |    S_GOTO '%' STRING       {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        str_search(sh, $3, 0, 0, roman->cur_sh->maxrow, roman->cur_sh->maxcol, 2, 1); }
                                    //scxfree($3); shall not free here
 
     |    S_GOTOB num              {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        num_search(sh, $2, 0, 0, roman->cur_sh->maxrow, roman->cur_sh->maxcol, 0, 0); }
 
     |    S_GOTOB STRING           {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        str_search(sh, $2, 0, 0, roman->cur_sh->maxrow, roman->cur_sh->maxcol, 0, 0); }
 
     |    S_GOTOB '#' STRING       {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        str_search(sh, $3, 0, 0, roman->cur_sh->maxrow, roman->cur_sh->maxcol, 1, 0); }
 
     |    S_GOTOB '%' STRING       {
-                                       struct roman * roman = session->cur_doc;
+                                       struct roman * roman = sc->session->cur_doc;
                                        struct sheet * sh = roman->cur_sh;
                                        str_search(sh, $3, 0, 0, roman->cur_sh->maxrow, roman->cur_sh->maxcol, 2, 0); }
 
  // |    S_GOTO WORD             { /* don't repeat last goto on "unintelligible word" */ ; }
 
     |    S_CCOPY range           { copy_to_clipboard($2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col); }
-    |    S_STRTONUM range        { convert_string_to_number($2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col); }
-    |    S_CPASTE                { paste_from_clipboard(); }
+    |    S_STRTONUM range        { convert_string_to_number(sc, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col); }
+    |    S_CPASTE                { paste_from_clipboard(sc); }
     |    S_LOCK var_or_range     {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    lock_cells(sh, $2.left.vp, $2.right.vp);
                                  }
     |    S_UNLOCK var_or_range   {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    unlock_cells(sh, $2.left.vp, $2.right.vp);
                                  }
     |    S_NEWSHEET STRING       {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh;
 
                                    // do not need to alloc a new 'Sheet1'
@@ -826,7 +829,7 @@ command:
                                    }
                                  }
     |    S_DELSHEET STRING       {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh;
                                    if ((sh = search_sheet(roman, $2)) == NULL ) {
                                        sc_info("No sheet exists with that name");
@@ -848,7 +851,7 @@ command:
                                    }
                                  }
     |    S_DELSHEET              {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    if (sh->next == NULL && sh->prev == NULL) {
                                        sc_info("Cannot delete the only sheet of document");
@@ -865,29 +868,29 @@ command:
                                    }
                                  }
     |    S_NEXTSHEET             {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    if (roman->cur_sh->next != NULL) {
                                        roman->cur_sh = roman->cur_sh->next;
                                    } else if (roman->next != NULL) {
-                                       session->cur_doc = roman->next;
-                                       session->cur_doc->cur_sh = session->cur_doc->first_sh;
+                                       sc->session->cur_doc = roman->next;
+                                       sc->session->cur_doc->cur_sh = sc->session->cur_doc->first_sh;
                                    } else {
-                                       session->cur_doc = session->first_doc;
-                                       session->cur_doc->cur_sh = session->cur_doc->first_sh;
+                                       sc->session->cur_doc = sc->session->first_doc;
+                                       sc->session->cur_doc->cur_sh = sc->session->cur_doc->first_sh;
                                    }
                                    chg_mode('.');
                                    ui_update(true);
                                  }
     |    S_PREVSHEET             {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    if (roman->cur_sh->prev != NULL) {
                                        roman->cur_sh = roman->cur_sh->prev;
                                    } else if (roman->prev != NULL) {
-                                       session->cur_doc = roman->prev;
-                                       session->cur_doc->cur_sh = session->cur_doc->last_sh;
+                                       sc->session->cur_doc = roman->prev;
+                                       sc->session->cur_doc->cur_sh = sc->session->cur_doc->last_sh;
                                    } else {
-                                       session->cur_doc = session->last_doc;
-                                       session->cur_doc->cur_sh = session->cur_doc->last_sh;
+                                       sc->session->cur_doc = sc->session->last_doc;
+                                       sc->session->cur_doc->cur_sh = sc->session->cur_doc->last_sh;
                                    }
                                    chg_mode('.');
                                    ui_update(true);
@@ -895,14 +898,14 @@ command:
 
     |    S_MOVETOSHEET STRING    {
                                    struct sheet * sh;
-                                   if ((sh = search_sheet(session->cur_doc, $2)) != NULL )
-                                       session->cur_doc->cur_sh = sh;
+                                   if ((sh = search_sheet(sc->session->cur_doc, $2)) != NULL )
+                                       sc->session->cur_doc->cur_sh = sh;
                                    scxfree($2);
                                  }
     |    S_RENAMESHEET STRING    {
-                                   struct sheet * sh = session->cur_doc->cur_sh;
+                                   struct sheet * sh = sc->session->cur_doc->cur_sh;
                                    if (sh->name != NULL) free(sh->name);
-                                   session->cur_doc->modflg++;
+                                   sc->session->cur_doc->modflg++;
                                    sh->name = $2;
                                    chg_mode('.');
                                    ui_show_header();
@@ -999,7 +1002,7 @@ command:
     |    S_CELLCOLOR var_or_range STRING
                                    {
 #ifdef USECOLORS
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    if ( ! config_get_bool("nocurses"))
                                        color_cell(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col, $3);
@@ -1008,47 +1011,47 @@ command:
                                    }
 
     |    S_TRIGGER var_or_range STRING  {
-                                          set_trigger(session->cur_doc->cur_sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col, $3);
+                                          set_trigger(sc->session->cur_doc->cur_sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col, $3);
                                           scxfree($3);
                                         }
 
     |    S_OFFSCR_SC_COLS NUMBER {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    sh->offscr_sc_cols = $2;
                                  }
     |    S_OFFSCR_SC_ROWS NUMBER {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    sh->offscr_sc_rows = $2;
                                  }
     |    S_NB_FROZEN_ROWS NUMBER {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    sh->nb_frozen_rows = $2;
                                  }
     |    S_NB_FROZEN_COLS NUMBER {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    sh->nb_frozen_cols = $2;
                                  }
     |    S_NB_FROZEN_SCREENROWS NUMBER {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    sh->nb_frozen_screenrows = $2;
                                  }
     |    S_NB_FROZEN_SCREENCOLS NUMBER {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
                                    sh->nb_frozen_screencols = $2;
                                  }
 
     |    S_UNTRIGGER var_or_range  {
-                                   del_trigger(session->cur_doc->cur_sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col);
+                                   del_trigger(sc->session->cur_doc->cur_sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col);
                                    }
 
     |    S_CELLCOLOR STRING        {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
 #ifdef USECOLORS
                                    if ( ! config_get_bool("nocurses"))
@@ -1058,7 +1061,7 @@ command:
                                    }
 
     |    S_UNFORMAT var_or_range   {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
 #ifdef USECOLORS
                                    if ( ! config_get_bool("nocurses")) unformat(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col);
@@ -1066,7 +1069,7 @@ command:
                                    }
 
     |    S_UNFORMAT                {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct sheet * sh = roman->cur_sh;
 #ifdef USECOLORS
                                    if ( ! config_get_bool("nocurses")) unformat(sh, sh->currow, sh->curcol, sh->currow, sh->curcol);
@@ -1081,9 +1084,9 @@ command:
                                          define_color($2, $3, $4, $5);
                                          scxfree($2); }
 
-    |    S_FCOPY                   { fcopy(session->cur_doc->cur_sh, ""); }
-    |    S_FCOPY strarg            { fcopy(session->cur_doc->cur_sh, $2); }
-    |    S_FSUM                    { fsum(session->cur_doc->cur_sh);  }
+    |    S_FCOPY                   { fcopy(sc->session->cur_doc->cur_sh, ""); }
+    |    S_FCOPY strarg            { fcopy(sc->session->cur_doc->cur_sh, $2); }
+    |    S_FSUM                    { fsum(sc, sc->session->cur_doc->cur_sh);  }
 
     |    S_PLOT STRING var_or_range       {
                                      plot($2, $3.left.vp->row, $3.left.vp->col, $3.right.vp->row, $3.right.vp->col);
@@ -1097,7 +1100,7 @@ command:
                                    }
 /*
     |    S_DEFINE strarg           {
-                                   struct roman * roman = session->cur_doc;
+                                   struct roman * roman = sc->session->cur_doc;
                                    struct ent_ptr arg1, arg2;
                                           arg1.vp = lookat(roman->cur_sh, showsr, showsc);
                                           arg1.vf = 0;
@@ -1115,9 +1118,9 @@ command:
     |    S_UNDEFINE var_or_range   { del_range($2.left.vp, $2.right.vp); }
 
     |    S_EVAL e                  {
-                                     struct roman * roman = session->cur_doc;
+                                     struct roman * roman = sc->session->cur_doc;
                                      struct sheet * sh = roman->cur_sh;
-                                     eval_result = eval(sh, NULL, $2);
+                                     eval_result = eval(sc, sh, NULL, $2);
                                      efree($2);
                                    }
     |    S_EXECUTE STRING          {
@@ -1137,8 +1140,6 @@ command:
 
                                      Buffer *auxb = buffer_create(1);
                                      buffer_append(auxb, OKEY_ENTER);
-                                     // TODO: pass this as a parameter
-                                     SC *const sc = (SC *)((uint8_t *)session - offsetof(SC, session));
                                      do_commandmode(sc, auxb);
                                      buffer_reset(auxb);
                                      buffer_destroy(auxb);
@@ -1147,7 +1148,7 @@ command:
                                      scxfree($2);
                                    }
     |    S_EXPORT STRING STRING    {
-                                     struct roman * roman = session->cur_doc;
+                                     struct roman * roman = sc->session->cur_doc;
                                      swprintf(inputline, BUFFERSIZE, L"e! %s %s", $2, $3);
                                      do_export(0, 0, roman->cur_sh->maxrow, roman->cur_sh->maxcol);
                                      scxfree($2);
@@ -1163,12 +1164,12 @@ command:
                                    }
 
     |    S_PRINT_GRAPH             { print_vertexs(); }
-    |    S_SYNCREFS                { sync_refs(session->cur_doc->cur_sh); }
+    |    S_SYNCREFS                { sync_refs(sc->session->cur_doc->cur_sh); }
 
     |    S_UNDO                    {
 #ifdef UNDO
                                      do_undo();
-                                     // sync_refs(session->cur_doc->cur_sh);
+                                     // sync_refs(sc->session->cur_doc->cur_sh);
                                      EvalAll();
                                      ui_update(true);
 #endif
@@ -1177,7 +1178,7 @@ command:
     |    S_REDO                    {
 #ifdef UNDO
                                      do_redo();
-                                     // sync_refs(session->cur_doc->cur_sh);
+                                     // sync_refs(sc->session->cur_doc->cur_sh);
                                      EvalAll();
                                      ui_update(true);
 #endif
@@ -1190,13 +1191,13 @@ command:
                                      //changed = 0;
                                    }
     |    S_GETNUM var_or_range     {
-                                     struct roman * roman = session->cur_doc;
+                                     struct roman * roman = sc->session->cur_doc;
                                      struct sheet * sh = roman->cur_sh;
                                      getnum(sh, $2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col, fdoutput);
                                    }
 
     |    S_GETNUM '{' STRING '}' '!' var_or_range {
-                                     struct roman * roman = session->cur_doc;
+                                     struct roman * roman = sc->session->cur_doc;
                                      struct sheet * sh;
                                      if ((sh = search_sheet(roman, $3)) == NULL )
                                          sh = roman->cur_sh;
@@ -1211,7 +1212,7 @@ command:
     |    S_GETFMT var_or_range     { getfmt($2.left.vp->row, $2.left.vp->col, $2.right.vp->row, $2.right.vp->col, fdoutput); }
 
     |    S_YANKAREA '{' STRING '}' '!' var_or_range STRING {
-                                     struct roman * roman = session->cur_doc;
+                                     struct roman * roman = sc->session->cur_doc;
                                      struct sheet * sh;
                                      if ((sh = search_sheet(roman, $3)) == NULL )
                                          sh = roman->cur_sh;
@@ -1220,7 +1221,7 @@ command:
                                      scxfree($7);
                                    }
     |    S_PASTEYANKED '{' STRING '}' NUMBER STRING {
-                                     struct roman * roman = session->cur_doc;
+                                     struct roman * roman = sc->session->cur_doc;
                                      struct sheet * sh;
                                      if ((sh = search_sheet(roman, $3)) == NULL )
                                          sh = roman->cur_sh;
@@ -1229,9 +1230,9 @@ command:
                                      scxfree($6);
                                    }
     |    S_SEVAL e                 {
-                                     struct roman * roman = session->cur_doc;
+                                     struct roman * roman = sc->session->cur_doc;
                                      struct sheet * sh = roman->cur_sh;
-                                     seval_result = seval(sh, NULL, $2); // always make sure this seval_result is always freed afterwards
+                                     seval_result = seval(sc, sh, NULL, $2); // always make sure this seval_result is always freed afterwards
                                      efree($2);
                                    }
     |    S_ERROR STRING            { sc_error($2);
@@ -1256,7 +1257,7 @@ term:   var                       {
                                   }
 
         | '{' STRING '}' '!' var  {
-                                    struct roman * roman = session->cur_doc;
+                                    struct roman * roman = sc->session->cur_doc;
                                     struct sheet * sh;
                                     if ((sh = search_sheet(roman, $2)) != NULL) {
                                         struct ent_ptr ep;
@@ -1483,31 +1484,31 @@ range:   var ':' var              {
 var:
 
           COL NUMBER               {
-                                    struct roman * roman = session->cur_doc;
+                                    struct roman * roman = sc->session->cur_doc;
                                     $$.vp = lookat(roman->cur_sh, $2, $1);
                                     $$.vf = 0;
                                   }
     |    '$' COL NUMBER           {
-                                    struct roman * roman = session->cur_doc;
+                                    struct roman * roman = sc->session->cur_doc;
                                     $$.vp = lookat(roman->cur_sh, $3, $2);
                                     $$.vf = FIX_COL;
                                   }
     |    COL '$' NUMBER           {
-                                    struct roman * roman = session->cur_doc;
+                                    struct roman * roman = sc->session->cur_doc;
                                     $$.vp = lookat(roman->cur_sh, $3, $1);
                                     $$.vf = FIX_ROW;
                                   }
     |    '$' COL '$' NUMBER       {
-                                    struct roman * roman = session->cur_doc;
+                                    struct roman * roman = sc->session->cur_doc;
                                     $$.vp = lookat(roman->cur_sh, $4, $2);
                                     $$.vf = FIX_ROW | FIX_COL;
                                   }
 
 
     | '@' K_GETENT '(' e ',' e ')' {
-                                    struct roman * roman = session->cur_doc;
+                                    struct roman * roman = sc->session->cur_doc;
                                     struct sheet * sh = roman->cur_sh;
-                                    $$.vp = lookat(sh, eval(sh, NULL, $4), eval(sh, NULL, $6));
+                                    $$.vp = lookat(sh, eval(sc, sh, NULL, $4), eval(sc, sh, NULL, $6));
                                     $$.vf = GET_ENT;
                                     if ($$.expr != NULL) efree($$.expr);
                                     $$.expr = new(GETENT, $4, $6);
@@ -1629,12 +1630,12 @@ setitem :
                                   {  if ($3 == 0) config_parse_str("xlsx_readformulas=0", true);
                                      else         config_parse_str("xlsx_readformulas=1", true); }
     |    K_NOXLSX_READFORMULAS    {               config_parse_str("xlsx_readformulas=0", true); }
-    |    K_NOCURSES               {  if (! session->cur_doc->loading) config_parse_str("nocurses=1", true); }
-    |    K_NOCURSES '=' NUMBER    {  if (! session->cur_doc->loading) {
+    |    K_NOCURSES               {  if (! sc->session->cur_doc->loading) config_parse_str("nocurses=1", true); }
+    |    K_NOCURSES '=' NUMBER    {  if (! sc->session->cur_doc->loading) {
                                          if ($3 == 0) config_parse_str("nocurses=0", true);
                                          else         config_parse_str("nocurses=1", true); }
                                      }
-    |    K_CURSES                 {  if (! session->cur_doc->loading) config_parse_str("nocurses=0", true); }
+    |    K_CURSES                 {  if (! sc->session->cur_doc->loading) config_parse_str("nocurses=0", true); }
     |    K_NUMERIC                {               config_parse_str("numeric=1", true); }
     |    K_NUMERIC '=' NUMBER     {  if ($3 == 0) config_parse_str("numeric=0", true);
                                      else         config_parse_str("numeric=1", true); }

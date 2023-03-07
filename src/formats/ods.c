@@ -53,11 +53,9 @@
 
 #include "../tui.h"
 #include "../cmds/cmds.h"
-#include "../sc.h"
 #include "../utils/string.h"
 #endif
-
-extern struct session * session;
+#include "../sc.h"
 
 /**
  * \brief open_ods() files
@@ -68,9 +66,9 @@ extern struct session * session;
  * \return none
  */
 
-int open_ods(char * fname, char * encoding) {
+int open_ods(SC *const sc, char * fname, char * encoding) {
 #ifdef ODS
-    struct roman * roman = session->cur_doc;
+    struct roman * roman = sc->session->cur_doc;
     struct sheet * sh = roman->cur_sh;
     struct zip * za;
     struct zip_file * zf;
@@ -213,13 +211,13 @@ int open_ods(char * fname, char * encoding) {
                        xmlFree(value);
                        value = NULL;
                    }
-                   send_to_interp(line_interp);
+                   send_to_interp(sc, line_interp);
                } else if (!strcmp(strtype, "string") && !strcmp((char *) child_node->xmlChildrenNode->name, "p")) {
                    strvalue = (char *) xmlNodeGetContent(child_node->xmlChildrenNode);
                    st = str_replace (strvalue, "\"", "''");
                    clean_carrier(st); // we handle padding
                    swprintf(line_interp, FBUFLEN, L"label %s%d=\"%s\"", coltoa(c), r, st);
-                   send_to_interp(line_interp);
+                   send_to_interp(sc, line_interp);
                    free(st);
                    xmlFree(strvalue);
                    strvalue = NULL;

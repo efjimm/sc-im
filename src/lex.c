@@ -155,7 +155,7 @@ lex_init(void) {
  */
 
 int
-yylex(void) {
+yylex(SC *const sc) {
     char * p = line + linelim;
     int ret = 0;
     static int isfunc = 0;
@@ -268,7 +268,7 @@ yylex(void) {
                         yylval.sval = tokenst;
                     } else {
                         linelim = p-line;
-                        yyerror("Unintelligible word");
+                        yyerror(sc, "Unintelligible word");
                     }
                 }
             }
@@ -318,12 +318,12 @@ yylex(void) {
                     while (isdigit(*++p));
                     if (isalpha(*p) || *p == '_') {
                         linelim = p - line;
-                        return (yylex());
+                        return (yylex(sc));
                     } else
                         ret = FNUMBER;
                 } else if (isalpha(*p) || *p == '_') {
                     linelim = p - line;
-                    return (yylex());
+                    return (yylex(sc));
                 }
             }
             if ((!dateflag && *p=='.') || ret == FNUMBER) {
@@ -376,7 +376,7 @@ yylex(void) {
             p++;
         linelim = p-line;
         tokenst = NULL;
-        return yylex();
+        return yylex(sc);
     } else {
         ret = *p++;
     }

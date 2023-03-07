@@ -91,7 +91,7 @@ pub fn build(b: *Build) !void {
                 src_dir ++ "/buffer.c",
                 src_dir ++ "/utils/string.c",
             },
-            &.{ "-Wall", "-g", },
+            &.{},
         );
 
         const all_tests_step = b.step("test", "Runs all tests");

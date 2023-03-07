@@ -89,9 +89,12 @@ extern int pthread_exists;
 #endif
 
 extern struct ent * freeents;
-extern int yyparse(void);
+extern int yyparse(SC *const sc);
 extern int exit_app(int status);
 extern struct session * session;
+
+static int import_csv(SC *const sc, char * fname, char d);
+static int import_markdown(SC *const sc, char * fname);
 
 /**
  * \brief erasedb()
@@ -136,7 +139,8 @@ void erasedb(struct sheet * sheet, int _free) {
  * \brief load rc config file
  * \return none
  */
-void load_rc(void) {
+void
+load_rc(SC *const sc) {
     char rcpath[PATHLEN];
     char * home;
 
@@ -145,7 +149,7 @@ void load_rc(void) {
         snprintf(config_dir, PATHLEN-(sizeof CONFIG_FILE), "%s/sc-im", home);
         mkdir(config_dir,0777);
         snprintf(rcpath, PATHLEN, "%s/%s", config_dir, CONFIG_FILE);
-        (void) readfile(rcpath, 0);
+        readfile(sc, rcpath, 0);
     }
     /* Default to compile time if XDG_CONFIG_HOME not found */
     else if ((home = getenv("HOME"))) {
@@ -153,7 +157,7 @@ void load_rc(void) {
         sprintf(config_dir, "%s/%s", home, CONFIG_DIR);
         mkdir(config_dir,0777);
         snprintf(rcpath, PATHLEN, "%s/%s/%s", home, CONFIG_DIR, CONFIG_FILE);
-        (void) readfile(rcpath, 0);
+        readfile(sc, rcpath, 0);
     }
 }
 
@@ -737,8 +741,8 @@ void write_cells(FILE * f, struct roman * doc, struct sheet * sh, int r0, int c0
  * SC_READFILE_ERROR if we failed,
  * SC_READFILE_DOESNTEXIST if the file doesn't exist.
  */
-sc_readfile_result readfile(char * fname, int eraseflg) {
-    struct roman * roman = session->cur_doc;
+sc_readfile_result readfile(SC *const sc, char * fname, int eraseflg) {
+    struct roman * roman = sc->session->cur_doc;
     char * curfile = roman->name;
     if (! strlen(fname)) return 0;
     roman->loading = 1;
@@ -803,7 +807,7 @@ sc_readfile_result readfile(char * fname, int eraseflg) {
         #ifndef XLSX
         sc_error("XLSX import support not compiled in");
         #else
-        open_xlsx(fname, "UTF-8");
+        open_xlsx(sc, fname, "UTF-8");
         if (roman->name != NULL) free(roman->name);
         roman->name = malloc(sizeof(char)*PATHLEN);
         strcpy(roman->name, fname);
@@ -846,7 +850,7 @@ sc_readfile_result readfile(char * fname, int eraseflg) {
         ! strcasecmp( & fname[len-4], ".tsv") || ! strcasecmp( & fname[len-4], ".tab") ||
         ! strcasecmp( & fname[len-4], ".txt") )){
 
-        import_csv(fname, get_delim(&fname[len-3])); // csv tsv tab txt delim import
+        import_csv(sc, fname, get_delim(&fname[len-3])); // csv tsv tab txt delim import
         if (roman->name != NULL) free(roman->name);
         roman->name = malloc(sizeof(char)*PATHLEN);
         strcpy(roman->name, fname);
@@ -858,7 +862,7 @@ sc_readfile_result readfile(char * fname, int eraseflg) {
     } else if (len > 3 && ( ! strcasecmp( & fname[len-3], ".md") ||
           ! strcasecmp( & fname[len-4], ".mkd"))){
 
-      import_markdown(fname);
+      import_markdown(sc, fname);
       if (roman->name != NULL) free(roman->name);
       roman->name = malloc(sizeof(char)*PATHLEN);
       strcpy(roman->name, fname);
@@ -893,7 +897,8 @@ sc_readfile_result readfile(char * fname, int eraseflg) {
 
     while (! brokenpipe && fgets(line, sizeof(line), f)) {
         linelim = 0;
-        if (line[0] != '#') (void) yyparse();
+        if (line[0] != '#')
+            yyparse(sc);
     }
     fclose(f);
 
@@ -1094,7 +1099,7 @@ void print_options(FILE *f) {
  * \param[in] d = delim character
  * \return 0 on success; -1 on error
  */
-int import_csv(char * fname, char d) {
+int import_csv(SC *const sc, char * fname, char d) {
     struct roman * roman = session->cur_doc;
     register FILE * f;
     int r = 0, c = 0, cf = 0;
@@ -1175,7 +1180,8 @@ int import_csv(char * fname, char d) {
                 swprintf(line_interp, BUFFERSIZE, L"label %s%d=\"%s\"", coltoa(c), r, token);
             }
             //wide char
-            if (strlen(token)) send_to_interp(line_interp);
+            if (strlen(token))
+                send_to_interp(sc, line_interp);
 
             if (++c > cf) cf = c;
         }
@@ -1229,7 +1235,7 @@ int next_unquot_delim(char *start, char d) {
  * \param[in] d
  * \return 0 on success; -1 on error
  */
-int import_markdown(char * fname) {
+int import_markdown(SC *const sc, char * fname) {
     struct roman * roman = session->cur_doc;
     register FILE * f;
     int r = 0, c = 0, cf = 0;
@@ -1307,7 +1313,7 @@ int import_markdown(char * fname) {
                     align[c] = 'c';
                 }
 
-                send_to_interp(line_interp_align);
+                send_to_interp(sc, line_interp_align);
                 token = xstrtok(NULL, delim);
                 c++;
             }
@@ -1347,7 +1353,7 @@ int import_markdown(char * fname) {
                 }
                 //wide char
                 if (strlen(st)){
-                    send_to_interp(line_interp);
+                    send_to_interp(sc, line_interp);
 
                     if(r>0){
                         if(align[c] == 'l'){
@@ -1359,7 +1365,7 @@ int import_markdown(char * fname) {
                         else{
                             swprintf(line_interp_align, BUFFERSIZE, L"center %s", v_name(rownr, c));
                         }
-                        send_to_interp(line_interp_align);
+                        send_to_interp(sc, line_interp_align);
                     }
 
                 }
@@ -2241,7 +2247,8 @@ void readfile_argv(int argc, char ** argv) {
  * the file may contain multiple sheets
  * \return none
  */
-void load_file(char * file) {
+void
+load_file(SC *const sc, char * file) {
     if (file == NULL || file[0] == '\0') return;
     struct roman * roman = calloc(1, sizeof(struct roman));
     roman->name = ! strlen(file) ? NULL : strdup(file);
@@ -2262,7 +2269,7 @@ void load_file(char * file) {
 
     // load_tbl may open an sc file or a new sc-im file that can handle sheets.
     // new_sheet() would reuse Sheet1 if loading sc-im file.
-    load_tbl(file);
+    load_tbl(sc, file);
 
     // now mark 'Sheet1' as empty, removing is_allocated mark.
     roman->first_sh->flags &= ~is_allocated;
@@ -2275,7 +2282,8 @@ void load_file(char * file) {
  * \brief Attempt to load a tbl into a sheet
  * \return none
  */
-void load_tbl(char * loading_file) {
+void
+load_tbl(SC *const sc, char *loading_file) {
     char name[PATHLEN];
     strcpy(name, ""); //force name to be empty
     #ifdef NO_WORDEXP
@@ -2301,7 +2309,7 @@ void load_tbl(char * loading_file) {
     #endif
 
     if (strlen(name) != 0) {
-        sc_readfile_result result = readfile(name, 0);
+        sc_readfile_result result = readfile(sc, name, 0);
         if (! config_get_bool("nocurses")) {
             if (result == SC_READFILE_DOESNTEXIST) {
                 // It's a new record!

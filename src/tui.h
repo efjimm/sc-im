@@ -48,6 +48,7 @@
 #include <lua.h>
 #endif
 #include "color.h"
+#include "sc.h"
 
 #define NONE_COLOR        -2
 #define DEFAULT_COLOR     -1
@@ -81,7 +82,7 @@ void ui_do_welcome();
 void ui_update(int header);
 int ui_get_formated_value(struct ent ** p, int col, char * value);
 void ui_handle_cursor();
-void yyerror(char *err);               // error routine for yacc (gram.y)
+void yyerror(SC *const sc, char *err);               // error routine for yacc (gram.y)
 void ui_show_text(const char * val);
 #ifdef XLUA
 void ui_bail(lua_State *L, char * msg);

@@ -64,7 +64,7 @@ extern struct session * session;
 * \brief Paste to sc-im content stored on clipboard
 * \return 0 on success; -1 on error
 */
-int paste_from_clipboard() {
+int paste_from_clipboard(SC *const sc) {
     struct roman * roman = session->cur_doc;
     char *clipboard_cmd = config_get_string("default_paste_from_clipboard_cmd");
     if (!clipboard_cmd || !*clipboard_cmd) return -1;
@@ -119,7 +119,8 @@ int paste_from_clipboard() {
                 swprintf(line_interp, BUFFERSIZE, L"label %s%d=\"%s\"", coltoa(c), r, std);
                 free(std);
             }
-            if (strlen(st)) send_to_interp(line_interp);
+            if (strlen(st))
+                send_to_interp(sc, line_interp);
             c++;
             token = xstrtok(NULL, delim);
             free(num);

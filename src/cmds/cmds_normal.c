@@ -398,15 +398,15 @@ void do_normalmode(SC *const sc, Buffer *buf) {
 
             } else if (buffer_get(buf, 1) == L't') {                        // gt
                 (void) swprintf(interp_line, BUFFERSIZE, L"nextsheet");
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
 
             } else if (buffer_get(buf, 1) == L'T') {                        // gT
                 (void) swprintf(interp_line, BUFFERSIZE, L"prevsheet");
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
 
             } else if (buffer_get(buf, 1) == L'o') {                        // goA4 (goto cell A4)
                 (void) swprintf(interp_line, BUFFERSIZE, L"goto %s", parse_cell_name(2, buf));
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
             }
             unselect_ranges();
             ui_update(true);
@@ -586,7 +586,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 add_undo_row_format(sh->currow, 'R', sh->row_format[sh->currow]);
 #endif
                 swprintf(interp_line, BUFFERSIZE, L"format %d %d", sh->currow, sh->row_format[sh->currow]-1);
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
 #ifdef UNDO
                 if (sh->row_format[sh->currow] != fmt_ori) {
                     add_undo_row_format(sh->currow, 'A', sh->row_format[sh->currow]);
@@ -605,7 +605,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 add_undo_row_format(sh->currow, 'R', sh->row_format[sh->currow]);
 #endif
                 swprintf(interp_line, BUFFERSIZE, L"format %d %d", sh->currow, sh->row_format[sh->currow]+1);
-                send_to_interp(interp_line);
+                send_to_interp(sc, interp_line);
 #ifdef UNDO
                 if (sh->row_format[sh->currow] != fmt_ori) {
                     add_undo_row_format(sh->currow, 'A', sh->row_format[sh->currow]);
@@ -970,7 +970,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
                 wchar_t cline [BUFFERSIZE];
                 swprintf(cline, BUFFERSIZE, L"autofit %s:", coltoa(c));
                 swprintf(cline + wcslen(cline), BUFFERSIZE, L"%s", coltoa(cf));
-                send_to_interp(cline);
+                send_to_interp(sc, cline);
                 ui_update(true);
             }
             break;
@@ -1129,7 +1129,7 @@ void do_normalmode(SC *const sc, Buffer *buf) {
 #ifdef UNDO
             copy_to_undostruct(sh, r, c, rf, cf, UNDO_DEL, IGNORE_DEPS, NULL);
 #endif
-            send_to_interp(interp_line);
+            send_to_interp(sc, interp_line);
 #ifdef UNDO
             copy_to_undostruct(sh, r, c, rf, cf, UNDO_ADD, IGNORE_DEPS, NULL);
             end_undo_action();

@@ -41,4 +41,6 @@
  * \brief Header file for ods.c
  */
 
-int open_ods(char * fname, char * encoding);
+#include "../sc.h"
+
+int open_ods(SC *const sc, char * fname, char * encoding);
